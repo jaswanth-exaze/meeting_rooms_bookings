@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exaze | Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+    <script defer src="js/login.js"></script>
+  </head>
+  <body class="page-home">
+    <main class="page-container home-layout">
+      <section class="card-surface home-main fade-rise">
+        <header class="top-nav">
+          <a class="logo-wrap" href="home.html" aria-label="Exaze home">
+            <img src="assets/exaze-logo.png" alt="Exaze logo" />
+          </a>
+          <div class="brand-copy">
+            <p class="brand-kicker">Workspace Booking Platform</p>
+            <p class="brand-title">Book The Right Room In Seconds</p>
+          </div>
+        </header>
+
+        <section class="hero-block">
+          <div class="hero-content fade-rise delay-1">
+            <img
+              class="hero-illustration"
+              src="assets/home_page_image.png"
+              alt="Team collaborating in a modern meeting room"
+            />
+          </div>
+        </section>
+
+        <section class="search-ribbon-wrap fade-rise delay-2" aria-label="Find room">
+          <form id="room-search-form" class="search-ribbon">
+            <div class="search-chip">
+              <div>
+                <label for="booking-date">Date</label>
+                <input id="booking-date" name="booking_date" type="date" />
+              </div>
+            </div>
+            <div class="search-chip">
+              <div>
+                <label for="booking-time">Time</label>
+                <input id="booking-time" name="booking_time" type="time" />
+              </div>
+            </div>
+            <div class="search-chip">
+              <div>
+                <label for="booking-location">Location</label>
+                <select id="booking-location" name="location_id">
+                  <option value="">All Locations</option>
+                </select>
+              </div>
+            </div>
+            <div class="search-chip">
+              <div>
+                <label for="booking-attendees">Attendees</label>
+                <select id="booking-attendees" name="capacity">
+                  <option value="">Any Size</option>
+                  <option value="1-1">1 (Focus Pod)</option>
+                  <option value="2-6">2 - 6</option>
+                  <option value="7-10">7 - 10</option>
+                  <option value="11-15">11 - 15</option>
+                  <option value="16-20">16 - 20</option>
+                  <option value="21-999">21+</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary search-go" type="submit">Find</button>
+          </form>
+        </section>
+
+        <section class="featured-section fade-rise delay-3">
+          <div class="section-head">
+            <h2>Featured Rooms</h2>
+            <div class="featured-filter-wrap">
+              <label for="featured-location-filter">Location</label>
+              <select id="featured-location-filter" class="featured-location-filter" name="featured_location_id">
+                <option value="">All Locations</option>
+              </select>
+            </div>
+          </div>
+          <div class="rooms-grid">
+            <article class="room-card room-loading">
+              <div class="room-body">
+                <h3 class="room-title">Loading featured rooms...</h3>
+                <p class="room-meta">Fetching high-quality room previews.</p>
+              </div>
+            </article>
+          </div>
+          <p id="booking-message" class="auth-foot booking-message"></p>
+        </section>
+      </section>
+
+      <aside class="card-surface home-auth-card fade-rise delay-1" aria-label="Quick sign in">
+        <img class="mini-illustration" src="assets/cell_pod_1.png" alt="Professional working at desk" />
+        <form id="login-form" action="dashboard.html">
+          <input
+            class="input-field input-navy"
+            type="email"
+            name="email"
+            placeholder="Employee Email (alice.johnson@company.com)"
+            required
+          />
+          <input class="input-field input-green" type="password" name="password" placeholder="Password" required />
+          <div class="auth-inline">
+            <span>Forgot password?</span>
+            <a href="#">Reset</a>
+          </div>
+          <button class="btn btn-primary" type="submit" style="width: 100%">Sign In</button>
+        </form>
+        <p id="auth-message" class="auth-foot">New employee? Contact your admin to get access.</p>
+      </aside>
+    </main>
+
+    <div id="room-detail-modal" class="room-modal" hidden>
+      <div class="room-modal-backdrop" data-close-modal></div>
+      <section class="room-modal-card" role="dialog" aria-modal="true" aria-labelledby="room-detail-title">
+        <button class="room-modal-close" type="button" aria-label="Close details" data-close-modal>&times;</button>
+        <img id="room-detail-image" class="room-modal-image" src="assets/image(1).png" alt="Room preview" />
+        <h3 id="room-detail-title">Room</h3>
+        <p id="room-detail-location" class="room-meta"></p>
+        <p id="room-detail-meta" class="room-meta"></p>
+        <p id="room-detail-description" class="room-modal-description"></p>
+        <div class="room-modal-actions">
+          <button id="modal-book-btn" class="btn btn-primary" type="button">Book This Room</button>
+        </div>
+      </section>
+    </div>
+
+    <script src="js/home.js"></script>
+  </body>
+</html>

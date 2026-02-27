@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exaze | Admin Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/styles.css" />
+  </head>
+  <body class="page-dashboard" data-role="admin">
+    <main class="page-container dashboard-shell">
+      <aside class="sidebar fade-rise">
+        <a class="sidebar-brand" href="../home.html" aria-label="Exaze home">
+          <img src="../assets/exaze-logo.png" alt="Exaze logo" />
+        </a>
+
+        <div>
+          <p class="menu-title">Workspace</p>
+          <nav class="side-nav" aria-label="Workspace navigation">
+            <a class="active" href="#" data-section-target="overviewSection">Overview</a>
+            <a href="#" data-section-target="bookingsSection">My Bookings</a>
+            <a href="#" data-section-target="roomFinderSection">Room Finder</a>
+            <a href="#" data-section-target="reportsSection">Reports</a>
+            <a href="#" data-section-target="settingsSection">Settings</a>
+          </nav>
+        </div>
+
+        <div>
+          <p class="menu-title">Account</p>
+          <nav class="side-nav">
+            <a class="nav-logout" id="logout-link" href="#">Log Out</a>
+          </nav>
+        </div>
+
+        <div class="side-card">
+          <h4>Admin Controls</h4>
+          <p>Manage employee access and monitor organization-wide room usage.</p>
+          <button class="btn" data-section-jump="settingsSection" type="button">Go to Settings</button>
+        </div>
+      </aside>
+
+      <section class="dashboard-main fade-rise delay-1">
+        <header class="dash-top">
+          <div>
+            <span class="tag"><span class="icon-dot"></span><span id="todayLabel">Today</span></span>
+            <h1 id="welcomeHeading">Welcome, Admin</h1>
+            <p>Control bookings, track usage, and manage employee access from one place.</p>
+          </div>
+          <div class="profile-pill" data-section-jump="profileSection" role="button" tabindex="0">
+            <img class="avatar" src="../assets/image_4_-removebg-preview.png" alt="Profile" />
+            <div>
+              <strong id="headerName">Administrator</strong>
+              <span>Workspace Admin</span>
+            </div>
+          </div>
+        </header>
+
+        <section id="overviewSection" class="dashboard-section">
+          <section class="stats-grid">
+            <article class="stat-card">
+              <p class="label">Rooms Booked Today</p>
+              <p class="value" id="summaryRoomsToday">0</p>
+            </article>
+            <article class="stat-card">
+              <p class="label">Upcoming Meetings</p>
+              <p class="value" id="summaryUpcoming">0</p>
+            </article>
+            <article class="stat-card">
+              <p class="label">Avg Utilization</p>
+              <p class="value" id="summaryUtilization">0%</p>
+            </article>
+            <article class="stat-card">
+              <p class="label">Open Requests</p>
+              <p class="value" id="summaryOpenRequests">0</p>
+            </article>
+          </section>
+
+          <section class="dash-grid">
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Upcoming Bookings</h3>
+                <a class="tag" href="#" data-section-target="bookingsSection"><span class="icon-dot"></span>Manage</a>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Employee</th>
+                      <th>Room</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="overviewBookingsTable">
+                    <tr>
+                      <td colspan="5" class="empty-state">Loading bookings...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Available In 30 mins</h3>
+              </div>
+              <ul class="availability-list" id="overviewAvailabilityList">
+                <li>
+                  <span>Loading rooms...</span>
+                  <small>Please wait</small>
+                </li>
+              </ul>
+            </article>
+          </section>
+        </section>
+
+        <section id="bookingsSection" class="dashboard-section is-hidden">
+          <div class="section-head">
+            <h2>My Bookings</h2>
+            <button class="btn btn-primary" id="refreshBookingsBtn" type="button">Refresh</button>
+          </div>
+          <article class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Room</th>
+                    <th>Location</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="bookingsTable">
+                  <tr>
+                    <td colspan="6" class="empty-state">Loading bookings...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="roomFinderSection" class="dashboard-section is-hidden">
+          <div class="section-head">
+            <h2>Room Finder</h2>
+          </div>
+          <article class="panel">
+            <form id="roomFinderForm" class="filters-inline">
+              <div class="form-item">
+                <label for="finderDate">Date</label>
+                <input id="finderDate" type="date" />
+              </div>
+              <div class="form-item">
+                <label for="finderTime">Time</label>
+                <input id="finderTime" type="time" />
+              </div>
+              <div class="form-item">
+                <label for="finderLocation">Location</label>
+                <select id="finderLocation">
+                  <option value="">All Locations</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label for="finderCapacity">Min Capacity</label>
+                <input id="finderCapacity" type="number" min="1" placeholder="e.g. 8" />
+              </div>
+              <button class="btn btn-primary" type="submit">Find Rooms</button>
+            </form>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Room</th>
+                    <th>Location</th>
+                    <th>Capacity</th>
+                    <th>Features</th>
+                  </tr>
+                </thead>
+                <tbody id="roomFinderTable">
+                  <tr>
+                    <td colspan="4" class="empty-state">Search to load rooms.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section id="reportsSection" class="dashboard-section is-hidden">
+          <div class="section-head">
+            <h2>Reports</h2>
+          </div>
+          <section class="report-grid">
+            <article class="stat-card">
+              <p class="label">Upcoming (All Teams)</p>
+              <p class="value" id="reportUpcomingCount">0</p>
+            </article>
+            <article class="stat-card">
+              <p class="label">Pending Requests</p>
+              <p class="value" id="reportPendingCount">0</p>
+            </article>
+            <article class="stat-card">
+              <p class="label">Top Location</p>
+              <p class="value" id="reportTopLocation">-</p>
+            </article>
+          </section>
+          <section class="dash-grid">
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Upcoming By Location</h3>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Location</th>
+                      <th>Bookings</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportLocationTable">
+                    <tr>
+                      <td colspan="2" class="empty-state">Loading report...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Next 5 Meetings</h3>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Team Member</th>
+                      <th>Room</th>
+                      <th>Starts</th>
+                    </tr>
+                  </thead>
+                  <tbody id="reportUpcomingTable">
+                    <tr>
+                      <td colspan="3" class="empty-state">Loading report...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section id="settingsSection" class="dashboard-section is-hidden">
+          <div class="section-head">
+            <h2>Settings</h2>
+          </div>
+          <section class="settings-grid">
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Add Employee</h3>
+              </div>
+              <form id="addEmployeeForm" class="form-grid">
+                <div class="form-item">
+                  <label for="newEmployeeName">Name</label>
+                  <input id="newEmployeeName" type="text" required />
+                </div>
+                <div class="form-item">
+                  <label for="newEmployeeEmail">Email</label>
+                  <input id="newEmployeeEmail" type="email" required />
+                </div>
+                <div class="form-item">
+                  <label for="newEmployeeDept">Department</label>
+                  <input id="newEmployeeDept" type="text" />
+                </div>
+                <div class="form-item">
+                  <label for="newEmployeePassword">Password</label>
+                  <input id="newEmployeePassword" type="password" minlength="6" required />
+                </div>
+                <label class="inline-check">
+                  <input id="newEmployeeAdmin" type="checkbox" />
+                  Grant admin access
+                </label>
+                <div class="form-actions">
+                  <button class="btn btn-primary" type="submit">Add Employee</button>
+                </div>
+              </form>
+              <p id="addEmployeeMessage" class="helper-message"></p>
+            </article>
+
+            <article class="panel">
+              <div class="panel-head">
+                <h3>Employee Directory</h3>
+                <button class="btn btn-primary" id="refreshEmployeesBtn" type="button">Refresh</button>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Department</th>
+                      <th>Role</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="employeeAdminTable">
+                    <tr>
+                      <td colspan="6" class="empty-state">Loading employees...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section id="profileSection" class="dashboard-section is-hidden">
+          <div class="section-head">
+            <h2>Profile</h2>
+          </div>
+          <article class="panel">
+            <div class="profile-grid">
+              <div>
+                <p class="profile-label">Name</p>
+                <p class="profile-value" id="profileName">-</p>
+              </div>
+              <div>
+                <p class="profile-label">Email</p>
+                <p class="profile-value" id="profileEmail">-</p>
+              </div>
+              <div>
+                <p class="profile-label">Department</p>
+                <p class="profile-value" id="profileDepartment">-</p>
+              </div>
+              <div>
+                <p class="profile-label">Role</p>
+                <p class="profile-value" id="profileRole">Admin</p>
+              </div>
+            </div>
+          </article>
+        </section>
+      </section>
+    </main>
+    <script src="../js/role-dashboard.js"></script>
+  </body>
+</html>
