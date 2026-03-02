@@ -1,13 +1,19 @@
 const API_BASE_URL = "http://localhost:4000/api";
 
 const ROOM_IMAGES_BY_NAME = {
-  "think tank": "../assets/think_tank.png",
-  fusion: "../assets/fussion.png",
-  nexus: "../assets/Nexus.png",
+  
   "cell pod 1": "../assets/cell_pod_1.png",
   "cell pod 2": "../assets/cell_pod_2.png",
+  hubble:"../assets/hubble-2-persons.png",
+  fusion: "../assets/fussion-6-members.png",
+  synergy: "../assets/synergy-4-members.png",
+  nexus: "../assets/Nexus-2-persons.png",
+  zenith: "../assets/zenith-3-persons.png",
+  "tranquil": "../assets/tranquil-5-members.png",
+  "think tank": "../assets/think_tank.png",
   "innovation hub": "../assets/Innovation_Hub.png",
-  boardroom: "../assets/Conference_Room_A.png",
+  boardroom: "../assets/boardroom-15-members.png",
+  pinnacle: "../assets/pinnacle-15-members.png",
   "conference room a": "../assets/Conference_Room_A.png",
   "conference room b": "../assets/Conference_Room_B.png",
   "training room": "../assets/training_room.png"
@@ -51,6 +57,13 @@ let selectedRoom = null;
 let selectedBookingWindow = null;
 let availabilityWindow = null;
 let selectedBooking = null;
+const paginationState = {
+  bookings: { rows: [], page: 1, pageSize: 8 },
+  roomFinder: { rows: [], page: 1, pageSize: 8 },
+  employees: { rows: [], page: 1, pageSize: 8 },
+  reportLocations: { rows: [], page: 1, pageSize: 6 },
+  reportUpcoming: { rows: [], page: 1, pageSize: 6 }
+};
 
 function normalizeGender(value) {
   const normalized = String(value || "")
@@ -62,6 +75,102 @@ function normalizeGender(value) {
 
 function getProfileImagePath(gender) {
   return normalizeGender(gender) === "female" ? FEMALE_PROFILE_IMAGE : MALE_PROFILE_IMAGE;
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getPaginationConfig(key) {
+  return paginationState[key] || null;
+}
+
+function setPaginationRows(key, rows) {
+  const config = getPaginationConfig(key);
+  if (!config) return;
+  config.rows = Array.isArray(rows) ? rows : [];
+  config.page = 1;
+}
+
+function getPaginationTotalPages(key) {
+  const config = getPaginationConfig(key);
+  if (!config) return 1;
+  return Math.max(1, Math.ceil(config.rows.length / config.pageSize));
+}
+
+function getPaginationSlice(key) {
+  const config = getPaginationConfig(key);
+  if (!config) return [];
+
+  const totalPages = getPaginationTotalPages(key);
+  config.page = clamp(config.page, 1, totalPages);
+
+  const start = (config.page - 1) * config.pageSize;
+  const end = start + config.pageSize;
+  return config.rows.slice(start, end);
+}
+
+function renderPaginationControls(containerId, key) {
+  const container = document.getElementById(containerId);
+  const config = getPaginationConfig(key);
+  if (!container || !config) return;
+
+  const totalRows = config.rows.length;
+  const totalPages = getPaginationTotalPages(key);
+  config.page = clamp(config.page, 1, totalPages);
+
+  if (totalRows === 0 || totalPages <= 1) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const windowSize = 5;
+  let startPage = Math.max(1, config.page - Math.floor(windowSize / 2));
+  let endPage = startPage + windowSize - 1;
+  if (endPage > totalPages) {
+    endPage = totalPages;
+    startPage = Math.max(1, endPage - windowSize + 1);
+  }
+
+  const pageButtons = [];
+  for (let page = startPage; page <= endPage; page += 1) {
+    pageButtons.push(`
+      <button
+        type="button"
+        class="pagination-btn ${page === config.page ? "active" : ""}"
+        data-pagination-key="${key}"
+        data-pagination-page="${page}"
+      >
+        ${page}
+      </button>
+    `);
+  }
+
+  const from = (config.page - 1) * config.pageSize + 1;
+  const to = Math.min(config.page * config.pageSize, totalRows);
+
+  container.innerHTML = `
+    <span class="pagination-meta">Showing ${from}-${to} of ${totalRows}</span>
+    <button
+      type="button"
+      class="pagination-btn"
+      data-pagination-key="${key}"
+      data-pagination-page="${config.page - 1}"
+      ${config.page === 1 ? "disabled" : ""}
+    >
+      Prev
+    </button>
+    ${pageButtons.join("")}
+    <button
+      type="button"
+      class="pagination-btn"
+      data-pagination-key="${key}"
+      data-pagination-page="${config.page + 1}"
+      ${config.page === totalPages ? "disabled" : ""}
+    >
+      Next
+    </button>
+  `;
 }
 
 function getLocalDateInputValue(date = new Date()) {
@@ -320,13 +429,65 @@ function showSection(sectionId) {
   });
 }
 
+const dashboardSidebar = document.getElementById("dashboardSidebar");
+const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
+const sidebarDrawerBackdrop = document.getElementById("sidebarDrawerBackdrop");
+
+function isMobileDrawerViewport() {
+  return window.matchMedia("(max-width: 1040px)").matches;
+}
+
+function setSidebarDrawerState(isOpen) {
+  if (!dashboardSidebar) return;
+
+  dashboardSidebar.classList.toggle("is-open", isOpen);
+  document.body.classList.toggle("drawer-open", isOpen);
+
+  if (sidebarDrawerBackdrop) {
+    sidebarDrawerBackdrop.hidden = !isOpen;
+    sidebarDrawerBackdrop.classList.toggle("is-open", isOpen);
+  }
+
+  if (sidebarToggleBtn) {
+    sidebarToggleBtn.setAttribute("aria-expanded", String(isOpen));
+    sidebarToggleBtn.setAttribute("aria-label", isOpen ? "Close navigation menu" : "Open navigation menu");
+  }
+}
+
+function closeSidebarDrawer() {
+  setSidebarDrawerState(false);
+}
+
+function initializeSidebarDrawer() {
+  if (!dashboardSidebar || !sidebarToggleBtn || !sidebarDrawerBackdrop) return;
+
+  // Force a clean initial state on load (especially after responsive transitions).
+  setSidebarDrawerState(false);
+
+  sidebarToggleBtn.addEventListener("click", () => {
+    const isOpen = dashboardSidebar.classList.contains("is-open");
+    setSidebarDrawerState(!isOpen);
+  });
+
+  sidebarDrawerBackdrop.addEventListener("click", closeSidebarDrawer);
+
+  window.addEventListener("resize", () => {
+    if (!isMobileDrawerViewport()) {
+      closeSidebarDrawer();
+    }
+  });
+}
+
 function initializeNav() {
   const navLinks = document.querySelectorAll(".side-nav [data-section-target]");
   navLinks.forEach(link => {
     link.addEventListener("click", event => {
       event.preventDefault();
       const targetId = link.dataset.sectionTarget;
-      if (targetId) showSection(targetId);
+      if (targetId) {
+        showSection(targetId);
+        closeSidebarDrawer();
+      }
     });
   });
 
@@ -334,7 +495,10 @@ function initializeNav() {
   jumpTargets.forEach(element => {
     const goToSection = () => {
       const targetId = element.dataset.sectionJump;
-      if (targetId) showSection(targetId);
+      if (targetId) {
+        showSection(targetId);
+        closeSidebarDrawer();
+      }
     };
 
     element.addEventListener("click", goToSection);
@@ -350,6 +514,7 @@ function initializeNav() {
   if (logoutLink) {
     logoutLink.addEventListener("click", event => {
       event.preventDefault();
+      closeSidebarDrawer();
       clearAuthAndLogout();
     });
   }
@@ -483,17 +648,15 @@ function buildBookingActionsCell(booking) {
   `;
 }
 
-function renderBookingsTable(rows) {
+function renderBookingsPage() {
   const table = document.getElementById("bookingsTable");
   if (!table) return;
 
-  bookingsById = new Map();
-  (rows || []).forEach(row => {
-    bookingsById.set(Number(row.booking_id), row);
-  });
+  const rows = getPaginationSlice("bookings");
 
   if (!Array.isArray(rows) || rows.length === 0) {
     table.innerHTML = `<tr><td colspan="7" class="empty-state">No bookings found.</td></tr>`;
+    renderPaginationControls("bookingsPagination", "bookings");
     return;
   }
 
@@ -513,6 +676,18 @@ function renderBookingsTable(rows) {
       `;
     })
     .join("");
+
+  renderPaginationControls("bookingsPagination", "bookings");
+}
+
+function renderBookingsTable(rows) {
+  bookingsById = new Map();
+  (rows || []).forEach(row => {
+    bookingsById.set(Number(row.booking_id), row);
+  });
+
+  setPaginationRows("bookings", rows);
+  renderBookingsPage();
 }
 
 async function loadBookings() {
@@ -527,7 +702,7 @@ async function loadBookings() {
 
     renderOverviewBookings(overviewRows);
 
-    const myRows = await apiFetch(buildMyBookingsUrl(50));
+    const myRows = await apiFetch(buildMyBookingsUrl(200));
     renderBookingsTable(myRows);
   } catch (error) {
     console.error("Failed to load bookings:", error);
@@ -537,6 +712,8 @@ async function loadBookings() {
     if (bookingsTable) {
       bookingsTable.innerHTML = `<tr><td colspan="7" class="empty-state">Unable to load your bookings. Please refresh.</td></tr>`;
     }
+    setPaginationRows("bookings", []);
+    renderPaginationControls("bookingsPagination", "bookings");
   }
 }
 
@@ -580,11 +757,21 @@ function renderRoomFinderTable(rooms) {
     finderRoomsById.set(Number(room.room_id), room);
   });
 
+  setPaginationRows("roomFinder", rooms);
+  renderRoomFinderPage();
+}
+
+function renderRoomFinderPage() {
+  const table = document.getElementById("roomFinderTable");
+  if (!table) return;
+
+  const rooms = getPaginationSlice("roomFinder");
   const hasAction = true;
   const colSpan = 6;
 
   if (!Array.isArray(rooms) || rooms.length === 0) {
     table.innerHTML = `<tr><td colspan="${colSpan}" class="empty-state">No rooms found.</td></tr>`;
+    renderPaginationControls("roomFinderPagination", "roomFinder");
     return;
   }
 
@@ -607,6 +794,8 @@ function renderRoomFinderTable(rooms) {
       `;
     })
     .join("");
+
+  renderPaginationControls("roomFinderPagination", "roomFinder");
 }
 
 function renderAvailabilityList(rooms) {
@@ -674,7 +863,7 @@ async function searchRooms(event) {
   const capacityValue = document.getElementById("finderCapacity")?.value || "";
 
   const params = new URLSearchParams();
-  params.set("limit", "20");
+  params.set("limit", "100");
   if (locationValue) params.set("location_id", locationValue);
   if (capacityValue) params.set("capacity", capacityValue);
 
@@ -732,19 +921,41 @@ function renderReportTables(reportData) {
   const byLocation = Array.isArray(reportData?.by_location) ? reportData.by_location : [];
   const upcoming = Array.isArray(reportData?.upcoming) ? reportData.upcoming : [];
 
+  setPaginationRows("reportLocations", byLocation);
+  setPaginationRows("reportUpcoming", upcoming);
+
+  renderReportLocationPage();
+  renderReportUpcomingPage();
+
+  upcomingCount.textContent = String(Number(summary.upcoming_count || 0));
+  pendingCount.textContent = String(Number(summary.pending_count || 0));
+  topLocation.textContent = String(summary.top_location || "-");
+}
+
+function renderReportLocationPage() {
+  const locationTable = document.getElementById("reportLocationTable");
+  if (!locationTable) return;
+
+  const rows = getPaginationSlice("reportLocations");
   locationTable.innerHTML =
-    byLocation.length === 0
+    rows.length === 0
       ? `<tr><td colspan="2" class="empty-state">No report data.</td></tr>`
-      : byLocation
-          .slice(0, 10)
+      : rows
           .map(row => `<tr><td>${escapeHtml(row.location_name || "-")}</td><td>${Number(row.booking_count || 0)}</td></tr>`)
           .join("");
 
+  renderPaginationControls("reportLocationPagination", "reportLocations");
+}
+
+function renderReportUpcomingPage() {
+  const upcomingTable = document.getElementById("reportUpcomingTable");
+  if (!upcomingTable) return;
+
+  const rows = getPaginationSlice("reportUpcoming");
   upcomingTable.innerHTML =
-    upcoming.length === 0
+    rows.length === 0
       ? `<tr><td colspan="3" class="empty-state">No report data.</td></tr>`
-      : upcoming
-          .slice(0, 5)
+      : rows
           .map(row => {
             return `
               <tr>
@@ -756,9 +967,7 @@ function renderReportTables(reportData) {
           })
           .join("");
 
-  upcomingCount.textContent = String(Number(summary.upcoming_count || 0));
-  pendingCount.textContent = String(Number(summary.pending_count || 0));
-  topLocation.textContent = String(summary.top_location || "-");
+  renderPaginationControls("reportUpcomingPagination", "reportUpcoming");
 }
 
 async function loadReports() {
@@ -792,8 +1001,18 @@ function renderEmployeeTable(rows) {
   const table = document.getElementById("employeeAdminTable");
   if (!table) return;
 
+  setPaginationRows("employees", rows);
+  renderEmployeePage();
+}
+
+function renderEmployeePage() {
+  const table = document.getElementById("employeeAdminTable");
+  if (!table) return;
+
+  const rows = getPaginationSlice("employees");
   if (!Array.isArray(rows) || rows.length === 0) {
     table.innerHTML = `<tr><td colspan="7" class="empty-state">No employees found.</td></tr>`;
+    renderPaginationControls("employeePagination", "employees");
     return;
   }
 
@@ -822,15 +1041,19 @@ function renderEmployeeTable(rows) {
       `;
     })
     .join("");
+
+  renderPaginationControls("employeePagination", "employees");
 }
 
 async function loadEmployees() {
   if (currentRole !== "admin") return;
 
   const table = document.getElementById("employeeAdminTable");
+  const pagination = document.getElementById("employeePagination");
   if (!table) return;
 
   table.innerHTML = `<tr><td colspan="7" class="empty-state">Loading employees...</td></tr>`;
+  if (pagination) pagination.innerHTML = "";
 
   try {
     const rows = await apiFetch("/admin/employees");
@@ -838,6 +1061,8 @@ async function loadEmployees() {
   } catch (error) {
     console.error("Failed to load employees:", error);
     table.innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load employees.</td></tr>`;
+    setPaginationRows("employees", []);
+    renderPaginationControls("employeePagination", "employees");
   }
 }
 
@@ -1222,6 +1447,11 @@ function initializeRoomModalHandlers() {
   document.addEventListener("keydown", event => {
     if (event.key !== "Escape") return;
 
+    if (dashboardSidebar && dashboardSidebar.classList.contains("is-open")) {
+      closeSidebarDrawer();
+      return;
+    }
+
     if (bookingEditModal && !bookingEditModal.hidden) {
       closeBookingEditModal();
       return;
@@ -1316,6 +1546,28 @@ function initializeRoomFinder() {
   form.addEventListener("submit", searchRooms);
 }
 
+function renderPaginatedSection(key) {
+  if (key === "bookings") {
+    renderBookingsPage();
+    return;
+  }
+  if (key === "roomFinder") {
+    renderRoomFinderPage();
+    return;
+  }
+  if (key === "employees") {
+    renderEmployeePage();
+    return;
+  }
+  if (key === "reportLocations") {
+    renderReportLocationPage();
+    return;
+  }
+  if (key === "reportUpcoming") {
+    renderReportUpcomingPage();
+  }
+}
+
 function initializePageActions() {
   const refreshBookingsBtn = document.getElementById("refreshBookingsBtn");
   if (refreshBookingsBtn) {
@@ -1343,12 +1595,26 @@ function initializePageActions() {
       }
     });
   }
+
+  document.addEventListener("click", event => {
+    const button = event.target.closest("button[data-pagination-key][data-pagination-page]");
+    if (!button) return;
+
+    const key = String(button.dataset.paginationKey || "");
+    const page = Number.parseInt(String(button.dataset.paginationPage || ""), 10);
+    const config = getPaginationConfig(key);
+    if (!config || !Number.isFinite(page)) return;
+
+    config.page = clamp(page, 1, getPaginationTotalPages(key));
+    renderPaginatedSection(key);
+  });
 }
 
 async function initializeDashboard() {
   setTodayLabel();
   setHeaderContent();
   setProfileSection();
+  initializeSidebarDrawer();
   initializeNav();
   initializePageActions();
   initializeRoomFinder();

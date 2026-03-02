@@ -1,13 +1,19 @@
 const API_BASE_URL = "http://localhost:4000/api";
 
 const ROOM_IMAGES_BY_NAME = {
-  "think tank": "assets/think_tank.png",
-  fusion: "assets/fussion.png",
-  nexus: "assets/Nexus.png",
+  
   "cell pod 1": "assets/cell_pod_1.png",
   "cell pod 2": "assets/cell_pod_2.png",
+  hubble:"assets/hubble-2-persons.png",
+  fusion: "assets/fussion-6-members.png",
+  nexus: "assets/Nexus-2-persons.png",
+  zenith: "assets/zenith-3-persons.png",
+   synergy: "assets/synergy-4-members.png",
+  "tranquil": "assets/tranquil-5-members.png",
+  "think tank": "assets/think_tank.png",
   "innovation hub": "assets/Innovation_Hub.png",
-  boardroom: "assets/Conference_Room_A.png",
+  boardroom: "assets/boardroom-15-members.png",
+  pinnacle: "assets/pinnacle-15-members.png",
   "conference room a": "assets/Conference_Room_A.png",
   "conference room b": "assets/Conference_Room_B.png",
   "training room": "assets/training_room.png"

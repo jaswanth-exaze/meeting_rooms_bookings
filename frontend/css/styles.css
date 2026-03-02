@@ -735,6 +735,45 @@ button {
   color: var(--text-muted);
 }
 
+.mobile-drawer-toggle {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border: 1px solid #d0def3;
+  border-radius: 11px;
+  background: linear-gradient(180deg, #ffffff 0%, #f1f7ff 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 6px 12px rgba(23, 52, 91, 0.12);
+  padding: 0.55rem;
+  cursor: pointer;
+}
+
+.mobile-drawer-toggle span {
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  border-radius: 999px;
+  background: #2e4e79;
+}
+
+.mobile-drawer-toggle span + span {
+  margin-top: 5px;
+}
+
+.sidebar-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 26, 44, 0.46);
+  z-index: 1049;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-drawer-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
 .dashboard-section {
   margin-top: 1rem;
 }
@@ -861,6 +900,51 @@ button {
 
 .table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table-pagination {
+  margin-top: 0.7rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.pagination-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-right: 0.25rem;
+}
+
+.pagination-btn {
+  border: 1px solid #cbd9ee;
+  background: linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%);
+  color: var(--navy);
+  min-width: 34px;
+  height: 32px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0 0.55rem;
+  cursor: pointer;
+}
+
+.pagination-btn:hover {
+  background: linear-gradient(180deg, #ffffff 0%, #eaf3ff 100%);
+}
+
+.pagination-btn.active {
+  background: linear-gradient(125deg, #1e3d73 0%, #24529a 100%);
+  border-color: #24529a;
+  color: #ffffff;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 table {
@@ -1123,18 +1207,23 @@ th {
 }
 
 .profile-photo-wrap {
+  width: 220px;
+  height: 220px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
   border: 1px solid #dce6f6;
-  border-radius: 14px;
-  padding: 0.8rem;
-  background: linear-gradient(180deg, #f7fbff 0%, #edf4ff 100%);
+  border-radius: 999px;
+  padding: 0.55rem;
+  background: radial-gradient(circle at 30% 20%, #f9fcff 0%, #edf4ff 65%, #e3edfb 100%);
 }
 
 .profile-photo {
   width: 100%;
-  max-width: 180px;
+  height: 100%;
+  max-width: none;
   margin: 0 auto;
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
+  border-radius: 999px;
   object-fit: cover;
   border: 2px solid #ffffff;
   box-shadow: 0 8px 14px rgba(24, 52, 90, 0.15);
@@ -1175,6 +1264,39 @@ th {
     order: -1;
   }
 
+  .mobile-drawer-toggle {
+    display: inline-block;
+    flex: 0 0 auto;
+  }
+
+  .sidebar {
+    position: fixed;
+    top: 0.72rem;
+    left: 0.72rem;
+    right: 0.72rem;
+    z-index: 1051;
+    max-height: calc(100vh - 1.44rem);
+    overflow-y: auto;
+    transform: translateY(-120%);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform 0.26s ease, opacity 0.22s ease;
+  }
+
+  .sidebar.fade-rise {
+    animation: none;
+  }
+
+  .sidebar.is-open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  body.page-dashboard.drawer-open {
+    overflow: hidden;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1191,6 +1313,12 @@ th {
 
   .profile-layout {
     grid-template-columns: 1fr;
+    justify-items: center;
+    gap: 0.9rem;
+  }
+
+  .profile-grid {
+    width: 100%;
   }
 }
 
@@ -1257,6 +1385,28 @@ th {
     padding: 0.9rem;
   }
 
+  .table-pagination {
+    justify-content: flex-start;
+  }
+
+  table {
+    min-width: 460px;
+  }
+
+  th,
+  td {
+    padding: 0.6rem 0.35rem;
+    font-size: 0.84rem;
+  }
+
+  .dashboard-shell {
+    gap: 0.75rem;
+  }
+
+  .sidebar {
+    padding: 0.95rem 0.8rem;
+  }
+
   .room-modal-image {
     height: 250px;
   }
@@ -1264,5 +1414,22 @@ th {
   .dash-top {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .mobile-drawer-toggle {
+    width: 40px;
+    height: 40px;
+    padding: 0.5rem;
+  }
+
+  .profile-pill {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .profile-photo-wrap {
+    width: 160px;
+    height: 160px;
+    padding: 0.45rem;
   }
 }

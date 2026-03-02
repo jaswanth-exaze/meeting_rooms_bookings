@@ -1,4 +1,3 @@
--- Active: 1771256090925@@127.0.0.1@3306@meeting_room_booking
 const express = require("express");
 const {
   getUpcomingBookings,

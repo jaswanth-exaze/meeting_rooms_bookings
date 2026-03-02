@@ -14,7 +14,7 @@
   </head>
   <body class="page-dashboard" data-role="employee">
     <main class="page-container dashboard-shell">
-      <aside class="sidebar fade-rise">
+      <aside id="dashboardSidebar" class="sidebar fade-rise">
         <a class="sidebar-brand" href="../home.html" aria-label="Exaze home">
           <img src="../assets/exaze-logo.png" alt="Exaze logo" />
         </a>
@@ -44,6 +44,18 @@
 
       <section class="dashboard-main fade-rise delay-1">
         <header class="dash-top">
+          <button
+            class="mobile-drawer-toggle"
+            id="sidebarToggleBtn"
+            type="button"
+            aria-label="Open navigation menu"
+            aria-controls="dashboardSidebar"
+            aria-expanded="false"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div>
             <span class="tag"><span class="icon-dot"></span><span id="todayLabel">Today</span></span>
             <h1 id="welcomeHeading">Welcome Back</h1>
@@ -144,6 +156,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="bookingsPagination" class="table-pagination"></div>
           </article>
         </section>
 
@@ -202,6 +215,7 @@
                 </tbody>
               </table>
             </div>
+            <div id="roomFinderPagination" class="table-pagination"></div>
           </article>
         </section>
 
@@ -241,6 +255,7 @@
         </section>
       </section>
     </main>
+    <div id="sidebarDrawerBackdrop" class="sidebar-drawer-backdrop" hidden></div>
     <div id="dashboard-room-modal" class="room-modal" hidden>
       <div class="room-modal-backdrop" data-close-modal></div>
       <section class="room-modal-card" role="dialog" aria-modal="true" aria-labelledby="dashboard-room-title">
