@@ -52,7 +52,7 @@
             <p>Control bookings, track usage, and manage employee access from one place.</p>
           </div>
           <div class="profile-pill" data-section-jump="profileSection" role="button" tabindex="0">
-            <img class="avatar" src="../assets/image_4_-removebg-preview.png" alt="Profile" />
+            <img class="avatar" src="../assets/male_profile.png" alt="Profile" />
             <div>
               <strong id="headerName">Administrator</strong>
               <span>Workspace Admin</span>
@@ -136,11 +136,12 @@
                     <th>Start</th>
                     <th>End</th>
                     <th>Status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody id="bookingsTable">
                   <tr>
-                    <td colspan="6" class="empty-state">Loading bookings...</td>
+                    <td colspan="7" class="empty-state">Loading bookings...</td>
                   </tr>
                 </tbody>
               </table>
@@ -163,6 +164,15 @@
                 <input id="finderTime" type="time" />
               </div>
               <div class="form-item">
+                <label for="finderDuration">Duration</label>
+                <select id="finderDuration">
+                  <option value="30">30 mins</option>
+                  <option value="60" selected>60 mins</option>
+                  <option value="90">90 mins</option>
+                  <option value="120">120 mins</option>
+                </select>
+              </div>
+              <div class="form-item">
                 <label for="finderLocation">Location</label>
                 <select id="finderLocation">
                   <option value="">All Locations</option>
@@ -182,12 +192,14 @@
                     <th>Room</th>
                     <th>Location</th>
                     <th>Capacity</th>
+                    <th>Status</th>
                     <th>Features</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody id="roomFinderTable">
                   <tr>
-                    <td colspan="4" class="empty-state">Search to load rooms.</td>
+                    <td colspan="6" class="empty-state">Search to load rooms.</td>
                   </tr>
                 </tbody>
               </table>
@@ -282,6 +294,13 @@
                   <input id="newEmployeeDept" type="text" />
                 </div>
                 <div class="form-item">
+                  <label for="newEmployeeGender">Gender</label>
+                  <select id="newEmployeeGender" required>
+                    <option value="male" selected>Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </div>
+                <div class="form-item">
                   <label for="newEmployeePassword">Password</label>
                   <input id="newEmployeePassword" type="password" minlength="6" required />
                 </div>
@@ -309,13 +328,14 @@
                       <th>Name</th>
                       <th>Email</th>
                       <th>Department</th>
+                      <th>Gender</th>
                       <th>Role</th>
                       <th>Action</th>
                     </tr>
                   </thead>
                   <tbody id="employeeAdminTable">
                     <tr>
-                      <td colspan="6" class="empty-state">Loading employees...</td>
+                      <td colspan="7" class="empty-state">Loading employees...</td>
                     </tr>
                   </tbody>
                 </table>
@@ -329,28 +349,101 @@
             <h2>Profile</h2>
           </div>
           <article class="panel">
-            <div class="profile-grid">
-              <div>
-                <p class="profile-label">Name</p>
-                <p class="profile-value" id="profileName">-</p>
+            <div class="profile-layout">
+              <div class="profile-photo-wrap">
+                <img id="profileImage" class="profile-photo" src="../assets/male_profile.png" alt="Profile photo" />
               </div>
-              <div>
-                <p class="profile-label">Email</p>
-                <p class="profile-value" id="profileEmail">-</p>
-              </div>
-              <div>
-                <p class="profile-label">Department</p>
-                <p class="profile-value" id="profileDepartment">-</p>
-              </div>
-              <div>
-                <p class="profile-label">Role</p>
-                <p class="profile-value" id="profileRole">Admin</p>
+              <div class="profile-grid">
+                <div>
+                  <p class="profile-label">Name</p>
+                  <p class="profile-value" id="profileName">-</p>
+                </div>
+                <div>
+                  <p class="profile-label">Email</p>
+                  <p class="profile-value" id="profileEmail">-</p>
+                </div>
+                <div>
+                  <p class="profile-label">Department</p>
+                  <p class="profile-value" id="profileDepartment">-</p>
+                </div>
+                <div>
+                  <p class="profile-label">Gender</p>
+                  <p class="profile-value" id="profileGender">-</p>
+                </div>
+                <div>
+                  <p class="profile-label">Role</p>
+                  <p class="profile-value" id="profileRole">Admin</p>
+                </div>
               </div>
             </div>
           </article>
         </section>
       </section>
     </main>
+    <div id="dashboard-room-modal" class="room-modal" hidden>
+      <div class="room-modal-backdrop" data-close-modal></div>
+      <section class="room-modal-card" role="dialog" aria-modal="true" aria-labelledby="dashboard-room-title">
+        <button class="room-modal-close" type="button" aria-label="Close details" data-close-modal>&times;</button>
+        <img id="dashboard-room-image" class="room-modal-image" src="../assets/image(3).png" alt="Room preview" />
+        <h3 id="dashboard-room-title">Room</h3>
+        <p id="dashboard-room-location" class="room-meta"></p>
+        <p id="dashboard-room-features" class="room-meta"></p>
+        <p id="dashboard-room-slot" class="room-meta"></p>
+        <p id="dashboard-room-description" class="room-modal-description"></p>
+        <div class="form-item">
+          <label for="dashboardMeetingTitle">Meeting Name</label>
+          <input id="dashboardMeetingTitle" type="text" placeholder="Enter meeting name" />
+        </div>
+        <div class="form-item">
+          <label for="dashboardMeetingDescription">Meeting Description</label>
+          <textarea id="dashboardMeetingDescription" rows="3" placeholder="Enter meeting description"></textarea>
+        </div>
+        <p id="dashboard-room-message" class="helper-message"></p>
+        <div class="room-modal-actions">
+          <button id="dashboard-room-book-btn" class="btn btn-primary" type="button">Book This Room</button>
+        </div>
+      </section>
+    </div>
+    <div id="booking-edit-modal" class="room-modal" hidden>
+      <div class="room-modal-backdrop" data-close-booking-modal></div>
+      <section class="room-modal-card" role="dialog" aria-modal="true" aria-labelledby="booking-edit-title">
+        <button class="room-modal-close" type="button" aria-label="Close edit booking" data-close-booking-modal>&times;</button>
+        <h3 id="booking-edit-title">Edit Booking</h3>
+        <form id="bookingEditForm" class="form-grid">
+          <div class="form-item">
+            <label for="bookingEditTitle">Meeting Title</label>
+            <input id="bookingEditTitle" type="text" required />
+          </div>
+          <div class="form-item">
+            <label for="bookingEditDescription">Meeting Description</label>
+            <textarea id="bookingEditDescription" rows="3" required></textarea>
+          </div>
+          <div class="filters-inline">
+            <div class="form-item">
+              <label for="bookingEditDate">Date</label>
+              <input id="bookingEditDate" type="date" required />
+            </div>
+            <div class="form-item">
+              <label for="bookingEditTime">Time</label>
+              <input id="bookingEditTime" type="time" required />
+            </div>
+            <div class="form-item">
+              <label for="bookingEditDuration">Duration</label>
+              <select id="bookingEditDuration">
+                <option value="30">30 mins</option>
+                <option value="60" selected>60 mins</option>
+                <option value="90">90 mins</option>
+                <option value="120">120 mins</option>
+              </select>
+            </div>
+          </div>
+          <p id="bookingEditMessage" class="helper-message"></p>
+          <div class="room-modal-actions">
+            <button class="btn btn-primary" type="submit">Save Changes</button>
+          </div>
+        </form>
+      </section>
+    </div>
     <script src="../js/role-dashboard.js"></script>
   </body>
 </html>

@@ -27,6 +27,7 @@ CREATE TABLE `booking` (
   `room_id` int NOT NULL,
   `employee_id` int NOT NULL,
   `title` varchar(200) NOT NULL,
+  `description` text,
   `start_time` datetime NOT NULL,
   `end_time` datetime NOT NULL,
   `status` enum('confirmed','cancelled','pending') DEFAULT 'confirmed',
@@ -62,6 +63,7 @@ CREATE TABLE `employee` (
   `name` varchar(100) NOT NULL,
   `email` varchar(255) NOT NULL,
   `department` varchar(100) DEFAULT NULL,
+  `gender` enum('male','female') NOT NULL DEFAULT 'male',
   `is_admin` tinyint(1) DEFAULT '0',
   `password` varchar(255) NOT NULL,
   PRIMARY KEY (`employee_id`),
@@ -75,7 +77,17 @@ CREATE TABLE `employee` (
 
 LOCK TABLES `employee` WRITE;
 /*!40000 ALTER TABLE `employee` DISABLE KEYS */;
-INSERT INTO `employee` VALUES (1,'Alice Johnson','alice.johnson@company.com','Engineering',1,'password12'),(2,'Bob Smith','bob.smith@company.com','Marketing',0,'password12'),(3,'Carol White','carol.white@company.com','Sales',0,'password12'),(4,'David Brown','david.brown@company.com','Human Resources',0,'password12'),(5,'Eve Davis','eve.davis@company.com','Finance',0,'password12'),(6,'Frank Miller','frank.miller@company.com','Engineering',0,'password12'),(7,'Grace Wilson','grace.wilson@company.com','Sales',0,'password12'),(8,'Henry Taylor','henry.taylor@company.com','IT Support',1,'password12'),(9,'Irene Moore','irene.moore@company.com','Marketing',0,'password12'),(10,'Jack Anderson','jack.anderson@company.com','Operations',0,'password12');
+INSERT INTO `employee` (`employee_id`,`name`,`email`,`department`,`gender`,`is_admin`,`password`) VALUES
+  (1,'Alice Johnson','alice.johnson@company.com','Engineering','female',1,'password12'),
+  (2,'Bob Smith','bob.smith@company.com','Marketing','male',0,'password12'),
+  (3,'Carol White','carol.white@company.com','Sales','female',0,'password12'),
+  (4,'David Brown','david.brown@company.com','Human Resources','male',0,'password12'),
+  (5,'Eve Davis','eve.davis@company.com','Finance','female',0,'password12'),
+  (6,'Frank Miller','frank.miller@company.com','Engineering','male',0,'password12'),
+  (7,'Grace Wilson','grace.wilson@company.com','Sales','female',0,'password12'),
+  (8,'Henry Taylor','henry.taylor@company.com','IT Support','male',1,'password12'),
+  (9,'Irene Moore','irene.moore@company.com','Marketing','female',0,'password12'),
+  (10,'Jack Anderson','jack.anderson@company.com','Operations','male',0,'password12');
 /*!40000 ALTER TABLE `employee` ENABLE KEYS */;
 UNLOCK TABLES;
 

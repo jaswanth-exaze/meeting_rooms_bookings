@@ -12,6 +12,8 @@ const ROOM_IMAGES_BY_NAME = {
   "conference room b": "../assets/Conference_Room_B.png",
   "training room": "../assets/training_room.png"
 };
+const MALE_PROFILE_IMAGE = "../assets/male_profile.png";
+const FEMALE_PROFILE_IMAGE = "../assets/female_profile.png";
 
 const token = localStorage.getItem("auth_token");
 if (!token) {
@@ -44,9 +46,32 @@ if (currentRole === "employee" && isAdmin) {
 
 let finderRoomsById = new Map();
 let availabilityRoomsById = new Map();
+let bookingsById = new Map();
 let selectedRoom = null;
 let selectedBookingWindow = null;
 let availabilityWindow = null;
+let selectedBooking = null;
+
+function normalizeGender(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "female") return "female";
+  return "male";
+}
+
+function getProfileImagePath(gender) {
+  return normalizeGender(gender) === "female" ? FEMALE_PROFILE_IMAGE : MALE_PROFILE_IMAGE;
+}
+
+function getLocalDateInputValue(date = new Date()) {
+  const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+}
+
+function getLocalTimeInputValue(date = new Date()) {
+  return date.toTimeString().slice(0, 5);
+}
 
 function formatDate(value) {
   if (!value) return "-";
@@ -75,6 +100,67 @@ function formatDateTime(value) {
   return `${formatDate(value)} ${formatTime(value)}`;
 }
 
+function getDurationMinutes(value, fallback = 60) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+function parseDateValue(value) {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function toLocalDateInputValue(value) {
+  const parsed = parseDateValue(value);
+  if (!parsed) return "";
+  const timezoneOffsetMs = parsed.getTimezoneOffset() * 60 * 1000;
+  return new Date(parsed.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+}
+
+function toLocalTimeInputValue(value) {
+  const parsed = parseDateValue(value);
+  if (!parsed) return "";
+  return parsed.toTimeString().slice(0, 5);
+}
+
+function getMinutesBetween(startValue, endValue, fallback = 60) {
+  const start = parseDateValue(startValue);
+  const end = parseDateValue(endValue);
+  if (!start || !end) return fallback;
+  const diff = Math.round((end.getTime() - start.getTime()) / (60 * 1000));
+  return diff > 0 ? diff : fallback;
+}
+
+function buildWindowFromLocalInputs(dateValue, timeValue, durationValue) {
+  if (!dateValue || !timeValue) return null;
+
+  const start = new Date(`${dateValue}T${timeValue}`);
+  if (Number.isNaN(start.getTime())) return null;
+
+  const durationMinutes = getDurationMinutes(durationValue, 60);
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+    duration_minutes: durationMinutes
+  };
+}
+
+function ensureDurationOption(selectElement, minutes) {
+  if (!selectElement) return;
+  const normalized = String(getDurationMinutes(minutes, 60));
+  const existing = Array.from(selectElement.options).find(option => option.value === normalized);
+  if (!existing) {
+    const option = document.createElement("option");
+    option.value = normalized;
+    option.textContent = `${normalized} mins`;
+    selectElement.appendChild(option);
+  }
+  selectElement.value = normalized;
+}
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -92,9 +178,9 @@ function normalizeRoomName(roomName) {
 }
 
 function getRoomImage(room) {
-  if (!room) return "../assets/image(1).png";
+  if (!room) return "../assets/image(3).png";
   const normalized = normalizeRoomName(room.name);
-  return ROOM_IMAGES_BY_NAME[normalized] || "../assets/image(1).png";
+  return ROOM_IMAGES_BY_NAME[normalized] || "../assets/image(3).png";
 }
 
 function buildRoomFeatures(room) {
@@ -113,6 +199,22 @@ function buildRoomFeatures(room) {
   return features.length > 0 ? features.join(" | ") : "Standard setup";
 }
 
+function isRoomAvailable(room) {
+  return room?.is_available === 1 || room?.is_available === true || room?.is_available === "1";
+}
+
+function getRoomAvailabilityLabel(room) {
+  if (isRoomAvailable(room)) {
+    return "Available";
+  }
+
+  if (room?.booked_until) {
+    return `Booked. Available after ${formatDateTime(room.booked_until)}`;
+  }
+
+  return "Booked";
+}
+
 function setTodayLabel() {
   const label = document.getElementById("todayLabel");
   if (!label) return;
@@ -128,11 +230,15 @@ function setTodayLabel() {
 function setHeaderContent() {
   const headerName = document.getElementById("headerName");
   const welcomeHeading = document.getElementById("welcomeHeading");
+  const headerAvatar = document.querySelector(".profile-pill .avatar");
 
   const name = currentEmployee?.name || (currentRole === "admin" ? "Admin" : "Employee");
   if (headerName) headerName.textContent = name;
   if (welcomeHeading) {
     welcomeHeading.textContent = currentRole === "admin" ? `Welcome, ${name}` : `Welcome Back, ${name}`;
+  }
+  if (headerAvatar) {
+    headerAvatar.src = getProfileImagePath(currentEmployee?.gender);
   }
 }
 
@@ -140,12 +246,17 @@ function setProfileSection() {
   const profileName = document.getElementById("profileName");
   const profileEmail = document.getElementById("profileEmail");
   const profileDepartment = document.getElementById("profileDepartment");
+  const profileGender = document.getElementById("profileGender");
   const profileRole = document.getElementById("profileRole");
+  const profileImage = document.getElementById("profileImage");
+  const gender = normalizeGender(currentEmployee?.gender);
 
   if (profileName) profileName.textContent = currentEmployee?.name || "-";
   if (profileEmail) profileEmail.textContent = currentEmployee?.email || "-";
   if (profileDepartment) profileDepartment.textContent = currentEmployee?.department || "-";
+  if (profileGender) profileGender.textContent = gender === "female" ? "Female" : "Male";
   if (profileRole) profileRole.textContent = isAdmin ? "Admin" : "Employee";
+  if (profileImage) profileImage.src = getProfileImagePath(gender);
 }
 
 function clearAuthAndLogout() {
@@ -189,6 +300,7 @@ function getStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "confirmed") return "confirmed";
   if (normalized === "pending") return "pending";
+  if (normalized === "cancelled") return "cancelled";
   return "";
 }
 
@@ -259,6 +371,19 @@ function buildUpcomingUrl({ limit = 20, ownOnly = false, includeAll = false } = 
   return `/bookings/upcoming?${params.toString()}`;
 }
 
+function buildMyBookingsUrl(limit = 30) {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("include_past", "1");
+  params.set("include_cancelled", "1");
+
+  if (currentRole === "admin" && currentEmployeeId > 0) {
+    params.set("employee_id", String(currentEmployeeId));
+  }
+
+  return `/bookings/upcoming?${params.toString()}`;
+}
+
 async function loadSummary() {
   try {
     const summary = await apiFetch("/bookings/summary");
@@ -268,10 +393,19 @@ async function loadSummary() {
     const openRequests = document.getElementById("summaryOpenRequests");
     const utilization = document.getElementById("summaryUtilization");
 
-    if (roomsToday) roomsToday.textContent = String(summary.rooms_booked_today ?? 0);
-    if (upcoming) upcoming.textContent = String(summary.upcoming_meetings ?? 0);
-    if (openRequests) openRequests.textContent = String(summary.open_requests ?? 0);
-    if (utilization) utilization.textContent = `${Number(summary.utilization_percent || 0)}%`;
+    if (roomsToday) {
+      roomsToday.textContent = String(summary.rooms_booked_today ?? 0);
+    }
+
+    if (currentRole === "admin") {
+      if (upcoming) upcoming.textContent = String(summary.upcoming_meetings ?? 0);
+      if (openRequests) openRequests.textContent = String(summary.open_requests ?? 0);
+      if (utilization) utilization.textContent = `${Number(summary.utilization_percent || 0)}%`;
+    } else {
+      if (upcoming) upcoming.textContent = String(summary.upcoming_meetings_week ?? 0);
+      if (openRequests) openRequests.textContent = String(summary.upcoming_meetings ?? 0);
+      if (utilization) utilization.textContent = `${Number(summary.booked_hours_week || 0)}h`;
+    }
   } catch (error) {
     console.error("Failed to load summary:", error);
   }
@@ -318,12 +452,48 @@ function renderOverviewBookings(rows) {
     .join("");
 }
 
+function canManageFutureBooking(booking) {
+  const normalizedStatus = String(booking?.status || "").toLowerCase();
+  if (normalizedStatus === "cancelled") return false;
+
+  const start = parseDateValue(booking?.start_time);
+  if (!start) return false;
+  return start.getTime() > Date.now();
+}
+
+function buildBookingActionsCell(booking) {
+  if (!canManageFutureBooking(booking)) {
+    return '<span class="action-muted">Locked</span>';
+  }
+
+  const bookingId = Number(booking.booking_id);
+  if (!bookingId) {
+    return '<span class="action-muted">Locked</span>';
+  }
+
+  return `
+    <div class="booking-actions">
+      <button class="btn btn-sm btn-primary" type="button" data-booking-action="edit" data-booking-id="${bookingId}">
+        Edit
+      </button>
+      <button class="btn btn-sm btn-danger" type="button" data-booking-action="cancel" data-booking-id="${bookingId}">
+        Cancel
+      </button>
+    </div>
+  `;
+}
+
 function renderBookingsTable(rows) {
   const table = document.getElementById("bookingsTable");
   if (!table) return;
 
+  bookingsById = new Map();
+  (rows || []).forEach(row => {
+    bookingsById.set(Number(row.booking_id), row);
+  });
+
   if (!Array.isArray(rows) || rows.length === 0) {
-    table.innerHTML = `<tr><td colspan="6" class="empty-state">No bookings found.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="7" class="empty-state">No bookings found.</td></tr>`;
     return;
   }
 
@@ -338,6 +508,7 @@ function renderBookingsTable(rows) {
           <td>${formatDateTime(row.start_time)}</td>
           <td>${formatDateTime(row.end_time)}</td>
           <td><span class="status ${statusClass}">${escapeHtml(row.status || "-")}</span></td>
+          <td>${buildBookingActionsCell(row)}</td>
         </tr>
       `;
     })
@@ -345,6 +516,9 @@ function renderBookingsTable(rows) {
 }
 
 async function loadBookings() {
+  const overviewTable = document.getElementById("overviewBookingsTable");
+  const bookingsTable = document.getElementById("bookingsTable");
+
   try {
     const overviewRows =
       currentRole === "admin"
@@ -353,27 +527,48 @@ async function loadBookings() {
 
     renderOverviewBookings(overviewRows);
 
-    const myRows = await apiFetch(buildUpcomingUrl({ limit: 30, ownOnly: true }));
+    const myRows = await apiFetch(buildMyBookingsUrl(50));
     renderBookingsTable(myRows);
   } catch (error) {
     console.error("Failed to load bookings:", error);
+    if (overviewTable) {
+      overviewTable.innerHTML = `<tr><td colspan="5" class="empty-state">Unable to load bookings right now.</td></tr>`;
+    }
+    if (bookingsTable) {
+      bookingsTable.innerHTML = `<tr><td colspan="7" class="empty-state">Unable to load your bookings. Please refresh.</td></tr>`;
+    }
   }
 }
 
 function buildFinderWindow() {
   const dateInput = document.getElementById("finderDate");
   const timeInput = document.getElementById("finderTime");
+  const durationInput = document.getElementById("finderDuration");
+  return buildWindowFromLocalInputs(dateInput?.value, timeInput?.value, durationInput?.value);
+}
 
-  if (!dateInput?.value || !timeInput?.value) return null;
+function applyFinderDateTimeConstraints() {
+  const dateInput = document.getElementById("finderDate");
+  const timeInput = document.getElementById("finderTime");
+  if (!dateInput || !timeInput) return;
 
-  const start = new Date(`${dateInput.value}T${timeInput.value}`);
-  if (Number.isNaN(start.getTime())) return null;
+  const now = new Date();
+  const today = getLocalDateInputValue(now);
+  dateInput.min = today;
 
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
-  return {
-    start: start.toISOString(),
-    end: end.toISOString()
-  };
+  if (!dateInput.value) {
+    dateInput.value = today;
+  }
+
+  if (dateInput.value === today) {
+    const minTime = getLocalTimeInputValue(now);
+    timeInput.min = minTime;
+    if (timeInput.value && timeInput.value < minTime) {
+      timeInput.value = minTime;
+    }
+  } else {
+    timeInput.min = "";
+  }
 }
 
 function renderRoomFinderTable(rooms) {
@@ -385,25 +580,27 @@ function renderRoomFinderTable(rooms) {
     finderRoomsById.set(Number(room.room_id), room);
   });
 
-  const hasAction = currentRole === "employee";
+  const hasAction = true;
+  const colSpan = 6;
 
   if (!Array.isArray(rooms) || rooms.length === 0) {
-    table.innerHTML = `<tr><td colspan="${hasAction ? 5 : 4}" class="empty-state">No rooms found.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="${colSpan}" class="empty-state">No rooms found.</td></tr>`;
     return;
   }
 
   table.innerHTML = rooms
     .map(room => {
       const roomId = Number(room.room_id);
-      const actionCol = hasAction
-        ? `<td><button class="btn btn-primary btn-sm" type="button" data-room-id="${roomId}">Details</button></td>`
-        : "";
+      const available = isRoomAvailable(room);
+      const availabilityText = getRoomAvailabilityLabel(room);
+      const actionCol = `<td><button class="btn btn-primary btn-sm" type="button" data-room-id="${roomId}">Details</button></td>`;
 
       return `
-        <tr class="${hasAction ? "clickable-room" : ""}" ${hasAction ? `data-room-id="${roomId}"` : ""}>
+        <tr class="clickable-room" data-room-id="${roomId}">
           <td>${escapeHtml(room.name || "-")}</td>
           <td>${escapeHtml(room.location_name || "-")}</td>
           <td>${escapeHtml(room.capacity || "-")}</td>
+          <td><span class="availability-pill ${available ? "available" : "booked"}">${escapeHtml(availabilityText)}</span></td>
           <td>${escapeHtml(buildRoomFeatures(room))}</td>
           ${actionCol}
         </tr>
@@ -431,15 +628,12 @@ function renderAvailabilityList(rooms) {
     return;
   }
 
-  const showDetailsHint = currentRole === "employee";
   list.innerHTML = rooms
     .slice(0, 5)
     .map(room => {
       const roomId = Number(room.room_id);
-      const hints = showDetailsHint ? " | View details" : "";
-      const detailAttrs = showDetailsHint
-        ? `class="clickable-room" data-room-id="${roomId}" tabindex="0" role="button"`
-        : "";
+      const hints = " | View details";
+      const detailAttrs = `class="clickable-room" data-room-id="${roomId}" tabindex="0" role="button"`;
 
       return `
         <li ${detailAttrs}>
@@ -510,7 +704,8 @@ async function loadOverviewAvailability() {
   const params = new URLSearchParams({
     start_time: availabilityWindow.start,
     end_time: availabilityWindow.end,
-    limit: "5"
+    limit: "5",
+    available_only: "1"
   });
 
   try {
@@ -522,7 +717,7 @@ async function loadOverviewAvailability() {
   }
 }
 
-function renderReportTables(rows) {
+function renderReportTables(reportData) {
   const locationTable = document.getElementById("reportLocationTable");
   const upcomingTable = document.getElementById("reportUpcomingTable");
   const upcomingCount = document.getElementById("reportUpcomingCount");
@@ -533,55 +728,57 @@ function renderReportTables(rows) {
     return;
   }
 
-  if (!Array.isArray(rows) || rows.length === 0) {
-    locationTable.innerHTML = `<tr><td colspan="2" class="empty-state">No report data.</td></tr>`;
-    upcomingTable.innerHTML = `<tr><td colspan="3" class="empty-state">No report data.</td></tr>`;
-    upcomingCount.textContent = "0";
-    pendingCount.textContent = "0";
-    topLocation.textContent = "-";
-    return;
-  }
+  const summary = reportData?.summary || {};
+  const byLocation = Array.isArray(reportData?.by_location) ? reportData.by_location : [];
+  const upcoming = Array.isArray(reportData?.upcoming) ? reportData.upcoming : [];
 
-  const locationCounts = new Map();
-  rows.forEach(row => {
-    const key = row.location_name || "Unknown";
-    locationCounts.set(key, (locationCounts.get(key) || 0) + 1);
-  });
+  locationTable.innerHTML =
+    byLocation.length === 0
+      ? `<tr><td colspan="2" class="empty-state">No report data.</td></tr>`
+      : byLocation
+          .slice(0, 10)
+          .map(row => `<tr><td>${escapeHtml(row.location_name || "-")}</td><td>${Number(row.booking_count || 0)}</td></tr>`)
+          .join("");
 
-  const sortedLocations = [...locationCounts.entries()].sort((a, b) => b[1] - a[1]);
-  locationTable.innerHTML = sortedLocations
-    .slice(0, 8)
-    .map(([location, count]) => `<tr><td>${escapeHtml(location)}</td><td>${count}</td></tr>`)
-    .join("");
+  upcomingTable.innerHTML =
+    upcoming.length === 0
+      ? `<tr><td colspan="3" class="empty-state">No report data.</td></tr>`
+      : upcoming
+          .slice(0, 5)
+          .map(row => {
+            return `
+              <tr>
+                <td>${escapeHtml(row.employee_name || "-")}</td>
+                <td>${escapeHtml(row.room_name || "-")}</td>
+                <td>${formatDateTime(row.start_time)}</td>
+              </tr>
+            `;
+          })
+          .join("");
 
-  upcomingTable.innerHTML = rows
-    .slice(0, 5)
-    .map(row => {
-      return `
-        <tr>
-          <td>${escapeHtml(row.employee_name || "-")}</td>
-          <td>${escapeHtml(row.room_name || "-")}</td>
-          <td>${formatDateTime(row.start_time)}</td>
-        </tr>
-      `;
-    })
-    .join("");
-
-  upcomingCount.textContent = String(rows.length);
-  pendingCount.textContent = String(rows.filter(row => String(row.status).toLowerCase() === "pending").length);
-  topLocation.textContent = sortedLocations.length > 0 ? sortedLocations[0][0] : "-";
+  upcomingCount.textContent = String(Number(summary.upcoming_count || 0));
+  pendingCount.textContent = String(Number(summary.pending_count || 0));
+  topLocation.textContent = String(summary.top_location || "-");
 }
 
 async function loadReports() {
   if (currentRole !== "admin") return;
 
   try {
-    const rows = await apiFetch(buildUpcomingUrl({ limit: 50, includeAll: true }));
-    renderReportTables(rows);
+    const reportData = await apiFetch("/bookings/reports");
+    renderReportTables(reportData);
   } catch (error) {
     console.error("Failed to load reports:", error);
-    renderReportTables([]);
+    renderReportTables(null);
   }
+}
+
+async function refreshBookingViews() {
+  const tasks = [loadSummary(), loadBookings(), loadOverviewAvailability(), searchRooms()];
+  if (currentRole === "admin") {
+    tasks.push(loadReports());
+  }
+  await Promise.all(tasks);
 }
 
 function setHelperMessage(element, message, type = "") {
@@ -596,7 +793,7 @@ function renderEmployeeTable(rows) {
   if (!table) return;
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    table.innerHTML = `<tr><td colspan="6" class="empty-state">No employees found.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="7" class="empty-state">No employees found.</td></tr>`;
     return;
   }
 
@@ -609,6 +806,7 @@ function renderEmployeeTable(rows) {
           <td>${escapeHtml(row.name)}</td>
           <td>${escapeHtml(row.email)}</td>
           <td>${escapeHtml(row.department || "-")}</td>
+          <td>${escapeHtml(normalizeGender(row.gender) === "female" ? "Female" : "Male")}</td>
           <td>${row.is_admin ? "Admin" : "Employee"}</td>
           <td>
             <button
@@ -632,14 +830,14 @@ async function loadEmployees() {
   const table = document.getElementById("employeeAdminTable");
   if (!table) return;
 
-  table.innerHTML = `<tr><td colspan="6" class="empty-state">Loading employees...</td></tr>`;
+  table.innerHTML = `<tr><td colspan="7" class="empty-state">Loading employees...</td></tr>`;
 
   try {
     const rows = await apiFetch("/admin/employees");
     renderEmployeeTable(rows);
   } catch (error) {
     console.error("Failed to load employees:", error);
-    table.innerHTML = `<tr><td colspan="6" class="empty-state">Failed to load employees.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load employees.</td></tr>`;
   }
 }
 
@@ -666,6 +864,7 @@ function initializeAdminSettings() {
         name: document.getElementById("newEmployeeName")?.value?.trim(),
         email: document.getElementById("newEmployeeEmail")?.value?.trim(),
         department: document.getElementById("newEmployeeDept")?.value?.trim(),
+        gender: document.getElementById("newEmployeeGender")?.value || "male",
         password: document.getElementById("newEmployeePassword")?.value || "",
         is_admin: document.getElementById("newEmployeeAdmin")?.checked === true
       };
@@ -707,6 +906,178 @@ function initializeAdminSettings() {
   }
 }
 
+const bookingEditModal = document.getElementById("booking-edit-modal");
+const bookingEditForm = document.getElementById("bookingEditForm");
+const bookingEditTitle = document.getElementById("bookingEditTitle");
+const bookingEditDescription = document.getElementById("bookingEditDescription");
+const bookingEditDate = document.getElementById("bookingEditDate");
+const bookingEditTime = document.getElementById("bookingEditTime");
+const bookingEditDuration = document.getElementById("bookingEditDuration");
+const bookingEditMessage = document.getElementById("bookingEditMessage");
+
+function setBookingEditMessage(message, type = "") {
+  setHelperMessage(bookingEditMessage, message, type);
+}
+
+function applyBookingEditDateTimeConstraints() {
+  if (!bookingEditDate || !bookingEditTime) return;
+
+  const now = new Date();
+  const today = getLocalDateInputValue(now);
+  bookingEditDate.min = today;
+
+  if (!bookingEditDate.value) {
+    bookingEditDate.value = today;
+  }
+
+  if (bookingEditDate.value === today) {
+    const minTime = getLocalTimeInputValue(now);
+    bookingEditTime.min = minTime;
+    if (bookingEditTime.value && bookingEditTime.value < minTime) {
+      bookingEditTime.value = minTime;
+    }
+  } else {
+    bookingEditTime.min = "";
+  }
+}
+
+function getBookingEditWindow() {
+  return buildWindowFromLocalInputs(bookingEditDate?.value, bookingEditTime?.value, bookingEditDuration?.value);
+}
+
+function closeBookingEditModal() {
+  if (!bookingEditModal) return;
+  bookingEditModal.hidden = true;
+  selectedBooking = null;
+  if (bookingEditDescription) bookingEditDescription.value = "";
+  setBookingEditMessage("", "");
+}
+
+async function openBookingEditModal(bookingId) {
+  if (!bookingEditModal) return;
+
+  const booking = bookingsById.get(Number(bookingId));
+  if (!booking) return;
+
+  if (!canManageFutureBooking(booking)) {
+    alert("Only future active bookings can be edited.");
+    return;
+  }
+
+  selectedBooking = booking;
+  setBookingEditMessage("", "");
+
+  if (bookingEditTitle) {
+    bookingEditTitle.value = booking.title || "";
+  }
+  if (bookingEditDescription) {
+    bookingEditDescription.value = booking.description || "";
+  }
+
+  if (bookingEditDate) {
+    bookingEditDate.value = toLocalDateInputValue(booking.start_time);
+  }
+  if (bookingEditTime) {
+    bookingEditTime.value = toLocalTimeInputValue(booking.start_time);
+  }
+
+  ensureDurationOption(bookingEditDuration, getMinutesBetween(booking.start_time, booking.end_time, 60));
+  applyBookingEditDateTimeConstraints();
+
+  bookingEditModal.hidden = false;
+}
+
+async function saveBookingEdits(event) {
+  event.preventDefault();
+  if (!selectedBooking) return;
+
+  setBookingEditMessage("", "");
+
+  const windowValue = getBookingEditWindow();
+  if (!windowValue?.start || !windowValue?.end) {
+    setBookingEditMessage("Select valid date, time, and duration.", "error");
+    return;
+  }
+
+  const startDate = parseDateValue(windowValue.start);
+  if (!startDate || startDate.getTime() < Date.now()) {
+    setBookingEditMessage("You can only set future time slots.", "error");
+    return;
+  }
+
+  const payload = {
+    title: bookingEditTitle?.value?.trim() || selectedBooking.title || "Meeting",
+    description: bookingEditDescription?.value?.trim() || selectedBooking.description || "",
+    start_time: windowValue.start,
+    end_time: windowValue.end
+  };
+
+  if (!payload.title || !payload.description) {
+    setBookingEditMessage("Meeting name and description are required.", "error");
+    return;
+  }
+
+  try {
+    await apiFetch(`/bookings/${selectedBooking.booking_id}`, {
+      method: "PATCH",
+      body: JSON.stringify(payload)
+    });
+
+    setBookingEditMessage("Booking updated successfully.", "success");
+    await refreshBookingViews();
+    setTimeout(() => {
+      closeBookingEditModal();
+    }, 500);
+  } catch (error) {
+    console.error("Booking update failed:", error);
+    setBookingEditMessage(error.message || "Unable to update booking.", "error");
+  }
+}
+
+async function cancelBookingById(bookingId) {
+  const booking = bookingsById.get(Number(bookingId));
+  if (!booking) return;
+
+  if (!canManageFutureBooking(booking)) {
+    alert("Only future active bookings can be cancelled.");
+    return;
+  }
+
+  const confirmed = window.confirm("Cancel this booking?");
+  if (!confirmed) return;
+
+  try {
+    await apiFetch(`/bookings/${Number(bookingId)}/cancel`, { method: "PATCH" });
+    await refreshBookingViews();
+    if (selectedBooking && Number(selectedBooking.booking_id) === Number(bookingId)) {
+      closeBookingEditModal();
+    }
+  } catch (error) {
+    console.error("Booking cancel failed:", error);
+    alert(error.message || "Unable to cancel booking.");
+  }
+}
+
+function initializeBookingEditModalHandlers() {
+  if (!bookingEditModal) return;
+
+  bookingEditModal.addEventListener("click", event => {
+    if (event.target.matches("[data-close-booking-modal]")) {
+      closeBookingEditModal();
+    }
+  });
+
+  if (bookingEditDate) {
+    bookingEditDate.addEventListener("change", applyBookingEditDateTimeConstraints);
+  }
+  if (bookingEditTime) {
+    bookingEditTime.addEventListener("focus", applyBookingEditDateTimeConstraints);
+  }
+  if (bookingEditForm) {
+    bookingEditForm.addEventListener("submit", saveBookingEdits);
+  }
+}
+
 const roomModal = document.getElementById("dashboard-room-modal");
 const roomModalImage = document.getElementById("dashboard-room-image");
 const roomModalTitle = document.getElementById("dashboard-room-title");
@@ -714,6 +1085,8 @@ const roomModalLocation = document.getElementById("dashboard-room-location");
 const roomModalFeatures = document.getElementById("dashboard-room-features");
 const roomModalSlot = document.getElementById("dashboard-room-slot");
 const roomModalDescription = document.getElementById("dashboard-room-description");
+const roomModalMeetingTitle = document.getElementById("dashboardMeetingTitle");
+const roomModalMeetingDescription = document.getElementById("dashboardMeetingDescription");
 const roomModalMessage = document.getElementById("dashboard-room-message");
 const roomModalBookBtn = document.getElementById("dashboard-room-book-btn");
 
@@ -743,11 +1116,24 @@ function openRoomModal(room, bookingWindow) {
   if (roomModalDescription) {
     roomModalDescription.textContent = room.description || "No description available for this room.";
   }
+  if (roomModalMeetingTitle) {
+    roomModalMeetingTitle.value = `Meeting in ${room.name || "Room"}`;
+  }
+  if (roomModalMeetingDescription) {
+    roomModalMeetingDescription.value = "";
+  }
 
-  setRoomModalMessage("", "");
+  const available = isRoomAvailable(room);
+  if (!available) {
+    setRoomModalMessage(getRoomAvailabilityLabel(room), "error");
+  } else {
+    setRoomModalMessage("", "");
+  }
 
   if (roomModalBookBtn) {
-    roomModalBookBtn.hidden = currentRole !== "employee";
+    roomModalBookBtn.hidden = false;
+    roomModalBookBtn.disabled = !available;
+    roomModalBookBtn.textContent = available ? "Book This Room" : "Booked";
   }
 
   roomModal.hidden = false;
@@ -758,15 +1144,21 @@ function closeRoomModal() {
   roomModal.hidden = true;
   selectedRoom = null;
   selectedBookingWindow = null;
+  if (roomModalMeetingTitle) roomModalMeetingTitle.value = "";
+  if (roomModalMeetingDescription) roomModalMeetingDescription.value = "";
+  setRoomModalMessage("", "");
 }
 
 async function bookSelectedRoom() {
-  if (currentRole !== "employee") return;
-
   setRoomModalMessage("", "");
 
   if (!selectedRoom) {
     setRoomModalMessage("Select a room first.", "error");
+    return;
+  }
+
+  if (!isRoomAvailable(selectedRoom)) {
+    setRoomModalMessage(getRoomAvailabilityLabel(selectedRoom), "error");
     return;
   }
 
@@ -776,13 +1168,25 @@ async function bookSelectedRoom() {
     return;
   }
 
+  const startTimestamp = Date.parse(windowValue.start);
+  if (Number.isFinite(startTimestamp) && startTimestamp < Date.now()) {
+    setRoomModalMessage("You cannot book for past date/time.", "error");
+    return;
+  }
+
   const payload = {
     room_id: selectedRoom.room_id,
-    title: `Meeting in ${selectedRoom.name || "Room"}`,
+    title: roomModalMeetingTitle?.value?.trim() || "",
+    description: roomModalMeetingDescription?.value?.trim() || "",
     start_time: windowValue.start,
     end_time: windowValue.end,
     status: "confirmed"
   };
+
+  if (!payload.title || !payload.description) {
+    setRoomModalMessage("Meeting name and description are required.", "error");
+    return;
+  }
 
   if (currentEmployeeId > 0) {
     payload.employee_id = currentEmployeeId;
@@ -795,9 +1199,7 @@ async function bookSelectedRoom() {
     });
 
     setRoomModalMessage("Room booked successfully.", "success");
-
-    await Promise.all([loadSummary(), loadBookings(), loadOverviewAvailability()]);
-    await searchRooms();
+    await refreshBookingViews();
 
     setTimeout(() => {
       closeRoomModal();
@@ -818,7 +1220,14 @@ function initializeRoomModalHandlers() {
   });
 
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !roomModal.hidden) {
+    if (event.key !== "Escape") return;
+
+    if (bookingEditModal && !bookingEditModal.hidden) {
+      closeBookingEditModal();
+      return;
+    }
+
+    if (!roomModal.hidden) {
       closeRoomModal();
     }
   });
@@ -829,8 +1238,6 @@ function initializeRoomModalHandlers() {
 }
 
 function initializeRoomDetailsInteractions() {
-  if (currentRole !== "employee") return;
-
   const finderTable = document.getElementById("roomFinderTable");
   if (finderTable) {
     finderTable.addEventListener("click", event => {
@@ -880,6 +1287,7 @@ function initializeRoomFinder() {
 
   const dateInput = document.getElementById("finderDate");
   const timeInput = document.getElementById("finderTime");
+  const durationInput = document.getElementById("finderDuration");
 
   const now = new Date();
   const roundedMinutes = Math.ceil(now.getMinutes() / 30) * 30;
@@ -897,6 +1305,14 @@ function initializeRoomFinder() {
     timeInput.value = `${hours}:${minutes}`;
   }
 
+  if (durationInput && !durationInput.value) {
+    durationInput.value = "60";
+  }
+
+  applyFinderDateTimeConstraints();
+  dateInput?.addEventListener("change", applyFinderDateTimeConstraints);
+  timeInput?.addEventListener("focus", applyFinderDateTimeConstraints);
+
   form.addEventListener("submit", searchRooms);
 }
 
@@ -905,6 +1321,26 @@ function initializePageActions() {
   if (refreshBookingsBtn) {
     refreshBookingsBtn.addEventListener("click", () => {
       loadBookings();
+    });
+  }
+
+  const bookingsTable = document.getElementById("bookingsTable");
+  if (bookingsTable) {
+    bookingsTable.addEventListener("click", async event => {
+      const button = event.target.closest("button[data-booking-action][data-booking-id]");
+      if (!button) return;
+
+      const bookingId = Number(button.dataset.bookingId);
+      if (!bookingId) return;
+
+      const action = button.dataset.bookingAction;
+      if (action === "edit") {
+        await openBookingEditModal(bookingId);
+        return;
+      }
+      if (action === "cancel") {
+        await cancelBookingById(bookingId);
+      }
     });
   }
 }
@@ -916,16 +1352,16 @@ async function initializeDashboard() {
   initializeNav();
   initializePageActions();
   initializeRoomFinder();
+  initializeBookingEditModalHandlers();
   initializeRoomModalHandlers();
   initializeRoomDetailsInteractions();
   initializeAdminSettings();
 
   await Promise.all([loadSummary(), loadBookings(), loadFinderLocations(), loadOverviewAvailability()]);
+  await searchRooms();
 
   if (currentRole === "admin") {
     await Promise.all([loadReports(), loadEmployees()]);
-  } else {
-    await searchRooms();
   }
 }
 

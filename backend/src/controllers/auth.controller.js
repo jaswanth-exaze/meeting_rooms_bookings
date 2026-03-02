@@ -19,7 +19,7 @@ const login = asyncHandler(async (req, res) => {
 
   const rows = await query(
     `
-      SELECT employee_id, name, email, department, is_admin, password
+      SELECT employee_id, name, email, department, gender, is_admin, password
       FROM employee
       WHERE email = ?
       LIMIT 1
@@ -43,6 +43,7 @@ const login = asyncHandler(async (req, res) => {
     name: employeeRow.name,
     email: employeeRow.email,
     department: employeeRow.department,
+    gender: employeeRow.gender || "male",
     is_admin: toBoolean(employeeRow.is_admin)
   };
 
@@ -51,6 +52,7 @@ const login = asyncHandler(async (req, res) => {
       employee_id: employee.employee_id,
       email: employee.email,
       name: employee.name,
+      gender: employee.gender,
       is_admin: employee.is_admin
     },
     jwtSecret,

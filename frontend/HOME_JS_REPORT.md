@@ -93,7 +93,7 @@ Used by:
 What it does:
 
 - Converts `roomId` to number
-- If invalid, returns fallback `assets/image(1).png`
+- If invalid, returns fallback `assets/image(3).png`
 - Else maps room id to `ROOM_IMAGES` using modulo
 
 Purpose:

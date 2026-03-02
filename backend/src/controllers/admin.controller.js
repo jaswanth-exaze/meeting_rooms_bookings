@@ -11,10 +11,19 @@ function toBoolean(value) {
   return value === true || value === 1 || value === "1";
 }
 
+function normalizeGender(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (normalized === "female") return "female";
+  if (normalized === "male") return "male";
+  return null;
+}
+
 const listEmployees = asyncHandler(async (_req, res) => {
   const rows = await query(
     `
-      SELECT employee_id, name, email, department, is_admin
+      SELECT employee_id, name, email, department, gender, is_admin
       FROM employee
       ORDER BY employee_id DESC
     `
@@ -26,6 +35,7 @@ const listEmployees = asyncHandler(async (_req, res) => {
       name: row.name,
       email: row.email,
       department: row.department,
+      gender: row.gender || "male",
       is_admin: toBoolean(row.is_admin)
     }))
   );
@@ -35,16 +45,18 @@ const createEmployee = asyncHandler(async (req, res) => {
   const rawName = req.body?.name;
   const rawEmail = req.body?.email;
   const rawDepartment = req.body?.department;
+  const rawGender = req.body?.gender;
   const rawPassword = req.body?.password;
   const isAdmin = req.body?.is_admin === true;
 
   const name = String(rawName || "").trim();
   const email = String(rawEmail || "").trim().toLowerCase();
   const department = String(rawDepartment || "").trim();
+  const gender = normalizeGender(rawGender);
   const password = String(rawPassword || "");
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ message: "name, email, and password are required." });
+  if (!name || !email || !password || !gender) {
+    return res.status(400).json({ message: "name, email, gender, and password are required." });
   }
 
   if (password.length < 6) {
@@ -67,10 +79,10 @@ const createEmployee = asyncHandler(async (req, res) => {
 
   const insertResult = await query(
     `
-      INSERT INTO employee (name, email, department, is_admin, password)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO employee (name, email, department, gender, is_admin, password)
+      VALUES (?, ?, ?, ?, ?, ?)
     `,
-    [name, email, department || null, isAdmin ? 1 : 0, password]
+    [name, email, department || null, gender, isAdmin ? 1 : 0, password]
   );
 
   res.status(201).json({
@@ -80,6 +92,7 @@ const createEmployee = asyncHandler(async (req, res) => {
       name,
       email,
       department: department || null,
+      gender,
       is_admin: isAdmin
     }
   });

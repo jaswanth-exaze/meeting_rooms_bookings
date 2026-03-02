@@ -16,6 +16,7 @@ const ROOM_IMAGES_BY_NAME = {
 const roomSearchForm = document.getElementById("room-search-form");
 const bookingDateInput = document.getElementById("booking-date");
 const bookingTimeInput = document.getElementById("booking-time");
+const bookingDurationSelect = document.getElementById("booking-duration");
 const bookingLocationSelect = document.getElementById("booking-location");
 const bookingAttendeesSelect = document.getElementById("booking-attendees");
 const featuredLocationFilter = document.getElementById("featured-location-filter");
@@ -27,11 +28,24 @@ const roomDetailImage = document.getElementById("room-detail-image");
 const roomDetailTitle = document.getElementById("room-detail-title");
 const roomDetailLocation = document.getElementById("room-detail-location");
 const roomDetailMeta = document.getElementById("room-detail-meta");
+const roomDetailAvailability = document.getElementById("room-detail-availability");
 const roomDetailDescription = document.getElementById("room-detail-description");
+const modalMeetingTitleInput = document.getElementById("modal-meeting-title");
+const modalMeetingDescriptionInput = document.getElementById("modal-meeting-description");
 const modalBookButton = document.getElementById("modal-book-btn");
+const roomModalMessage = document.getElementById("room-modal-message");
 
 let currentRooms = [];
 let selectedRoom = null;
+
+function getLocalDateInputValue(date = new Date()) {
+  const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
+}
+
+function getLocalTimeInputValue(date = new Date()) {
+  return date.toTimeString().slice(0, 5);
+}
 
 function setBookingMessage(message, type) {
   if (!bookingMessage) return;
@@ -44,6 +58,17 @@ function setBookingMessage(message, type) {
   }
 }
 
+function setRoomModalMessage(message, type) {
+  if (!roomModalMessage) return;
+
+  roomModalMessage.textContent = message || "";
+  roomModalMessage.classList.remove("success", "error");
+
+  if (type === "success" || type === "error") {
+    roomModalMessage.classList.add(type);
+  }
+}
+
 function normalizeRoomName(roomName) {
   return String(roomName || "")
     .trim()
@@ -53,11 +78,11 @@ function normalizeRoomName(roomName) {
 
 function getRoomImage(room) {
   if (!room) {
-    return "assets/image(1).png";
+    return "assets/image(3).png";
   }
 
   const normalizedRoomName = normalizeRoomName(room.name);
-  return ROOM_IMAGES_BY_NAME[normalizedRoomName] || "assets/image(1).png";
+  return ROOM_IMAGES_BY_NAME[normalizedRoomName] || "assets/image(3).png";
 }
 
 function getFeatureText(room) {
@@ -88,6 +113,35 @@ function getRoomMetaText(room) {
   const features = getFeatureText(room);
 
   return `${location} | ${capacity} | ${features}`;
+}
+
+function isRoomAvailable(room) {
+  return room?.is_available === 1 || room?.is_available === true || room?.is_available === "1";
+}
+
+function formatDateTime(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    month: "short",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
+}
+
+function getAvailabilityLabel(room) {
+  if (isRoomAvailable(room)) {
+    return "Available for selected slot";
+  }
+
+  if (room?.booked_until) {
+    return `Booked. Available after ${formatDateTime(room.booked_until)}`;
+  }
+
+  return "Booked for selected slot";
 }
 
 function renderLoadingCard(message) {
@@ -147,6 +201,10 @@ function renderRooms(rooms) {
     meta.className = "room-meta";
     meta.textContent = getRoomMetaText(room);
 
+    const availability = document.createElement("p");
+    availability.className = `room-availability ${isRoomAvailable(room) ? "available" : "booked"}`;
+    availability.textContent = getAvailabilityLabel(room);
+
     const button = document.createElement("button");
     button.className = "btn btn-primary";
     button.type = "button";
@@ -155,6 +213,7 @@ function renderRooms(rooms) {
 
     body.appendChild(title);
     body.appendChild(meta);
+    body.appendChild(availability);
     media.appendChild(image);
     media.appendChild(capacityPill);
     card.appendChild(media);
@@ -244,12 +303,36 @@ function getSearchStartAndEnd() {
     return null;
   }
 
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const durationMinutes = Number.parseInt(bookingDurationSelect?.value, 10);
+  const safeDuration = Number.isFinite(durationMinutes) && durationMinutes > 0 ? durationMinutes : 60;
+  const end = new Date(start.getTime() + safeDuration * 60 * 1000);
 
   return {
     start: start.toISOString(),
     end: end.toISOString()
   };
+}
+
+function applyBookingDateTimeConstraints() {
+  if (!bookingDateInput || !bookingTimeInput) return;
+
+  const now = new Date();
+  const today = getLocalDateInputValue(now);
+  bookingDateInput.min = today;
+
+  if (!bookingDateInput.value) {
+    bookingDateInput.value = today;
+  }
+
+  if (bookingDateInput.value === today) {
+    const minTime = getLocalTimeInputValue(now);
+    bookingTimeInput.min = minTime;
+    if (bookingTimeInput.value && bookingTimeInput.value < minTime) {
+      bookingTimeInput.value = minTime;
+    }
+  } else {
+    bookingTimeInput.min = "";
+  }
 }
 
 function parseCapacityRange(value) {
@@ -327,11 +410,29 @@ function openRoomModal(room) {
   if (!roomDetailModal || !room) return;
 
   selectedRoom = room;
+  setRoomModalMessage("", "");
   roomDetailImage.src = getRoomImage(room);
   roomDetailTitle.textContent = room.name || "Meeting Room";
   roomDetailLocation.textContent = room.location_name || "Unknown location";
   roomDetailMeta.textContent = getRoomMetaText(room);
+  if (roomDetailAvailability) {
+    const available = isRoomAvailable(room);
+    roomDetailAvailability.className = `room-availability ${available ? "available" : "booked"}`;
+    roomDetailAvailability.textContent = getAvailabilityLabel(room);
+  }
   roomDetailDescription.textContent = room.description || "No description available.";
+  if (modalMeetingTitleInput) {
+    modalMeetingTitleInput.value = `Meeting in ${room.name || "Room"}`;
+  }
+  if (modalMeetingDescriptionInput) {
+    modalMeetingDescriptionInput.value = "";
+  }
+
+  if (modalBookButton) {
+    const available = isRoomAvailable(room);
+    modalBookButton.disabled = !available;
+    modalBookButton.textContent = available ? "Book This Room" : "Booked";
+  }
 
   roomDetailModal.hidden = false;
 }
@@ -339,6 +440,17 @@ function openRoomModal(room) {
 function closeRoomModal() {
   if (!roomDetailModal) return;
   roomDetailModal.hidden = true;
+  setRoomModalMessage("", "");
+  if (modalBookButton) {
+    modalBookButton.disabled = false;
+    modalBookButton.textContent = "Book This Room";
+  }
+  if (modalMeetingTitleInput) {
+    modalMeetingTitleInput.value = "";
+  }
+  if (modalMeetingDescriptionInput) {
+    modalMeetingDescriptionInput.value = "";
+  }
   selectedRoom = null;
 }
 
@@ -369,32 +481,49 @@ function getStoredEmployee() {
 }
 
 function bookRoom() {
-  setBookingMessage("", "");
+  setRoomModalMessage("", "");
 
   const token = localStorage.getItem("auth_token");
   if (!token) {
-    setBookingMessage("Please sign in first to book a room.", "error");
+    setRoomModalMessage("Please sign in first to book a room.", "error");
     return;
   }
 
   if (!selectedRoom) {
-    setBookingMessage("Select a room before booking.", "error");
+    setRoomModalMessage("Select a room before booking.", "error");
+    return;
+  }
+
+  if (!isRoomAvailable(selectedRoom)) {
+    setRoomModalMessage(getAvailabilityLabel(selectedRoom), "error");
     return;
   }
 
   const windowValue = getSearchStartAndEnd();
   if (!windowValue) {
-    setBookingMessage("Choose booking date and time first.", "error");
+    setRoomModalMessage("Choose booking date and time first.", "error");
+    return;
+  }
+
+  const startTimestamp = Date.parse(windowValue.start);
+  if (Number.isFinite(startTimestamp) && startTimestamp < Date.now()) {
+    setRoomModalMessage("You cannot book for past date/time.", "error");
     return;
   }
 
   const employee = getStoredEmployee();
   const payload = {
     room_id: selectedRoom.room_id,
-    title: `Meeting in ${selectedRoom.name || "Room"}`,
+    title: modalMeetingTitleInput?.value?.trim() || "",
+    description: modalMeetingDescriptionInput?.value?.trim() || "",
     start_time: windowValue.start,
     end_time: windowValue.end
   };
+
+  if (!payload.title || !payload.description) {
+    setRoomModalMessage("Meeting name and description are required.", "error");
+    return;
+  }
 
   if (employee && employee.employee_id) {
     payload.employee_id = employee.employee_id;
@@ -422,7 +551,7 @@ function bookRoom() {
     })
     .catch(error => {
       console.error("Error creating booking:", error);
-      setBookingMessage(error.message || "Booking failed.", "error");
+      setRoomModalMessage(error.message || "Booking failed.", "error");
     });
 }
 
@@ -470,10 +599,22 @@ function initializeSearchDefaults() {
 
   bookingDateInput.value = `${now.getFullYear()}-${month}-${day}`;
   bookingTimeInput.value = `${hours}:${minutes}`;
+
+  if (bookingDurationSelect && !bookingDurationSelect.value) {
+    bookingDurationSelect.value = "60";
+  }
+
+  applyBookingDateTimeConstraints();
 }
 
 if (bookingLocationSelect && featuredLocationFilter && roomsGrid) {
   initializeSearchDefaults();
+  if (bookingDateInput) {
+    bookingDateInput.addEventListener("change", applyBookingDateTimeConstraints);
+  }
+  if (bookingTimeInput) {
+    bookingTimeInput.addEventListener("focus", applyBookingDateTimeConstraints);
+  }
   loadLocations();
   loadFeaturedRooms();
 }

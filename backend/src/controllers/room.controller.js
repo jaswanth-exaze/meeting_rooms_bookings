@@ -15,31 +15,100 @@ function normalizeLimit(value, fallback, max) {
   return Math.min(parsed, max);
 }
 
+function normalizeDateTimeForMySql(value) {
+  if (value === null || value === undefined) return null;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const mysqlLikeMatch = raw.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}:\d{2})(:\d{2})?$/);
+  if (mysqlLikeMatch) {
+    const datePart = mysqlLikeMatch[1];
+    const timePart = mysqlLikeMatch[2];
+    const secondPart = mysqlLikeMatch[3] || ":00";
+    return `${datePart} ${timePart}${secondPart}`;
+  }
+
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return parsed.toISOString().slice(0, 19).replace("T", " ");
+}
+
+function toBoolean(value) {
+  return value === true || value === 1 || value === "1" || value === "true";
+}
+
 const getRooms = asyncHandler(async (req, res) => {
   const locationId = parsePositiveInt(req.query.location_id);
   const minCapacity = parsePositiveInt(req.query.capacity);
   const limit = normalizeLimit(req.query.limit, null, 100);
-  const startTime = req.query.start_time ? String(req.query.start_time) : null;
-  const endTime = req.query.end_time ? String(req.query.end_time) : null;
+  const availableOnly = toBoolean(req.query.available_only);
+  const hasStart = req.query.start_time !== undefined;
+  const hasEnd = req.query.end_time !== undefined;
+  const startTime = hasStart ? normalizeDateTimeForMySql(req.query.start_time) : null;
+  const endTime = hasEnd ? normalizeDateTimeForMySql(req.query.end_time) : null;
 
-  let sql = `
-    SELECT
-      mr.room_id,
-      mr.location_id,
-      l.name AS location_name,
-      mr.name,
-      mr.capacity,
-      mr.size_sqft,
-      mr.has_projector,
-      mr.has_screen,
-      mr.has_whiteboard,
-      mr.description
-    FROM meeting_room mr
-    INNER JOIN location l ON l.location_id = mr.location_id
-    WHERE 1 = 1
-  `;
+  if ((hasStart && !hasEnd) || (!hasStart && hasEnd)) {
+    return res.status(400).json({ message: "Both start_time and end_time are required together." });
+  }
 
+  if ((hasStart && !startTime) || (hasEnd && !endTime)) {
+    return res.status(400).json({ message: "Invalid start_time or end_time format." });
+  }
+
+  if (startTime && endTime && endTime <= startTime) {
+    return res.status(400).json({ message: "end_time must be greater than start_time." });
+  }
+
+  let sql = "";
   const params = [];
+
+  if (startTime && endTime) {
+    sql = `
+      SELECT
+        mr.room_id,
+        mr.location_id,
+        l.name AS location_name,
+        mr.name,
+        mr.capacity,
+        mr.size_sqft,
+        mr.has_projector,
+        mr.has_screen,
+        mr.has_whiteboard,
+        mr.description,
+        CASE WHEN COUNT(ob.booking_id) = 0 THEN 1 ELSE 0 END AS is_available,
+        MAX(ob.end_time) AS booked_until
+      FROM meeting_room mr
+      INNER JOIN location l ON l.location_id = mr.location_id
+      LEFT JOIN booking ob
+        ON ob.room_id = mr.room_id
+       AND ob.status IN ('confirmed', 'pending')
+       AND ob.start_time < ?
+       AND ob.end_time > ?
+      WHERE 1 = 1
+    `;
+    params.push(endTime, startTime);
+  } else {
+    sql = `
+      SELECT
+        mr.room_id,
+        mr.location_id,
+        l.name AS location_name,
+        mr.name,
+        mr.capacity,
+        mr.size_sqft,
+        mr.has_projector,
+        mr.has_screen,
+        mr.has_whiteboard,
+        mr.description,
+        1 AS is_available,
+        NULL AS booked_until
+      FROM meeting_room mr
+      INNER JOIN location l ON l.location_id = mr.location_id
+      WHERE 1 = 1
+    `;
+  }
 
   if (locationId) {
     sql += " AND mr.location_id = ?";
@@ -53,16 +122,22 @@ const getRooms = asyncHandler(async (req, res) => {
 
   if (startTime && endTime) {
     sql += `
-      AND NOT EXISTS (
-        SELECT 1
-        FROM booking b
-        WHERE b.room_id = mr.room_id
-          AND b.status IN ('confirmed', 'pending')
-          AND b.start_time < ?
-          AND b.end_time > ?
-      )
+      GROUP BY
+        mr.room_id,
+        mr.location_id,
+        l.name,
+        mr.name,
+        mr.capacity,
+        mr.size_sqft,
+        mr.has_projector,
+        mr.has_screen,
+        mr.has_whiteboard,
+        mr.description
     `;
-    params.push(endTime, startTime);
+
+    if (availableOnly) {
+      sql += " HAVING is_available = 1";
+    }
   }
 
   sql += " ORDER BY mr.location_id ASC, mr.capacity ASC, mr.name ASC";
