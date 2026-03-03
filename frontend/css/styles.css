@@ -170,7 +170,8 @@ button {
 }
 
 .home-main {
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .top-nav {
@@ -242,9 +243,77 @@ button {
   animation: float 6s ease-in-out infinite;
 }
 
+/* Slideshow styles */
+.hero-slideshow-container {
+  position: relative;
+  width: 100%;
+  height: 430px;
+  max-height: 430px;
+  display: block;
+  line-height: 0;
+  font-size: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.hero-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 430px;
+  max-height: 430px;
+  object-fit: contain;
+  border-radius: 32px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 0%, #000 40%, rgba(0, 0, 0, 0.8) 60%, rgba(0, 0, 0, 0.3) 80%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 75% at 50% 50%, #000 0%, #000 40%, rgba(0, 0, 0, 0.8) 60%, rgba(0, 0, 0, 0.3) 80%, transparent 100%);
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+  box-shadow: inset 0 0 60px rgba(28, 42, 67, 0.25), 0 10px 35px rgba(28, 42, 67, 0.15);
+  filter: drop-shadow(0 20px 40px rgba(28, 42, 67, 0.1));
+  margin: 0;
+  padding: 0;
+}
+
+.hero-slide.active {
+  position: relative;
+  opacity: 1;
+  animation: float 6s ease-in-out infinite;
+}
+
+.hero-slideshow-dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.6rem;
+  padding-top: 1.2rem;
+  position: relative;
+  z-index: 10;
+}
+
+.slideshow-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--steel-2);
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  padding: 0;
+}
+
+.slideshow-dot:hover {
+  transform: scale(1.15);
+}
+
+.slideshow-dot.active {
+  background-color: var(--steel-2);
+}
+
 .search-ribbon-wrap {
   padding: 0 2rem 2rem;
   margin-top: -1.4rem;
+  overflow: visible;
+  position: relative;
 }
 
 .search-ribbon {
@@ -256,6 +325,8 @@ button {
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   align-items: end;
   gap: 0.7rem;
+  overflow: visible;
+  position: relative;
 }
 
 .search-ribbon > * {
@@ -271,6 +342,8 @@ button {
   align-items: center;
   padding: 0.38rem 0.68rem;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88), 0 4px 12px rgba(16, 44, 82, 0.08);
+  position: relative;
+  overflow: visible;
 }
 
 .search-chip > div {
@@ -315,11 +388,11 @@ button {
   appearance: none;
   -webkit-appearance: none;
   background-image: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%233e5f8f' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23429e38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat, no-repeat;
   background-position: 0 0, right 0.62rem center;
-  background-size: 100% 100%, 10px 6px;
-  padding-right: 1.95rem;
+  background-size: 100% 100%, 14px 9px;
+  padding-right: 2rem;
 }
 
 .search-chip input[type="date"],
@@ -1081,7 +1154,7 @@ th {
 
 .filters-inline {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   align-items: end;
   gap: 0.75rem;
   margin-bottom: 1rem;
@@ -1240,6 +1313,521 @@ th {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+}
+
+/* ===== Modern Date/Time Picker Styles ===== */
+.flatpickr-calendar {
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(28, 42, 67, 0.2);
+  border: 1px solid #dbe3ef;
+}
+
+.flatpickr-calendar.open {
+  animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flatpickr-months {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  padding: 1rem;
+  border-bottom: 1px solid #eff3f8;
+}
+
+.flatpickr-month {
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.flatpickr-next-month,
+.flatpickr-prev-month {
+  height: 32px;
+  width: 32px;
+  color: var(--steel);
+  fill: var(--steel);
+  transition: all 0.2s ease;
+}
+
+.flatpickr-next-month:hover,
+.flatpickr-prev-month:hover {
+  color: var(--leaf);
+  fill: var(--leaf);
+  background: rgba(66, 158, 56, 0.08);
+  border-radius: 8px;
+}
+
+.flatpickr-weekdays {
+  background: #f8fbff;
+  padding: 0.75rem 0;
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.flatpickr-week {
+  padding: 0.35rem 0.2rem;
+}
+
+.flatpickr-day {
+  color: var(--navy);
+  border-radius: 8px;
+  margin: 0.25rem 0;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.flatpickr-day:hover {
+  background-color: rgba(66, 158, 56, 0.12);
+  border-color: var(--leaf);
+  color: var(--leaf);
+  box-shadow: inset 0 0 0 1px rgba(66, 158, 56, 0.3);
+}
+
+.flatpickr-day.selected {
+  background-color: var(--leaf);
+  border-color: var(--leaf);
+  color: var(--white);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(66, 158, 56, 0.3);
+}
+
+.flatpickr-day.today {
+  border-color: var(--steel);
+  background: rgba(60, 104, 166, 0.08);
+}
+
+.flatpickr-day.today.selected {
+  background-color: var(--steel);
+  border-color: var(--steel);
+}
+
+.flatpickr-day.disabled,
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+  color: #b3c0d4;
+  opacity: 0.4;
+}
+
+.flatpickr-time {
+  background: #f8fbff;
+  border-top: 1px solid #eff3f8;
+  padding: 0.75rem;
+}
+
+.flatpickr-hour {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.flatpickr-minute,
+.flatpickr-second {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.flatpickr-time input {
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.flatpickr-time input:focus {
+  border-color: var(--leaf);
+  outline: none;
+}
+
+.numInputWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.numInputWrapper input {
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--navy);
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  min-width: 50px;
+  text-align: center;
+}
+
+.numInputWrapper input:focus {
+  border-color: var(--leaf);
+  outline: none;
+}
+
+.numInputWrapper span {
+  border: 1px solid #dbe3ef;
+  color: var(--steel);
+  transition: all 0.2s ease;
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.numInputWrapper span:hover {
+  background-color: rgba(66, 158, 56, 0.1);
+  border-color: var(--leaf);
+  color: var(--leaf);
+}
+
+/* Modern Time Picker Component */
+.modern-time-picker-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  z-index: 100;
+}
+
+.modern-time-display {
+  width: 100%;
+  position: relative;
+}
+
+.modern-time-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0.52rem 0.75rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 44px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.modern-time-input:focus {
+  border-color: #7ca6d6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 131, 195, 0.2);
+}
+
+.modern-time-input::placeholder {
+  color: var(--text-muted);
+}
+
+/* Time Picker Popup - Fixed Positioning */
+.modern-time-picker-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.65rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 8px 24px rgba(28, 42, 67, 0.15);
+  min-width: 260px;
+  display: none;
+  z-index: 2000;
+  animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: display;
+}
+
+.modern-time-picker-popup.active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* Time Section (Hours/Minutes) */
+.time-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.time-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Time Controls Container - Horizontal Layout */
+.time-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* Time Display Value */
+.time-display-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--navy);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.1em;
+  min-width: 80px;
+  text-align: center;
+  padding: 0.6rem 0.5rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(66, 158, 56, 0.08) 0%, rgba(66, 158, 56, 0.04) 100%);
+  flex: 0 0 auto;
+}
+
+/* Time Buttons (+ and -) */
+.time-btn {
+  border: 2px solid #dbe3ef;
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  background: var(--white);
+  color: var(--steel);
+  font-size: 1.3rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.time-btn:hover {
+  border-color: var(--leaf);
+  background: rgba(66, 158, 56, 0.1);
+  color: var(--leaf);
+  transform: scale(1.08);
+}
+
+.time-btn:active {
+  transform: scale(0.95);
+}
+
+/* Confirm Button */
+.time-confirm-btn {
+  background: linear-gradient(120deg, var(--leaf) 0%, var(--leaf-2) 100%);
+  color: var(--white);
+  border: none;
+  border-radius: 9px;
+  padding: 0.7rem 1.4rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(66, 158, 56, 0.25);
+  min-height: 40px;
+  margin-top: 0.3rem;
+  width: 100%;
+}
+
+.time-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(66, 158, 56, 0.35);
+}
+
+.time-confirm-btn:active {
+  transform: translateY(0);
+}
+
+/* Date/Time Input Styling */
+input[type="date"],
+input[type="time"],
+.input-date,
+.input-time {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0.52rem 0.75rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 44px;
+}
+
+input[type="date"]:focus,
+input[type="time"]:focus,
+.input-date:focus,
+.input-time:focus {
+  border-color: #7ca6d6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 131, 195, 0.2);
+}
+
+input[type="date"]::placeholder,
+input[type="time"]::placeholder {
+  color: var(--text-muted);
+}
+
+/* Modern Select Dropdown Styling */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0.52rem 2.5rem 0.52rem 0.85rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23429e38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px 9px;
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  min-height: 44px;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+select:hover {
+  border-color: var(--leaf);
+  background-color: rgba(66, 158, 56, 0.05);
+}
+
+select:focus {
+  border-color: var(--leaf);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 158, 56, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+select:active {
+  transform: scale(0.98);
+}
+
+select option {
+  background: var(--white);
+  color: var(--navy);
+  padding: 0.6rem 0.8rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+select option:hover {
+  background: rgba(66, 158, 56, 0.15);
+}
+
+select option:checked {
+  background: linear-gradient(#429e38, #429e38);
+  color: var(--white);
+  font-weight: 600;
+}
+
+select option:disabled {
+  color: #b3c0d4;
+  background-color: #f2f5f9;
+}
+
+/* Form Items (Dashboard) */
+.form-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.form-item label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+.form-item input[type="date"],
+.form-item input[type="time"],
+.form-item input[type="number"],
+.form-item select {
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0.52rem 0.75rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-height: 44px;
+  transition: all 0.2s ease;
+}
+
+.form-item select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.5rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'%3E%3Cpath d='M1 1l6 6 6-6' fill='none' stroke='%23429e38' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 14px 9px;
+  cursor: pointer;
+}
+
+.form-item input[type="date"]:focus,
+.form-item input[type="time"]:focus,
+.form-item input[type="number"]:focus,
+.form-item select:focus {
+  border-color: var(--leaf);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(66, 158, 56, 0.2);
+}
+
+.form-item select:hover {
+  border-color: var(--leaf);
+  background-color: rgba(66, 158, 56, 0.05);
+}
+
+.form-item input[type="number"] {
+  appearance: none;
+  -webkit-appearance: textfield;
+}
+
+.form-item input[type="number"]::-webkit-outer-spin-button,
+.form-item input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Filters Inline (Dashboard forms) */
+.filters-inline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+  align-items: end;
+}
+
+.filters-inline button {
+  min-height: 44px;
+  align-self: flex-end;
 }
 
 /* Responsive */
@@ -1433,3 +2021,9 @@ th {
     padding: 0.45rem;
   }
 }
+
+
+
+
+
+

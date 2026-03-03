@@ -10,8 +10,12 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
+    <!-- Flatpickr Date/Time Picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="css/styles.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script defer src="js/login.js"></script>
+    <script defer src="js/pickers-init.js"></script>
   </head>
   <body class="page-home">
     <main class="page-container home-layout">
@@ -28,11 +32,38 @@
 
         <section class="hero-block">
           <div class="hero-content fade-rise delay-1">
-            <img
-              class="hero-illustration"
-              src="assets/home_page_image.png"
-              alt="Team collaborating in a modern meeting room"
-            />
+            <div class="hero-slideshow-container">
+              <img
+                class="hero-illustration hero-slide active"
+                src="assets/home_page_image_1.png"
+                alt="Team collaborating in a modern meeting room"
+                data-slide="0"
+              />
+              <img
+                class="hero-illustration hero-slide"
+                src="assets/home_page_image.png"
+                alt="Professional workspace environment"
+                data-slide="1"
+              />
+              <img
+                class="hero-illustration hero-slide"
+                src="assets/home_page_image_2.png"
+                alt="Modern office collaboration space"
+                data-slide="2"
+              />
+              <img
+                class="hero-illustration hero-slide"
+                src="assets/home_page_image_3.png"
+                alt="Meeting room with advanced technology"
+                data-slide="3"
+              />
+              <div class="hero-slideshow-dots">
+                <button class="slideshow-dot active" data-slide="0" aria-label="Show slide 1"></button>
+                <button class="slideshow-dot" data-slide="1" aria-label="Show slide 2"></button>
+                <button class="slideshow-dot" data-slide="2" aria-label="Show slide 3"></button>
+                <button class="slideshow-dot" data-slide="3" aria-label="Show slide 4"></button>
+              </div>
+            </div>
           </div>
         </section>
 

@@ -624,3 +624,55 @@ if (bookingLocationSelect && featuredLocationFilter && roomsGrid) {
   loadLocations();
   loadFeaturedRooms();
 }
+
+// Auto-slideshow functionality
+function initializeSlideshow() {
+  const heroSlides = document.querySelectorAll(".hero-slide");
+  const slideshowDots = document.querySelectorAll(".slideshow-dot");
+
+  if (heroSlides.length === 0 || slideshowDots.length === 0) {
+    return;
+  }
+
+  let currentSlideIndex = 0;
+  const autoPlayInterval = 5000; // 5 seconds
+
+  function showSlide(index) {
+    // Ensure index is within bounds
+    currentSlideIndex = index % heroSlides.length;
+
+    // Remove active class from all slides and dots
+    heroSlides.forEach(slide => slide.classList.remove("active"));
+    slideshowDots.forEach(dot => dot.classList.remove("active"));
+
+    // Add active class to current slide and dot
+    heroSlides[currentSlideIndex].classList.add("active");
+    slideshowDots[currentSlideIndex].classList.add("active");
+  }
+
+  // Set up dot click handlers for manual navigation
+  slideshowDots.forEach((dot, index) => {
+    dot.addEventListener("click", () => {
+      showSlide(index);
+      // Reset auto-play timer
+      clearInterval(autoPlayTimer);
+      autoPlayTimer = setInterval(() => {
+        showSlide(currentSlideIndex + 1);
+      }, autoPlayInterval);
+    });
+  });
+
+  // Auto-play timer
+  let autoPlayTimer = setInterval(() => {
+    showSlide(currentSlideIndex + 1);
+  }, autoPlayInterval);
+}
+
+// Initialize slideshow when DOM is ready
+document.addEventListener("DOMContentLoaded", initializeSlideshow);
+// Also call if DOM is already loaded
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeSlideshow);
+} else {
+  initializeSlideshow();
+}
