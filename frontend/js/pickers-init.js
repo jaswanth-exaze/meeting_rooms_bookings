@@ -270,8 +270,11 @@ function createModernTimePicker(timeInput) {
   // Assemble wrapper
   display.appendChild(input);
   wrapper.appendChild(display);
-  wrapper.appendChild(pickerPopup);
+  // Don't append popup to wrapper - append to body for fixed positioning
   wrapper.appendChild(hiddenInput);
+  
+  // Append popup to body for proper fixed positioning
+  document.body.appendChild(pickerPopup);
   
   // Replace original input
   timeInput.parentNode.replaceChild(wrapper, timeInput);
@@ -284,9 +287,32 @@ function createModernTimePicker(timeInput) {
   wrapper.minuteDisplay = minuteDisplay;
   wrapper.confirmBtn = confirmBtn;
   
+  // Function to position the popup
+  function positionPopup() {
+    const rect = input.getBoundingClientRect();
+    pickerPopup.style.position = 'fixed';
+    pickerPopup.style.top = (rect.bottom + 8) + 'px';
+    pickerPopup.style.left = rect.left + 'px';
+    pickerPopup.style.width = rect.width + 'px';
+  }
+  
   // Event listeners
   input.addEventListener('focus', () => {
+    positionPopup();
     pickerPopup.classList.add('active');
+  });
+  
+  // Reposition on scroll/resize
+  window.addEventListener('scroll', () => {
+    if (pickerPopup.classList.contains('active')) {
+      positionPopup();
+    }
+  }, true);
+  
+  window.addEventListener('resize', () => {
+    if (pickerPopup.classList.contains('active')) {
+      positionPopup();
+    }
   });
   
   confirmBtn.addEventListener('click', () => {
@@ -302,12 +328,12 @@ function createModernTimePicker(timeInput) {
   // Handle hour/minute buttons
   hourIncrease.addEventListener('click', () => updateTimeValue(hourDisplay, 1, 24));
   hourDecrease.addEventListener('click', () => updateTimeValue(hourDisplay, -1, 24));
-  minuteIncrease.addEventListener('click', () => updateTimeValue(minuteDisplay, 15, 60));
-  minuteDecrease.addEventListener('click', () => updateTimeValue(minuteDisplay, -15, 60));
+  minuteIncrease.addEventListener('click', () => updateTimeValue(minuteDisplay, 1, 60));
+  minuteDecrease.addEventListener('click', () => updateTimeValue(minuteDisplay, -1, 60));
   
   // Close popup when clicking outside
   document.addEventListener('click', (e) => {
-    if (!wrapper.contains(e.target)) {
+    if (!wrapper.contains(e.target) && !pickerPopup.contains(e.target)) {
       pickerPopup.classList.remove('active');
     }
   });

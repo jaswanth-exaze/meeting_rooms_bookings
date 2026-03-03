@@ -16,7 +16,13 @@ const ROOM_IMAGES_BY_NAME = {
   pinnacle: "../assets/pinnacle-15-members.png",
   "conference room a": "../assets/Conference_Room_A.png",
   "conference room b": "../assets/Conference_Room_B.png",
-  "training room": "../assets/training_room.png"
+  "training room": "../assets/training_room.png",
+  karoo: "../assets/hubble-2-persons.png",
+  meerkat: "../assets/Nexus-2-persons.png",
+  "cape town": "../assets/synergy-4-members.png",
+  "drakensberg": "../assets/fussion-6-members.png",
+  "table mountain": "../assets/fussion-6-members.png",
+
 };
 const MALE_PROFILE_IMAGE = "../assets/male_profile.png";
 const FEMALE_PROFILE_IMAGE = "../assets/female_profile.png";

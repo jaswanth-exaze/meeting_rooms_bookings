@@ -16,7 +16,22 @@ const ROOM_IMAGES_BY_NAME = {
   pinnacle: "assets/pinnacle-15-members.png",
   "conference room a": "assets/Conference_Room_A.png",
   "conference room b": "assets/Conference_Room_B.png",
-  "training room": "assets/training_room.png"
+  "training room": "assets/training_room.png",
+
+  // south africa themed rooms
+
+  
+// Room Name	Capacity	Why This Name?
+// Table Mountain	6	Iconic landmark, symbol of strength and pride – for the largest boardroom.
+// Drakensberg	6	Majestic mountain range, evokes grandeur – second large boardroom.
+// Cape Town	4	Named after the “Mother City,” creative and vibrant – medium boardroom.
+// Karoo	2	Vast, quiet semi‑desert – ideal for a peaceful focus pod with monitor.
+// Meerkat	2	Social, alert native animal – perfect for small, collaborative huddle room with monitor.
+  karoo: "assets/hubble-2-persons.png",
+  meerkat: "assets/Nexus-2-persons.png",
+  "cape town": "assets/synergy-4-members.png",
+  "drakensberg": "assets/fussion-6-members.png",
+  "table mountain": "assets/fussion-6-members.png",
 };
 
 const roomSearchForm = document.getElementById("room-search-form");
@@ -419,7 +434,7 @@ function openRoomModal(room) {
   setRoomModalMessage("", "");
   roomDetailImage.src = getRoomImage(room);
   roomDetailTitle.textContent = room.name || "Meeting Room";
-  roomDetailLocation.textContent = room.location_name || "Unknown location";
+
   roomDetailMeta.textContent = getRoomMetaText(room);
   if (roomDetailAvailability) {
     const available = isRoomAvailable(room);
