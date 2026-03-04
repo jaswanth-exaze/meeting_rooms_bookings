@@ -1,5 +1,6 @@
 const asyncHandler = require("../middleware/asyncHandler");
 const { query } = require("../config/db");
+const { getPasswordValidationError, hashPassword } = require("../utils/password");
 
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
@@ -59,8 +60,9 @@ const createEmployee = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "name, email, gender, and password are required." });
   }
 
-  if (password.length < 6) {
-    return res.status(400).json({ message: "Password must be at least 6 characters long." });
+  const passwordValidationError = getPasswordValidationError(password);
+  if (passwordValidationError) {
+    return res.status(400).json({ message: passwordValidationError });
   }
 
   const existing = await query(
@@ -77,13 +79,29 @@ const createEmployee = asyncHandler(async (req, res) => {
     return res.status(409).json({ message: "An employee with this email already exists." });
   }
 
-  const insertResult = await query(
-    `
-      INSERT INTO employee (name, email, department, gender, is_admin, password)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    [name, email, department || null, gender, isAdmin ? 1 : 0, password]
-  );
+  const hashedPassword = await hashPassword(password);
+
+  let insertResult;
+  try {
+    insertResult = await query(
+      `
+        INSERT INTO employee (name, email, department, gender, is_admin, password, password_reset_required, password_updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, 1, UTC_TIMESTAMP())
+      `,
+      [name, email, department || null, gender, isAdmin ? 1 : 0, hashedPassword]
+    );
+  } catch (error) {
+    if (error?.code !== "ER_BAD_FIELD_ERROR") {
+      throw error;
+    }
+    insertResult = await query(
+      `
+        INSERT INTO employee (name, email, department, gender, is_admin, password)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [name, email, department || null, gender, isAdmin ? 1 : 0, hashedPassword]
+    );
+  }
 
   res.status(201).json({
     message: "Employee added successfully.",

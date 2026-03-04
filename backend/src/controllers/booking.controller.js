@@ -46,6 +46,16 @@ function toBoolean(value) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
+const BOOKING_PAST_GRACE_MS = 60 * 1000;
+
+function isPastBeyondGrace(dateValue, graceMs = BOOKING_PAST_GRACE_MS) {
+  if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) {
+    return true;
+  }
+
+  return dateValue.getTime() < Date.now() - graceMs;
+}
+
 function getEmployeeScope(req, requestedEmployeeIdRaw) {
   const authEmployeeId = parsePositiveInt(req.user?.employee_id);
   const requestedEmployeeId = parsePositiveInt(requestedEmployeeIdRaw);
@@ -76,6 +86,67 @@ function canManageBooking(req, bookingEmployeeId) {
   return authEmployeeId === targetEmployeeId;
 }
 
+function normalizeStatus(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
+async function insertBookingAudit(connection, details) {
+  const bookingId = parsePositiveInt(details.booking_id);
+  const actorEmployeeId = parsePositiveInt(details.actor_employee_id);
+  const action = String(details.action || "")
+    .trim()
+    .toLowerCase();
+
+  if (!bookingId || !actorEmployeeId || !action) {
+    return;
+  }
+
+  const allowedActions = new Set(["created", "updated", "cancelled", "vacated"]);
+  if (!allowedActions.has(action)) {
+    return;
+  }
+
+  const metadata = details.metadata && typeof details.metadata === "object" ? JSON.stringify(details.metadata) : null;
+  try {
+    await connection.execute(
+      `
+        INSERT INTO booking_audit (
+          booking_id,
+          action,
+          actor_employee_id,
+          previous_status,
+          new_status,
+          previous_start_time,
+          previous_end_time,
+          new_start_time,
+          new_end_time,
+          metadata
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        bookingId,
+        action,
+        actorEmployeeId,
+        details.previous_status || null,
+        details.new_status || null,
+        details.previous_start_time || null,
+        details.previous_end_time || null,
+        details.new_start_time || null,
+        details.new_end_time || null,
+        metadata
+      ]
+    );
+  } catch (error) {
+    if (error?.code === "ER_NO_SUCH_TABLE" || error?.code === "ER_BAD_FIELD_ERROR") {
+      return;
+    }
+    throw error;
+  }
+}
+
 const getUpcomingBookings = asyncHandler(async (req, res) => {
   const scope = getEmployeeScope(req, req.query.employee_id);
   if (scope.error) {
@@ -85,7 +156,9 @@ const getUpcomingBookings = asyncHandler(async (req, res) => {
   const limit = normalizeLimit(req.query.limit, 20, 200);
   const includePast = toBoolean(req.query.include_past);
   const includeCancelled = toBoolean(req.query.include_cancelled);
-  const statuses = includeCancelled ? ["confirmed", "pending", "cancelled"] : ["confirmed", "pending"];
+  const statuses = includeCancelled
+    ? ["confirmed", "pending", "cancelled", "vacated"]
+    : ["confirmed", "pending", "vacated"];
 
   const statusPlaceholders = statuses.map(() => "?").join(", ");
   let sql = `
@@ -102,7 +175,8 @@ const getUpcomingBookings = asyncHandler(async (req, res) => {
       mr.name AS room_name,
       mr.capacity AS room_capacity,
       l.location_id,
-      l.name AS location_name
+      l.name AS location_name,
+      l.timezone AS location_timezone
     FROM booking b
     INNER JOIN employee e ON e.employee_id = b.employee_id
     INNER JOIN meeting_room mr ON mr.room_id = b.room_id
@@ -141,7 +215,7 @@ const getBookingSummary = asyncHandler(async (req, res) => {
     `
       SELECT
         COUNT(*) AS total_bookings,
-        SUM(CASE WHEN DATE(b.start_time) = UTC_DATE() AND b.status IN ('confirmed', 'pending') THEN 1 ELSE 0 END) AS rooms_booked_today,
+        SUM(CASE WHEN DATE(b.start_time) = UTC_DATE() AND b.status IN ('confirmed', 'pending', 'vacated') THEN 1 ELSE 0 END) AS rooms_booked_today,
         SUM(CASE WHEN b.start_time >= UTC_TIMESTAMP() AND b.status IN ('confirmed', 'pending') THEN 1 ELSE 0 END) AS upcoming_meetings,
         SUM(
           CASE
@@ -154,7 +228,7 @@ const getBookingSummary = asyncHandler(async (req, res) => {
         SUM(CASE WHEN b.status = 'pending' AND b.start_time >= UTC_TIMESTAMP() THEN 1 ELSE 0 END) AS open_requests,
         SUM(
           CASE
-            WHEN DATE(b.start_time) = UTC_DATE() AND b.status = 'confirmed'
+            WHEN DATE(b.start_time) = UTC_DATE() AND b.status IN ('confirmed', 'vacated')
             THEN TIMESTAMPDIFF(MINUTE, b.start_time, b.end_time)
             ELSE 0
           END
@@ -163,7 +237,7 @@ const getBookingSummary = asyncHandler(async (req, res) => {
           CASE
             WHEN b.start_time >= UTC_TIMESTAMP()
              AND b.start_time < DATE_ADD(UTC_TIMESTAMP(), INTERVAL 7 DAY)
-             AND b.status = 'confirmed'
+             AND b.status IN ('confirmed', 'vacated')
             THEN TIMESTAMPDIFF(MINUTE, b.start_time, b.end_time)
             ELSE 0
           END
@@ -237,7 +311,8 @@ const getBookingReports = asyncHandler(async (req, res) => {
         b.status,
         e.name AS employee_name,
         mr.name AS room_name,
-        l.name AS location_name
+        l.name AS location_name,
+        l.timezone AS location_timezone
       FROM booking b
       INNER JOIN employee e ON e.employee_id = b.employee_id
       INNER JOIN meeting_room mr ON mr.room_id = b.room_id
@@ -309,7 +384,7 @@ const createBooking = asyncHandler(async (req, res) => {
     return res.status(400).json({ message: "end_time must be greater than start_time." });
   }
 
-  if (startDate.getTime() < Date.now()) {
+  if (isPastBeyondGrace(startDate)) {
     return res.status(400).json({ message: "You cannot book for past date/time." });
   }
 
@@ -360,6 +435,18 @@ const createBooking = asyncHandler(async (req, res) => {
       [roomId, employeeId, normalizedTitle, normalizedDescription, startTimeSql, endTimeSql, status]
     );
 
+    await insertBookingAudit(connection, {
+      booking_id: insertResult.insertId,
+      action: "created",
+      actor_employee_id: authEmployeeId,
+      previous_status: null,
+      new_status: status,
+      previous_start_time: null,
+      previous_end_time: null,
+      new_start_time: startTimeSql,
+      new_end_time: endTimeSql
+    });
+
     await connection.commit();
     return res.status(201).json({
       message: "Booking created successfully.",
@@ -379,8 +466,12 @@ const createBooking = asyncHandler(async (req, res) => {
 
 const updateBooking = asyncHandler(async (req, res) => {
   const bookingId = parsePositiveInt(req.params.bookingId);
+  const actorEmployeeId = parsePositiveInt(req.user?.employee_id);
   if (!bookingId) {
     return res.status(400).json({ message: "Invalid booking id." });
+  }
+  if (!actorEmployeeId) {
+    return res.status(401).json({ message: "Invalid authenticated user." });
   }
 
   const requestedTitle = req.body?.title;
@@ -414,9 +505,14 @@ const updateBooking = asyncHandler(async (req, res) => {
       return res.status(403).json({ message: "You do not have permission to edit this booking." });
     }
 
-    if (String(existingBooking.status).toLowerCase() === "cancelled") {
+    const existingStatus = normalizeStatus(existingBooking.status);
+    if (existingStatus === "cancelled") {
       await connection.rollback();
       return res.status(400).json({ message: "Cancelled bookings cannot be edited." });
+    }
+    if (existingStatus === "vacated") {
+      await connection.rollback();
+      return res.status(400).json({ message: "Vacated bookings cannot be edited." });
     }
 
     const roomId = parsePositiveInt(existingBooking.room_id);
@@ -442,7 +538,7 @@ const updateBooking = asyncHandler(async (req, res) => {
     }
 
     const startDate = parseMySqlUtcToDate(startTimeSql);
-    if (!startDate || startDate.getTime() < Date.now()) {
+    if (isPastBeyondGrace(startDate)) {
       await connection.rollback();
       return res.status(400).json({ message: "You can only edit future bookings." });
     }
@@ -476,6 +572,18 @@ const updateBooking = asyncHandler(async (req, res) => {
       [title, description, startTimeSql, endTimeSql, bookingId]
     );
 
+    await insertBookingAudit(connection, {
+      booking_id: bookingId,
+      action: "updated",
+      actor_employee_id: actorEmployeeId,
+      previous_status: existingStatus,
+      new_status: existingStatus,
+      previous_start_time: normalizeDateTimeForMySql(existingBooking.start_time),
+      previous_end_time: normalizeDateTimeForMySql(existingBooking.end_time),
+      new_start_time: startTimeSql,
+      new_end_time: endTimeSql
+    });
+
     await connection.commit();
     return res.json({
       message: "Booking updated successfully.",
@@ -502,8 +610,12 @@ const updateBooking = asyncHandler(async (req, res) => {
 
 const cancelBooking = asyncHandler(async (req, res) => {
   const bookingId = parsePositiveInt(req.params.bookingId);
+  const actorEmployeeId = parsePositiveInt(req.user?.employee_id);
   if (!bookingId) {
     return res.status(400).json({ message: "Invalid booking id." });
+  }
+  if (!actorEmployeeId) {
+    return res.status(401).json({ message: "Invalid authenticated user." });
   }
 
   const connection = await pool.getConnection();
@@ -512,7 +624,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
 
     const [bookingRows] = await connection.execute(
       `
-        SELECT booking_id, employee_id, start_time, status
+        SELECT booking_id, employee_id, start_time, end_time, status
         FROM booking
         WHERE booking_id = ?
         LIMIT 1
@@ -532,9 +644,14 @@ const cancelBooking = asyncHandler(async (req, res) => {
       return res.status(403).json({ message: "You do not have permission to cancel this booking." });
     }
 
-    if (String(existingBooking.status).toLowerCase() === "cancelled") {
+    const existingStatus = normalizeStatus(existingBooking.status);
+    if (existingStatus === "cancelled") {
       await connection.rollback();
       return res.json({ message: "Booking is already cancelled." });
+    }
+    if (existingStatus === "vacated") {
+      await connection.rollback();
+      return res.status(400).json({ message: "Vacated bookings cannot be cancelled." });
     }
 
     const startDate = parseMySqlUtcToDate(normalizeDateTimeForMySql(existingBooking.start_time));
@@ -552,8 +669,137 @@ const cancelBooking = asyncHandler(async (req, res) => {
       [bookingId]
     );
 
+    await insertBookingAudit(connection, {
+      booking_id: bookingId,
+      action: "cancelled",
+      actor_employee_id: actorEmployeeId,
+      previous_status: existingStatus,
+      new_status: "cancelled",
+      previous_start_time: normalizeDateTimeForMySql(existingBooking.start_time),
+      previous_end_time: normalizeDateTimeForMySql(existingBooking.end_time),
+      new_start_time: normalizeDateTimeForMySql(existingBooking.start_time),
+      new_end_time: normalizeDateTimeForMySql(existingBooking.end_time)
+    });
+
     await connection.commit();
     return res.json({ message: "Booking cancelled successfully." });
+  } catch (error) {
+    try {
+      await connection.rollback();
+    } catch (_rollbackError) {
+      // no-op
+    }
+    throw error;
+  } finally {
+    connection.release();
+  }
+});
+
+const vacateBooking = asyncHandler(async (req, res) => {
+  const bookingId = parsePositiveInt(req.params.bookingId);
+  const actorEmployeeId = parsePositiveInt(req.user?.employee_id);
+  if (!bookingId) {
+    return res.status(400).json({ message: "Invalid booking id." });
+  }
+  if (!actorEmployeeId) {
+    return res.status(401).json({ message: "Invalid authenticated user." });
+  }
+
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+
+    const [bookingRows] = await connection.execute(
+      `
+        SELECT booking_id, employee_id, start_time, end_time, status
+        FROM booking
+        WHERE booking_id = ?
+        LIMIT 1
+        FOR UPDATE
+      `,
+      [bookingId]
+    );
+
+    if (bookingRows.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ message: "Booking not found." });
+    }
+
+    const existingBooking = bookingRows[0];
+    if (!canManageBooking(req, existingBooking.employee_id)) {
+      await connection.rollback();
+      return res.status(403).json({ message: "You do not have permission to vacate this booking." });
+    }
+
+    const existingStatus = normalizeStatus(existingBooking.status);
+    if (existingStatus === "cancelled") {
+      await connection.rollback();
+      return res.status(400).json({ message: "Cancelled bookings cannot be vacated." });
+    }
+    if (existingStatus === "vacated") {
+      await connection.rollback();
+      return res.json({ message: "Booking is already vacated." });
+    }
+
+    const startTimeSql = normalizeDateTimeForMySql(existingBooking.start_time);
+    const endTimeSql = normalizeDateTimeForMySql(existingBooking.end_time);
+    const startDate = parseMySqlUtcToDate(startTimeSql);
+    const endDate = parseMySqlUtcToDate(endTimeSql);
+
+    if (!startDate || !endDate || !startTimeSql || !endTimeSql) {
+      await connection.rollback();
+      return res.status(400).json({ message: "Booking has invalid timing data." });
+    }
+
+    const now = new Date();
+    if (now.getTime() < startDate.getTime()) {
+      await connection.rollback();
+      return res.status(400).json({ message: "Only ongoing bookings can be vacated." });
+    }
+
+    if (now.getTime() >= endDate.getTime()) {
+      await connection.rollback();
+      return res.json({ message: "Booking is already completed." });
+    }
+
+    const nowSql = normalizeDateTimeForMySql(now.toISOString());
+    if (!nowSql || nowSql <= startTimeSql) {
+      await connection.rollback();
+      return res
+        .status(400)
+        .json({ message: "Booking has just started. Please try vacating again in a few seconds." });
+    }
+
+    await connection.execute(
+      `
+        UPDATE booking
+        SET end_time = ?, status = 'vacated'
+        WHERE booking_id = ?
+      `,
+      [nowSql, bookingId]
+    );
+
+    await insertBookingAudit(connection, {
+      booking_id: bookingId,
+      action: "vacated",
+      actor_employee_id: actorEmployeeId,
+      previous_status: existingStatus,
+      new_status: "vacated",
+      previous_start_time: startTimeSql,
+      previous_end_time: endTimeSql,
+      new_start_time: startTimeSql,
+      new_end_time: nowSql
+    });
+
+    await connection.commit();
+    return res.json({
+      message: "Booking vacated successfully.",
+      booking: {
+        booking_id: bookingId,
+        status: "vacated",
+        end_time: nowSql
+      }
+    });
   } catch (error) {
     try {
       await connection.rollback();
@@ -572,5 +818,6 @@ module.exports = {
   getBookingReports,
   createBooking,
   updateBooking,
-  cancelBooking
+  cancelBooking,
+  vacateBooking
 };

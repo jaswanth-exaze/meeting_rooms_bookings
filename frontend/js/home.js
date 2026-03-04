@@ -1,14 +1,14 @@
-const API_BASE_URL = "http://localhost:4000/api";
+﻿const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/api";
 
 const ROOM_IMAGES_BY_NAME = {
   
   "cell pod 1": "assets/cell_pod_1.png",
   "cell pod 2": "assets/cell_pod_2.png",
-  hubble:"assets/hubble-2-persons.png",
+  hubble: "assets/hubble-2-persons.png",
   fusion: "assets/fussion-6-members.png",
   nexus: "assets/Nexus-2-persons.png",
   zenith: "assets/zenith-3-persons.png",
-   synergy: "assets/synergy-4-members.png",
+  synergy: "assets/synergy-4-members.png",
   "tranquil": "assets/tranquil-5-members.png",
   "think tank": "assets/think_tank.png",
   "innovation hub": "assets/Innovation_Hub.png",
@@ -17,16 +17,6 @@ const ROOM_IMAGES_BY_NAME = {
   "conference room a": "assets/Conference_Room_A.png",
   "conference room b": "assets/Conference_Room_B.png",
   "training room": "assets/training_room.png",
-
-  // south africa themed rooms
-
-  
-// Room Name	Capacity	Why This Name?
-// Table Mountain	6	Iconic landmark, symbol of strength and pride – for the largest boardroom.
-// Drakensberg	6	Majestic mountain range, evokes grandeur – second large boardroom.
-// Cape Town	4	Named after the “Mother City,” creative and vibrant – medium boardroom.
-// Karoo	2	Vast, quiet semi‑desert – ideal for a peaceful focus pod with monitor.
-// Meerkat	2	Social, alert native animal – perfect for small, collaborative huddle room with monitor.
   karoo: "assets/hubble-2-persons.png",
   meerkat: "assets/Nexus-2-persons.png",
   "cape town": "assets/synergy-4-members.png",
@@ -47,7 +37,6 @@ const bookingMessage = document.getElementById("booking-message");
 const roomDetailModal = document.getElementById("room-detail-modal");
 const roomDetailImage = document.getElementById("room-detail-image");
 const roomDetailTitle = document.getElementById("room-detail-title");
-const roomDetailLocation = document.getElementById("room-detail-location");
 const roomDetailMeta = document.getElementById("room-detail-meta");
 const roomDetailAvailability = document.getElementById("room-detail-availability");
 const roomDetailDescription = document.getElementById("room-detail-description");
@@ -58,6 +47,67 @@ const roomModalMessage = document.getElementById("room-modal-message");
 
 let currentRooms = [];
 let selectedRoom = null;
+const BOOKING_PAST_GRACE_MS = 60 * 1000;
+const ROOM_AVAILABLE_SOON_MS = 60 * 1000;
+const TIMEZONE_CODE_OVERRIDES = Object.freeze({
+  "Asia/Kolkata": "IST",
+  "Africa/Johannesburg": "SAST"
+});
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "textarea:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])"
+].join(", ");
+let lastRoomModalTrigger = null;
+let slideshowTimerId = null;
+let isSlideshowInitialized = false;
+
+function isVisibleElement(element) {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.hidden) return false;
+  return element.getClientRects().length > 0;
+}
+
+function getModalFocusableElements(modalElement) {
+  if (!modalElement) return [];
+  return Array.from(modalElement.querySelectorAll(FOCUSABLE_SELECTOR))
+    .filter(node => isVisibleElement(node) && node.getAttribute("aria-hidden") !== "true");
+}
+
+function focusFirstElementInModal(modalElement) {
+  const focusableElements = getModalFocusableElements(modalElement);
+  const target = focusableElements[0];
+  if (target) {
+    target.focus();
+  }
+}
+
+function trapModalFocus(modalElement, event) {
+  if (!modalElement || modalElement.hidden || event.key !== "Tab") return;
+
+  const focusableElements = getModalFocusableElements(modalElement);
+  if (focusableElements.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+    return;
+  }
+
+  if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+}
 
 function getLocalDateInputValue(date = new Date()) {
   const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
@@ -66,6 +116,72 @@ function getLocalDateInputValue(date = new Date()) {
 
 function getLocalTimeInputValue(date = new Date()) {
   return date.toTimeString().slice(0, 5);
+}
+
+function normalizeTimeValueTo24(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const twentyFourHourMatch = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (twentyFourHourMatch) {
+    return `${String(Number.parseInt(twentyFourHourMatch[1], 10)).padStart(2, "0")}:${twentyFourHourMatch[2]}`;
+  }
+
+  const twelveHourMatch = raw.match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*([AaPp][Mm])$/);
+  if (!twelveHourMatch) return null;
+
+  let hours = Number.parseInt(twelveHourMatch[1], 10) % 12;
+  if (twelveHourMatch[3].toUpperCase() === "PM") {
+    hours += 12;
+  }
+
+  return `${String(hours).padStart(2, "0")}:${twelveHourMatch[2]}`;
+}
+
+function format24HourAs12Hour(value24) {
+  const normalized = normalizeTimeValueTo24(value24);
+  if (!normalized) return "";
+
+  const [hoursRaw, minutes] = normalized.split(":");
+  const hours = Number.parseInt(hoursRaw, 10);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = ((hours + 11) % 12) + 1;
+  return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`;
+}
+
+function getTimeInputValue24(inputElement) {
+  if (!inputElement) return null;
+  const dataTime24 = inputElement.getAttribute("data-time24");
+  return normalizeTimeValueTo24(dataTime24 || inputElement.value);
+}
+
+function setTimeInputValue(inputElement, timeValue24) {
+  if (!inputElement) return;
+  const normalized = normalizeTimeValueTo24(timeValue24);
+  if (!normalized) return;
+
+  const isTwelveHour = String(inputElement.getAttribute("data-time-format") || "").toLowerCase() === "12h";
+  if (isTwelveHour) {
+    inputElement.setAttribute("data-time24", normalized);
+    inputElement.value = format24HourAs12Hour(normalized);
+    return;
+  }
+
+  inputElement.value = normalized;
+}
+
+function getTimeValueMinutes(value) {
+  const normalized = normalizeTimeValueTo24(value);
+  if (!normalized) return null;
+
+  const [hours, minutes] = normalized.split(":").map(part => Number.parseInt(part, 10));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function isPastBeyondGrace(timestamp, graceMs = BOOKING_PAST_GRACE_MS) {
+  if (!Number.isFinite(timestamp)) return true;
+  return timestamp < Date.now() - graceMs;
 }
 
 function setBookingMessage(message, type) {
@@ -140,17 +256,53 @@ function isRoomAvailable(room) {
   return room?.is_available === 1 || room?.is_available === true || room?.is_available === "1";
 }
 
-function formatDateTime(value) {
+function normalizeTimeZone(value) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
+function getTimeZoneCode(date, timeZone) {
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  if (normalizedTimeZone && TIMEZONE_CODE_OVERRIDES[normalizedTimeZone]) {
+    return TIMEZONE_CODE_OVERRIDES[normalizedTimeZone];
+  }
+
+  const formatterOptions = { timeZoneName: "short" };
+  if (normalizedTimeZone) {
+    formatterOptions.timeZone = normalizedTimeZone;
+  }
+
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", formatterOptions).formatToParts(date);
+    const zoneName = parts.find(part => part.type === "timeZoneName")?.value?.trim();
+    if (zoneName) return zoneName;
+  } catch (_error) {
+    // Fallback to UTC when timezone formatting fails.
+  }
+
+  return "UTC";
+}
+
+function formatDateTime(value, timeZone) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleString(undefined, {
-    month: "short",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  const dateOptions = { month: "short", day: "2-digit", year: "numeric" };
+  const timeOptions = { hour: "numeric", minute: "2-digit", hour12: true };
+
+  let dateText = "";
+  let timeText = "";
+  try {
+    const optionsWithZone = normalizedTimeZone ? { timeZone: normalizedTimeZone } : {};
+    dateText = date.toLocaleDateString("en-US", { ...dateOptions, ...optionsWithZone });
+    timeText = date.toLocaleTimeString("en-US", { ...timeOptions, ...optionsWithZone });
+  } catch (_error) {
+    dateText = date.toLocaleDateString("en-US", dateOptions);
+    timeText = date.toLocaleTimeString("en-US", timeOptions);
+  }
+
+  return `${dateText} ${timeText} ${getTimeZoneCode(date, normalizedTimeZone)}`;
 }
 
 function getAvailabilityLabel(room) {
@@ -159,7 +311,11 @@ function getAvailabilityLabel(room) {
   }
 
   if (room?.booked_until) {
-    return `Booked. Available after ${formatDateTime(room.booked_until)}`;
+    const bookedUntil = new Date(room.booked_until);
+    if (!Number.isNaN(bookedUntil.getTime()) && bookedUntil.getTime() <= Date.now() + ROOM_AVAILABLE_SOON_MS) {
+      return "Booked. Available now";
+    }
+    return `Booked. Available after ${formatDateTime(room.booked_until, room.location_timezone)}`;
   }
 
   return "Booked for selected slot";
@@ -319,7 +475,12 @@ function getSearchStartAndEnd() {
     return null;
   }
 
-  const start = new Date(`${bookingDateInput.value}T${bookingTimeInput.value}`);
+  const timeValue24 = getTimeInputValue24(bookingTimeInput);
+  if (!timeValue24) {
+    return null;
+  }
+
+  const start = new Date(`${bookingDateInput.value}T${timeValue24}`);
   if (Number.isNaN(start.getTime())) {
     return null;
   }
@@ -348,8 +509,10 @@ function applyBookingDateTimeConstraints() {
   if (bookingDateInput.value === today) {
     const minTime = getLocalTimeInputValue(now);
     bookingTimeInput.min = minTime;
-    if (bookingTimeInput.value && bookingTimeInput.value < minTime) {
-      bookingTimeInput.value = minTime;
+    const currentMinutes = getTimeValueMinutes(getTimeInputValue24(bookingTimeInput));
+    const minMinutes = getTimeValueMinutes(minTime);
+    if (currentMinutes !== null && minMinutes !== null && currentMinutes < minMinutes) {
+      setTimeInputValue(bookingTimeInput, minTime);
     }
   } else {
     bookingTimeInput.min = "";
@@ -427,9 +590,15 @@ function searchRooms(event) {
     });
 }
 
-function openRoomModal(room) {
+function openRoomModal(room, triggerElement = null) {
   if (!roomDetailModal || !room) return;
 
+  lastRoomModalTrigger =
+    triggerElement instanceof HTMLElement
+      ? triggerElement
+      : document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
   selectedRoom = room;
   setRoomModalMessage("", "");
   roomDetailImage.src = getRoomImage(room);
@@ -456,6 +625,7 @@ function openRoomModal(room) {
   }
 
   roomDetailModal.hidden = false;
+  focusFirstElementInModal(roomDetailModal);
 }
 
 function closeRoomModal() {
@@ -473,6 +643,11 @@ function closeRoomModal() {
     modalMeetingDescriptionInput.value = "";
   }
   selectedRoom = null;
+
+  if (lastRoomModalTrigger && lastRoomModalTrigger.isConnected) {
+    lastRoomModalTrigger.focus();
+  }
+  lastRoomModalTrigger = null;
 }
 
 function handleRoomCardClick(event) {
@@ -487,7 +662,7 @@ function handleRoomCardClick(event) {
     return;
   }
 
-  openRoomModal(room);
+  openRoomModal(room, button);
 }
 
 function getStoredEmployee() {
@@ -503,12 +678,6 @@ function getStoredEmployee() {
 
 function bookRoom() {
   setRoomModalMessage("", "");
-
-  const token = localStorage.getItem("auth_token");
-  if (!token) {
-    setRoomModalMessage("Please sign in first to book a room.", "error");
-    return;
-  }
 
   if (!selectedRoom) {
     setRoomModalMessage("Select a room before booking.", "error");
@@ -527,7 +696,7 @@ function bookRoom() {
   }
 
   const startTimestamp = Date.parse(windowValue.start);
-  if (Number.isFinite(startTimestamp) && startTimestamp < Date.now()) {
+  if (isPastBeyondGrace(startTimestamp)) {
     setRoomModalMessage("You cannot book for past date/time.", "error");
     return;
   }
@@ -552,15 +721,18 @@ function bookRoom() {
 
   fetch(`${API_BASE_URL}/bookings`, {
     method: "POST",
+    credentials: "include",
     headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
+      "Content-Type": "application/json"
     },
     body: JSON.stringify(payload)
   })
     .then(async response => {
       const data = await response.json();
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please sign in first to book a room.");
+        }
         throw new Error(data.message || "Booking failed.");
       }
       return data;
@@ -596,9 +768,14 @@ if (roomDetailModal) {
   });
 
   document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape" && !roomDetailModal.hidden) {
+    if (roomDetailModal.hidden) return;
+
+    if (event.key === "Escape") {
       closeRoomModal();
+      return;
     }
+
+    trapModalFocus(roomDetailModal, event);
   });
 }
 
@@ -619,7 +796,7 @@ function initializeSearchDefaults() {
   const minutes = String(now.getMinutes()).padStart(2, "0");
 
   bookingDateInput.value = `${now.getFullYear()}-${month}-${day}`;
-  bookingTimeInput.value = `${hours}:${minutes}`;
+  setTimeInputValue(bookingTimeInput, `${hours}:${minutes}`);
 
   if (bookingDurationSelect && !bookingDurationSelect.value) {
     bookingDurationSelect.value = "60";
@@ -642,6 +819,10 @@ if (bookingLocationSelect && featuredLocationFilter && roomsGrid) {
 
 // Auto-slideshow functionality
 function initializeSlideshow() {
+  if (isSlideshowInitialized) {
+    return;
+  }
+
   const heroSlides = document.querySelectorAll(".hero-slide");
   const slideshowDots = document.querySelectorAll(".slideshow-dot");
 
@@ -649,12 +830,14 @@ function initializeSlideshow() {
     return;
   }
 
+  isSlideshowInitialized = true;
   let currentSlideIndex = 0;
   const autoPlayInterval = 5000; // 5 seconds
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function showSlide(index) {
     // Ensure index is within bounds
-    currentSlideIndex = index % heroSlides.length;
+    currentSlideIndex = (index + heroSlides.length) % heroSlides.length;
 
     // Remove active class from all slides and dots
     heroSlides.forEach(slide => slide.classList.remove("active"));
@@ -665,27 +848,43 @@ function initializeSlideshow() {
     slideshowDots[currentSlideIndex].classList.add("active");
   }
 
+  function stopAutoPlay() {
+    if (slideshowTimerId) {
+      window.clearInterval(slideshowTimerId);
+      slideshowTimerId = null;
+    }
+  }
+
+  function startAutoPlay() {
+    if (prefersReducedMotion) return;
+    stopAutoPlay();
+    slideshowTimerId = window.setInterval(() => {
+      showSlide(currentSlideIndex + 1);
+    }, autoPlayInterval);
+  }
+
   // Set up dot click handlers for manual navigation
   slideshowDots.forEach((dot, index) => {
     dot.addEventListener("click", () => {
       showSlide(index);
       // Reset auto-play timer
-      clearInterval(autoPlayTimer);
-      autoPlayTimer = setInterval(() => {
-        showSlide(currentSlideIndex + 1);
-      }, autoPlayInterval);
+      startAutoPlay();
     });
   });
 
-  // Auto-play timer
-  let autoPlayTimer = setInterval(() => {
-    showSlide(currentSlideIndex + 1);
-  }, autoPlayInterval);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopAutoPlay();
+    } else {
+      startAutoPlay();
+    }
+  });
+
+  window.addEventListener("beforeunload", stopAutoPlay, { once: true });
+  startAutoPlay();
 }
 
 // Initialize slideshow when DOM is ready
-document.addEventListener("DOMContentLoaded", initializeSlideshow);
-// Also call if DOM is already loaded
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initializeSlideshow);
 } else {

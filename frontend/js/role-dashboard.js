@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://localhost:4000/api";
+const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/api";
 
 const ROOM_IMAGES_BY_NAME = {
   
@@ -26,11 +26,12 @@ const ROOM_IMAGES_BY_NAME = {
 };
 const MALE_PROFILE_IMAGE = "../assets/male_profile.png";
 const FEMALE_PROFILE_IMAGE = "../assets/female_profile.png";
-
-const token = localStorage.getItem("auth_token");
-if (!token) {
-  window.location.href = "../home.html";
-}
+const TIMEZONE_CODE_OVERRIDES = Object.freeze({
+  "Asia/Kolkata": "IST",
+  "Africa/Johannesburg": "SAST"
+});
+const BOOKING_PAST_GRACE_MS = 60 * 1000;
+const ROOM_AVAILABLE_SOON_MS = 60 * 1000;
 
 function getStoredEmployee() {
   const raw = localStorage.getItem("auth_employee");
@@ -43,17 +44,41 @@ function getStoredEmployee() {
   }
 }
 
-const currentEmployee = getStoredEmployee();
-const currentEmployeeId = Number(currentEmployee?.employee_id || 0);
+let currentEmployee = getStoredEmployee();
+let currentEmployeeId = Number(currentEmployee?.employee_id || 0);
 const currentRole = document.body.dataset.role || "employee";
-const isAdmin = currentEmployee?.is_admin === true;
+let isAdmin = currentEmployee?.is_admin === true;
+let forcePasswordChange = new URLSearchParams(window.location.search).get("force_password_change") === "1";
 
-if (currentRole === "admin" && !isAdmin) {
-  window.location.href = "./employee-dashboard.html";
+function setCurrentEmployee(employee) {
+  if (employee && typeof employee === "object") {
+    currentEmployee = employee;
+    localStorage.setItem("auth_employee", JSON.stringify(employee));
+  } else {
+    currentEmployee = null;
+    localStorage.removeItem("auth_employee");
+  }
+  currentEmployeeId = Number(currentEmployee?.employee_id || 0);
+  isAdmin = currentEmployee?.is_admin === true;
 }
 
-if (currentRole === "employee" && isAdmin) {
-  window.location.href = "./admin-dashboard.html";
+function clearStoredAuth() {
+  localStorage.removeItem("auth_token");
+  localStorage.removeItem("auth_employee");
+}
+
+function enforceRoleAccess() {
+  if (currentRole === "admin" && !isAdmin) {
+    window.location.href = "./employee-dashboard.html";
+    return false;
+  }
+
+  if (currentRole === "employee" && isAdmin) {
+    window.location.href = "./admin-dashboard.html";
+    return false;
+  }
+
+  return true;
 }
 
 let finderRoomsById = new Map();
@@ -114,6 +139,11 @@ function getPaginationSlice(key) {
   const start = (config.page - 1) * config.pageSize;
   const end = start + config.pageSize;
   return config.rows.slice(start, end);
+}
+
+function isPastBeyondGrace(timestamp, graceMs = BOOKING_PAST_GRACE_MS) {
+  if (!Number.isFinite(timestamp)) return true;
+  return timestamp < Date.now() - graceMs;
 }
 
 function renderPaginationControls(containerId, key) {
@@ -188,31 +218,147 @@ function getLocalTimeInputValue(date = new Date()) {
   return date.toTimeString().slice(0, 5);
 }
 
-function formatDate(value) {
+function normalizeTimeValueTo24(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const twentyFourHourMatch = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (twentyFourHourMatch) {
+    return `${String(Number.parseInt(twentyFourHourMatch[1], 10)).padStart(2, "0")}:${twentyFourHourMatch[2]}`;
+  }
+
+  const twelveHourMatch = raw.match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*([AaPp][Mm])$/);
+  if (!twelveHourMatch) return null;
+
+  let hours = Number.parseInt(twelveHourMatch[1], 10) % 12;
+  if (twelveHourMatch[3].toUpperCase() === "PM") {
+    hours += 12;
+  }
+
+  return `${String(hours).padStart(2, "0")}:${twelveHourMatch[2]}`;
+}
+
+function format24HourAs12Hour(value24) {
+  const normalized = normalizeTimeValueTo24(value24);
+  if (!normalized) return "";
+
+  const [hoursRaw, minutes] = normalized.split(":");
+  const hours = Number.parseInt(hoursRaw, 10);
+  const period = hours >= 12 ? "PM" : "AM";
+  const hours12 = ((hours + 11) % 12) + 1;
+  return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`;
+}
+
+function getTimeInputValue24(inputElement) {
+  if (!inputElement) return null;
+  const dataTime24 = inputElement.getAttribute("data-time24");
+  return normalizeTimeValueTo24(dataTime24 || inputElement.value);
+}
+
+function setTimeInputValue(inputElement, timeValue24) {
+  if (!inputElement) return;
+  const normalized = normalizeTimeValueTo24(timeValue24);
+  if (!normalized) return;
+
+  const isTwelveHour = String(inputElement.getAttribute("data-time-format") || "").toLowerCase() === "12h";
+  if (isTwelveHour) {
+    inputElement.setAttribute("data-time24", normalized);
+    inputElement.value = format24HourAs12Hour(normalized);
+    return;
+  }
+
+  inputElement.value = normalized;
+}
+
+function getTimeValueMinutes(value) {
+  const normalized = normalizeTimeValueTo24(value);
+  if (!normalized) return null;
+
+  const [hours, minutes] = normalized.split(":").map(part => Number.parseInt(part, 10));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+  return hours * 60 + minutes;
+}
+
+function normalizeTimeZone(value) {
+  const normalized = String(value || "").trim();
+  return normalized || null;
+}
+
+function getTimeZoneCode(date, timeZone) {
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  if (normalizedTimeZone && TIMEZONE_CODE_OVERRIDES[normalizedTimeZone]) {
+    return TIMEZONE_CODE_OVERRIDES[normalizedTimeZone];
+  }
+
+  const formatterOptions = { timeZoneName: "short" };
+  if (normalizedTimeZone) {
+    formatterOptions.timeZone = normalizedTimeZone;
+  }
+
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", formatterOptions).formatToParts(date);
+    const zoneName = parts.find(part => part.type === "timeZoneName")?.value?.trim();
+    if (zoneName) return zoneName;
+  } catch (_error) {
+    // Fallback to UTC label when timezone formatting fails.
+  }
+
+  return "UTC";
+}
+
+function formatDate(value, timeZone) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "2-digit",
-    year: "numeric"
-  });
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  const options = { month: "short", day: "2-digit", year: "numeric" };
+
+  try {
+    return date.toLocaleDateString(
+      "en-US",
+      normalizedTimeZone ? { ...options, timeZone: normalizedTimeZone } : options
+    );
+  } catch (_error) {
+    return date.toLocaleDateString("en-US", options);
+  }
 }
 
-function formatTime(value) {
+function formatTime(value, timeZone, { includeTimeZone = true } = {}) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleTimeString(undefined, {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false
-  });
+  const normalizedTimeZone = normalizeTimeZone(timeZone);
+  const options = { hour: "numeric", minute: "2-digit", hour12: true };
+
+  let formattedTime = "-";
+  try {
+    formattedTime = date.toLocaleTimeString(
+      "en-US",
+      normalizedTimeZone ? { ...options, timeZone: normalizedTimeZone } : options
+    );
+  } catch (_error) {
+    formattedTime = date.toLocaleTimeString("en-US", options);
+  }
+
+  if (!includeTimeZone) {
+    return formattedTime;
+  }
+
+  return `${formattedTime} ${getTimeZoneCode(date, normalizedTimeZone)}`;
 }
 
-function formatDateTime(value) {
+function formatDateTime(value, timeZone, options = {}) {
   if (!value) return "-";
-  return `${formatDate(value)} ${formatTime(value)}`;
+  return `${formatDate(value, timeZone)} ${formatTime(value, timeZone, options)}`;
+}
+
+function formatTimeRange(startValue, endValue, timeZone) {
+  const startText = formatTime(startValue, timeZone, { includeTimeZone: false });
+  const endText = formatTime(endValue, timeZone, { includeTimeZone: false });
+  if (startText === "-" || endText === "-") return "-";
+
+  const referenceDate = parseDateValue(startValue) || parseDateValue(endValue) || new Date();
+  return `${startText} - ${endText} ${getTimeZoneCode(referenceDate, timeZone)}`;
 }
 
 function getDurationMinutes(value, fallback = 60) {
@@ -251,7 +397,10 @@ function getMinutesBetween(startValue, endValue, fallback = 60) {
 function buildWindowFromLocalInputs(dateValue, timeValue, durationValue) {
   if (!dateValue || !timeValue) return null;
 
-  const start = new Date(`${dateValue}T${timeValue}`);
+  const normalizedTime = normalizeTimeValueTo24(timeValue);
+  if (!normalizedTime) return null;
+
+  const start = new Date(`${dateValue}T${normalizedTime}`);
   if (Number.isNaN(start.getTime())) return null;
 
   const durationMinutes = getDurationMinutes(durationValue, 60);
@@ -324,7 +473,11 @@ function getRoomAvailabilityLabel(room) {
   }
 
   if (room?.booked_until) {
-    return `Booked. Available after ${formatDateTime(room.booked_until)}`;
+    const bookedUntil = parseDateValue(room.booked_until);
+    if (bookedUntil && bookedUntil.getTime() <= Date.now() + ROOM_AVAILABLE_SOON_MS) {
+      return "Booked. Available now";
+    }
+    return `Booked. Available after ${formatDateTime(room.booked_until, room.location_timezone)}`;
   }
 
   return "Booked";
@@ -357,6 +510,19 @@ function setHeaderContent() {
   }
 }
 
+function updatePasswordResetNotice() {
+  const notice = document.getElementById("passwordResetNotice");
+  if (!notice) return;
+
+  const requiresReset = forcePasswordChange || currentEmployee?.password_reset_required === true;
+  notice.hidden = !requiresReset;
+  if (requiresReset) {
+    notice.textContent = "For security, please change your password before continuing regular usage.";
+  } else {
+    notice.textContent = "";
+  }
+}
+
 function setProfileSection() {
   const profileName = document.getElementById("profileName");
   const profileEmail = document.getElementById("profileEmail");
@@ -372,11 +538,35 @@ function setProfileSection() {
   if (profileGender) profileGender.textContent = gender === "female" ? "Female" : "Male";
   if (profileRole) profileRole.textContent = isAdmin ? "Admin" : "Employee";
   if (profileImage) profileImage.src = getProfileImagePath(gender);
+  updatePasswordResetNotice();
 }
 
-function clearAuthAndLogout() {
-  localStorage.removeItem("auth_token");
-  localStorage.removeItem("auth_employee");
+async function ensureAuthenticatedSession() {
+  try {
+    const data = await apiFetch("/auth/me", { skipAuth: true });
+    if (!data?.employee) {
+      throw new Error("Session data is missing.");
+    }
+    setCurrentEmployee(data.employee);
+
+    if (!enforceRoleAccess()) {
+      return false;
+    }
+    return true;
+  } catch (_error) {
+    clearStoredAuth();
+    window.location.href = "../home.html";
+    return false;
+  }
+}
+
+async function clearAuthAndLogout() {
+  try {
+    await apiFetch("/auth/logout", { method: "POST", skipAuth: true });
+  } catch (_error) {
+    // no-op: logout should still clear local auth and redirect
+  }
+  clearStoredAuth();
   window.location.href = "../home.html";
 }
 
@@ -384,16 +574,13 @@ async function apiFetch(path, options = {}) {
   const { skipAuth = false, ...fetchOptions } = options;
   const headers = { ...(fetchOptions.headers || {}) };
 
-  if (!skipAuth && token) {
-    headers.Authorization = `Bearer ${token}`;
-  }
-
   if (fetchOptions.body && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...fetchOptions,
+    credentials: "include",
     headers
   });
 
@@ -405,7 +592,14 @@ async function apiFetch(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(data?.message || `Request failed with status ${response.status}`);
+    const error = new Error(data?.message || `Request failed with status ${response.status}`);
+    error.status = response.status;
+    error.payload = data;
+    if (response.status === 401 && !skipAuth) {
+      clearStoredAuth();
+      window.location.href = "../home.html";
+    }
+    throw error;
   }
 
   return data;
@@ -416,6 +610,7 @@ function getStatusClass(status) {
   if (normalized === "confirmed") return "confirmed";
   if (normalized === "pending") return "pending";
   if (normalized === "cancelled") return "cancelled";
+  if (normalized === "vacated") return "vacated";
   return "";
 }
 
@@ -595,8 +790,8 @@ function renderOverviewBookings(rows) {
     .slice(0, 6)
     .map(row => {
       const statusClass = getStatusClass(row.status);
-      const date = formatDate(row.start_time);
-      const time = `${formatTime(row.start_time)} - ${formatTime(row.end_time)}`;
+      const date = formatDate(row.start_time, row.location_timezone);
+      const time = formatTimeRange(row.start_time, row.end_time, row.location_timezone);
 
       if (currentRole === "admin") {
         return `
@@ -625,20 +820,42 @@ function renderOverviewBookings(rows) {
 
 function canManageFutureBooking(booking) {
   const normalizedStatus = String(booking?.status || "").toLowerCase();
-  if (normalizedStatus === "cancelled") return false;
+  if (normalizedStatus === "cancelled" || normalizedStatus === "vacated") return false;
 
   const start = parseDateValue(booking?.start_time);
   if (!start) return false;
   return start.getTime() > Date.now();
 }
 
+function canVacateOngoingBooking(booking) {
+  const normalizedStatus = String(booking?.status || "").toLowerCase();
+  if (normalizedStatus === "cancelled" || normalizedStatus === "vacated") return false;
+
+  const start = parseDateValue(booking?.start_time);
+  const end = parseDateValue(booking?.end_time);
+  if (!start || !end) return false;
+
+  const now = Date.now();
+  return start.getTime() <= now && end.getTime() > now;
+}
+
 function buildBookingActionsCell(booking) {
-  if (!canManageFutureBooking(booking)) {
+  const bookingId = Number(booking.booking_id);
+  if (!bookingId) {
     return '<span class="action-muted">Locked</span>';
   }
 
-  const bookingId = Number(booking.booking_id);
-  if (!bookingId) {
+  if (canVacateOngoingBooking(booking)) {
+    return `
+      <div class="booking-actions">
+        <button class="btn btn-sm btn-danger" type="button" data-booking-action="vacate" data-booking-id="${bookingId}">
+          Vacate
+        </button>
+      </div>
+    `;
+  }
+
+  if (!canManageFutureBooking(booking)) {
     return '<span class="action-muted">Locked</span>';
   }
 
@@ -674,8 +891,8 @@ function renderBookingsPage() {
           <td>${escapeHtml(row.title || "-")}</td>
           <td>${escapeHtml(row.room_name || "-")}</td>
           <td>${escapeHtml(row.location_name || "-")}</td>
-          <td>${formatDateTime(row.start_time)}</td>
-          <td>${formatDateTime(row.end_time)}</td>
+          <td>${formatDateTime(row.start_time, row.location_timezone)}</td>
+          <td>${formatDateTime(row.end_time, row.location_timezone)}</td>
           <td><span class="status ${statusClass}">${escapeHtml(row.status || "-")}</span></td>
           <td>${buildBookingActionsCell(row)}</td>
         </tr>
@@ -746,8 +963,10 @@ function applyFinderDateTimeConstraints() {
   if (dateInput.value === today) {
     const minTime = getLocalTimeInputValue(now);
     timeInput.min = minTime;
-    if (timeInput.value && timeInput.value < minTime) {
-      timeInput.value = minTime;
+    const currentMinutes = getTimeValueMinutes(getTimeInputValue24(timeInput));
+    const minMinutes = getTimeValueMinutes(minTime);
+    if (currentMinutes !== null && minMinutes !== null && currentMinutes < minMinutes) {
+      setTimeInputValue(timeInput, minTime);
     }
   } else {
     timeInput.min = "";
@@ -816,8 +1035,8 @@ function renderAvailabilityList(rooms) {
   if (!Array.isArray(rooms) || rooms.length === 0) {
     list.innerHTML = `
       <li>
-        <span>No immediate rooms</span>
-        <small>Try Room Finder</small>
+        <span>No booked rooms right now</span>
+        <small>All rooms are currently free</small>
       </li>
     `;
     return;
@@ -827,7 +1046,8 @@ function renderAvailabilityList(rooms) {
     .slice(0, 5)
     .map(room => {
       const roomId = Number(room.room_id);
-      const hints = " | View details";
+      const availabilityHint = escapeHtml(getRoomAvailabilityLabel(room));
+      const hints = ` | ${availabilityHint} | View details`;
       const detailAttrs = `class="clickable-room" data-room-id="${roomId}" tabindex="0" role="button"`;
 
       return `
@@ -889,8 +1109,8 @@ async function searchRooms(event) {
 }
 
 async function loadOverviewAvailability() {
-  const start = new Date(Date.now() + 30 * 60 * 1000);
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const start = new Date();
+  const end = new Date(start.getTime() + 60 * 1000);
   availabilityWindow = {
     start: start.toISOString(),
     end: end.toISOString()
@@ -899,13 +1119,13 @@ async function loadOverviewAvailability() {
   const params = new URLSearchParams({
     start_time: availabilityWindow.start,
     end_time: availabilityWindow.end,
-    limit: "5",
-    available_only: "1"
+    limit: "100"
   });
 
   try {
     const rooms = await apiFetch(`/rooms?${params.toString()}`, { skipAuth: true });
-    renderAvailabilityList(rooms);
+    const bookedRooms = (rooms || []).filter(room => !isRoomAvailable(room));
+    renderAvailabilityList(bookedRooms);
   } catch (error) {
     console.error("Availability load failed:", error);
     renderAvailabilityList([]);
@@ -967,7 +1187,7 @@ function renderReportUpcomingPage() {
               <tr>
                 <td>${escapeHtml(row.employee_name || "-")}</td>
                 <td>${escapeHtml(row.room_name || "-")}</td>
-                <td>${formatDateTime(row.start_time)}</td>
+                <td>${formatDateTime(row.start_time, row.location_timezone)}</td>
               </tr>
             `;
           })
@@ -1001,6 +1221,67 @@ function setHelperMessage(element, message, type = "") {
   element.textContent = message;
   element.classList.remove("success", "error");
   if (type) element.classList.add(type);
+}
+
+function initializeProfileSecurity() {
+  const form = document.getElementById("changePasswordForm");
+  const messageElement = document.getElementById("changePasswordMessage");
+  const currentPasswordInput = document.getElementById("currentPasswordInput");
+  const newPasswordInput = document.getElementById("newPasswordInput");
+  const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+
+  updatePasswordResetNotice();
+  if (!form || !messageElement || !currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
+    return;
+  }
+
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    setHelperMessage(messageElement, "", "");
+
+    const currentPassword = currentPasswordInput.value || "";
+    const newPassword = newPasswordInput.value || "";
+    const confirmPassword = confirmPasswordInput.value || "";
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setHelperMessage(messageElement, "Please fill all password fields.", "error");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setHelperMessage(messageElement, "New password and confirm password must match.", "error");
+      return;
+    }
+
+    try {
+      const response = await apiFetch("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword
+        })
+      });
+
+      if (response?.employee) {
+        setCurrentEmployee(response.employee);
+      }
+
+      forcePasswordChange = false;
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.has("force_password_change")) {
+        currentUrl.searchParams.delete("force_password_change");
+        const nextPath = `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`;
+        window.history.replaceState({}, "", nextPath);
+      }
+
+      setHeaderContent();
+      setProfileSection();
+      setHelperMessage(messageElement, response?.message || "Password changed successfully.", "success");
+      form.reset();
+    } catch (error) {
+      setHelperMessage(messageElement, error.message || "Failed to change password.", "error");
+    }
+  });
 }
 
 function renderEmployeeTable(rows) {
@@ -1137,6 +1418,87 @@ function initializeAdminSettings() {
   }
 }
 
+const MODAL_FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "textarea:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
+  "[tabindex]:not([tabindex='-1'])"
+].join(", ");
+let activeModalElement = null;
+let lastModalTriggerElement = null;
+
+function isVisibleElement(element) {
+  if (!(element instanceof HTMLElement)) return false;
+  if (element.hidden) return false;
+  return element.getClientRects().length > 0;
+}
+
+function getModalFocusableElements(modalElement) {
+  if (!modalElement) return [];
+  return Array.from(modalElement.querySelectorAll(MODAL_FOCUSABLE_SELECTOR))
+    .filter(node => isVisibleElement(node) && node.getAttribute("aria-hidden") !== "true");
+}
+
+function trapActiveModalFocus(event) {
+  if (event.key !== "Tab" || !activeModalElement || activeModalElement.hidden) return;
+
+  const focusableElements = getModalFocusableElements(activeModalElement);
+  if (focusableElements.length === 0) {
+    event.preventDefault();
+    return;
+  }
+
+  const firstElement = focusableElements[0];
+  const lastElement = focusableElements[focusableElements.length - 1];
+
+  if (event.shiftKey && document.activeElement === firstElement) {
+    event.preventDefault();
+    lastElement.focus();
+    return;
+  }
+
+  if (!event.shiftKey && document.activeElement === lastElement) {
+    event.preventDefault();
+    firstElement.focus();
+  }
+}
+
+function openManagedModal(modalElement, triggerElement = null) {
+  if (!modalElement) return;
+
+  lastModalTriggerElement =
+    triggerElement instanceof HTMLElement
+      ? triggerElement
+      : document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+  modalElement.hidden = false;
+  activeModalElement = modalElement;
+
+  const focusableElements = getModalFocusableElements(modalElement);
+  const firstElement = focusableElements[0];
+  if (firstElement) {
+    firstElement.focus();
+  }
+}
+
+function closeManagedModal(modalElement) {
+  if (!modalElement) return;
+
+  modalElement.hidden = true;
+  if (activeModalElement === modalElement) {
+    activeModalElement = null;
+  }
+
+  if (lastModalTriggerElement && lastModalTriggerElement.isConnected) {
+    lastModalTriggerElement.focus();
+  }
+  lastModalTriggerElement = null;
+}
+
 const bookingEditModal = document.getElementById("booking-edit-modal");
 const bookingEditForm = document.getElementById("bookingEditForm");
 const bookingEditTitle = document.getElementById("bookingEditTitle");
@@ -1164,8 +1526,10 @@ function applyBookingEditDateTimeConstraints() {
   if (bookingEditDate.value === today) {
     const minTime = getLocalTimeInputValue(now);
     bookingEditTime.min = minTime;
-    if (bookingEditTime.value && bookingEditTime.value < minTime) {
-      bookingEditTime.value = minTime;
+    const currentMinutes = getTimeValueMinutes(getTimeInputValue24(bookingEditTime));
+    const minMinutes = getTimeValueMinutes(minTime);
+    if (currentMinutes !== null && minMinutes !== null && currentMinutes < minMinutes) {
+      setTimeInputValue(bookingEditTime, minTime);
     }
   } else {
     bookingEditTime.min = "";
@@ -1178,7 +1542,7 @@ function getBookingEditWindow() {
 
 function closeBookingEditModal() {
   if (!bookingEditModal) return;
-  bookingEditModal.hidden = true;
+  closeManagedModal(bookingEditModal);
   selectedBooking = null;
   if (bookingEditDescription) bookingEditDescription.value = "";
   setBookingEditMessage("", "");
@@ -1209,13 +1573,13 @@ async function openBookingEditModal(bookingId) {
     bookingEditDate.value = toLocalDateInputValue(booking.start_time);
   }
   if (bookingEditTime) {
-    bookingEditTime.value = toLocalTimeInputValue(booking.start_time);
+    setTimeInputValue(bookingEditTime, toLocalTimeInputValue(booking.start_time));
   }
 
   ensureDurationOption(bookingEditDuration, getMinutesBetween(booking.start_time, booking.end_time, 60));
   applyBookingEditDateTimeConstraints();
 
-  bookingEditModal.hidden = false;
+  openManagedModal(bookingEditModal);
 }
 
 async function saveBookingEdits(event) {
@@ -1231,7 +1595,7 @@ async function saveBookingEdits(event) {
   }
 
   const startDate = parseDateValue(windowValue.start);
-  if (!startDate || startDate.getTime() < Date.now()) {
+  if (isPastBeyondGrace(startDate?.getTime())) {
     setBookingEditMessage("You can only set future time slots.", "error");
     return;
   }
@@ -1286,6 +1650,30 @@ async function cancelBookingById(bookingId) {
   } catch (error) {
     console.error("Booking cancel failed:", error);
     alert(error.message || "Unable to cancel booking.");
+  }
+}
+
+async function vacateBookingById(bookingId) {
+  const booking = bookingsById.get(Number(bookingId));
+  if (!booking) return;
+
+  if (!canVacateOngoingBooking(booking)) {
+    alert("Only ongoing active bookings can be vacated.");
+    return;
+  }
+
+  const confirmed = window.confirm("Vacate this room now?");
+  if (!confirmed) return;
+
+  try {
+    await apiFetch(`/bookings/${Number(bookingId)}/vacate`, { method: "PATCH" });
+    await refreshBookingViews();
+    if (selectedBooking && Number(selectedBooking.booking_id) === Number(bookingId)) {
+      closeBookingEditModal();
+    }
+  } catch (error) {
+    console.error("Booking vacate failed:", error);
+    alert(error.message || "Unable to vacate booking.");
   }
 }
 
@@ -1367,12 +1755,12 @@ function openRoomModal(room, bookingWindow) {
     roomModalBookBtn.textContent = available ? "Book This Room" : "Booked";
   }
 
-  roomModal.hidden = false;
+  openManagedModal(roomModal);
 }
 
 function closeRoomModal() {
   if (!roomModal) return;
-  roomModal.hidden = true;
+  closeManagedModal(roomModal);
   selectedRoom = null;
   selectedBookingWindow = null;
   if (roomModalMeetingTitle) roomModalMeetingTitle.value = "";
@@ -1400,7 +1788,7 @@ async function bookSelectedRoom() {
   }
 
   const startTimestamp = Date.parse(windowValue.start);
-  if (Number.isFinite(startTimestamp) && startTimestamp < Date.now()) {
+  if (isPastBeyondGrace(startTimestamp)) {
     setRoomModalMessage("You cannot book for past date/time.", "error");
     return;
   }
@@ -1451,6 +1839,8 @@ function initializeRoomModalHandlers() {
   });
 
   document.addEventListener("keydown", event => {
+    trapActiveModalFocus(event);
+
     if (event.key !== "Escape") return;
 
     if (dashboardSidebar && dashboardSidebar.classList.contains("is-open")) {
@@ -1538,7 +1928,7 @@ function initializeRoomFinder() {
   if (timeInput) {
     const hours = String(now.getHours()).padStart(2, "0");
     const minutes = String(now.getMinutes()).padStart(2, "0");
-    timeInput.value = `${hours}:${minutes}`;
+    setTimeInputValue(timeInput, `${hours}:${minutes}`);
   }
 
   if (durationInput && !durationInput.value) {
@@ -1598,6 +1988,10 @@ function initializePageActions() {
       }
       if (action === "cancel") {
         await cancelBookingById(bookingId);
+        return;
+      }
+      if (action === "vacate") {
+        await vacateBookingById(bookingId);
       }
     });
   }
@@ -1617,17 +2011,25 @@ function initializePageActions() {
 }
 
 async function initializeDashboard() {
+  const isAuthenticated = await ensureAuthenticatedSession();
+  if (!isAuthenticated) return;
+
   setTodayLabel();
   setHeaderContent();
   setProfileSection();
   initializeSidebarDrawer();
   initializeNav();
+  initializeProfileSecurity();
   initializePageActions();
   initializeRoomFinder();
   initializeBookingEditModalHandlers();
   initializeRoomModalHandlers();
   initializeRoomDetailsInteractions();
   initializeAdminSettings();
+
+  if (forcePasswordChange || currentEmployee?.password_reset_required === true) {
+    showSection("profileSection");
+  }
 
   await Promise.all([loadSummary(), loadBookings(), loadFinderLocations(), loadOverviewAvailability()]);
   await searchRooms();

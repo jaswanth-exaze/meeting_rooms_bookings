@@ -10,10 +10,11 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="icon"  href="assets/exaze-logo-for-head.png" sizes="32x32" type="image/png"/>
+    <link rel="icon" href="https://exazeit.com/wp-content/uploads/2020/09/exaze-favi-150x150.png" sizes="32x32">
     <!-- Flatpickr Date/Time Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <link rel="stylesheet" href="css/styles.css" />
+    <script src="js/config.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script defer src="js/login.js"></script>
     <script defer src="js/pickers-init.js"></script>
@@ -137,28 +138,40 @@
               </div>
             </article>
           </div>
-          <p id="booking-message" class="auth-foot booking-message"></p>
+          <p id="booking-message" class="auth-foot booking-message" role="status" aria-live="polite"></p>
         </section>
       </section>
 
       <aside class="card-surface home-auth-card fade-rise delay-1" aria-label="Quick sign in">
         <img class="mini-illustration" src="assets/cell_pod_1.png" alt="Professional working at desk" />
-        <form id="login-form" action="dashboard.html">
+        <form id="login-form" action="home.html">
+          <label class="home-auth-label" for="homeLoginEmail">Work Email</label>
           <input
+            id="homeLoginEmail"
             class="input-field input-navy"
             type="email"
             name="email"
             placeholder="Email"
+            autocomplete="username"
             required
           />
-          <input class="input-field input-green" type="password" name="password" placeholder="Password" required />
+          <label class="home-auth-label" for="homeLoginPassword">Password</label>
+          <input
+            id="homeLoginPassword"
+            class="input-field input-green"
+            type="password"
+            name="password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          />
           <div class="auth-inline">
             <span>Forgot password?</span>
-            <a href="#">Reset</a>
+            <span class="auth-reset-note">Contact your admin to reset it.</span>
           </div>
           <button class="btn btn-primary" type="submit" style="width: 100%">Sign In</button>
         </form>
-        <p id="auth-message" class="auth-foot">New employee? Contact your admin to get access.</p>
+        <p id="auth-message" class="auth-foot" role="status" aria-live="polite">New employee? Contact your admin to get access.</p>
       </aside>
     </main>
 
@@ -180,7 +193,7 @@
           <label for="modal-meeting-description">Meeting Description</label>
           <textarea id="modal-meeting-description" rows="3" placeholder="Enter meeting description"></textarea>
         </div>
-        <p id="room-modal-message" class="booking-message"></p>
+        <p id="room-modal-message" class="booking-message" role="status" aria-live="polite"></p>
         <div class="room-modal-actions">
           <button id="modal-book-btn" class="btn btn-primary" type="button">Book This Room</button>
         </div>

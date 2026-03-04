@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Exaze | Employee Dashboard</title>
+  <link rel="icon" href="https://exazeit.com/wp-content/uploads/2020/09/exaze-favi-150x150.png" sizes="32x32">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -120,9 +121,9 @@
               </div>
             </article>
 
-            <article class="panel">
+            <article class="panel panel-booked-now">
               <div class="panel-head">
-                <h3>Available In 30 mins</h3>
+                <h3>Booked Rooms Right Now</h3>
               </div>
               <ul class="availability-list" id="overviewAvailabilityList">
                 <li>
@@ -255,6 +256,25 @@
                 </div>
               </div>
             </div>
+            <p id="passwordResetNotice" class="profile-security-notice" hidden></p>
+            <form id="changePasswordForm" class="form-grid profile-password-form">
+              <div class="form-item">
+                <label for="currentPasswordInput">Current Password</label>
+                <input id="currentPasswordInput" type="password" autocomplete="current-password" required />
+              </div>
+              <div class="form-item">
+                <label for="newPasswordInput">New Password</label>
+                <input id="newPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
+              </div>
+              <div class="form-item">
+                <label for="confirmPasswordInput">Confirm New Password</label>
+                <input id="confirmPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-primary" type="submit">Change Password</button>
+              </div>
+            </form>
+            <p id="changePasswordMessage" class="helper-message" role="status" aria-live="polite"></p>
           </article>
         </section>
       </section>
@@ -278,7 +298,7 @@
           <label for="dashboardMeetingDescription">Meeting Description</label>
           <textarea id="dashboardMeetingDescription" rows="3" placeholder="Enter meeting description"></textarea>
         </div>
-        <p id="dashboard-room-message" class="helper-message"></p>
+        <p id="dashboard-room-message" class="helper-message" role="status" aria-live="polite"></p>
         <div class="room-modal-actions">
           <button id="dashboard-room-book-btn" class="btn btn-primary" type="button">Book This Room</button>
         </div>
@@ -317,13 +337,14 @@
               </select>
             </div>
           </div>
-          <p id="bookingEditMessage" class="helper-message"></p>
+          <p id="bookingEditMessage" class="helper-message" role="status" aria-live="polite"></p>
           <div class="room-modal-actions">
             <button class="btn btn-primary" type="submit">Save Changes</button>
           </div>
         </form>
       </section>
     </div>
+    <script src="../js/config.js"></script>
     <script src="../js/role-dashboard.js"></script>
   </body>
 </html>

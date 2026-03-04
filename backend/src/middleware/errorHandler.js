@@ -1,9 +1,27 @@
-function errorHandler(err, _req, res, _next) {
-  const statusCode = res.statusCode && res.statusCode !== 200 ? res.statusCode : 500;
+const logger = require("../utils/logger");
+
+function errorHandler(err, req, res, _next) {
+  const explicitStatus = Number(err?.status || err?.statusCode || 0);
+  const statusCode =
+    (res.statusCode && res.statusCode !== 200 ? res.statusCode : 0) ||
+    (Number.isFinite(explicitStatus) && explicitStatus > 0 ? explicitStatus : 500);
+  const isDev = String(process.env.NODE_ENV || "development").toLowerCase() === "development";
+  const safeMessage =
+    statusCode >= 500 ? "Something went wrong. Please try again later." : err?.message || "Request failed.";
+
+  logger.error("request_error", {
+    request_id: req.requestId,
+    status_code: statusCode,
+    method: req.method,
+    path: req.originalUrl || req.url,
+    error_message: err?.message || "Unknown error",
+    ...(isDev && err?.stack ? { stack: err.stack } : {})
+  });
 
   res.status(statusCode).json({
-    message: err?.message || "Internal Server Error",
-    ...(process.env.NODE_ENV === "development" && err?.stack ? { stack: err.stack } : {})
+    message: safeMessage,
+    request_id: req.requestId,
+    ...(isDev && err?.stack ? { stack: err.stack } : {})
   });
 }
 

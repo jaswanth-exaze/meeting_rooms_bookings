@@ -43,8 +43,6 @@ function initializeModernPickers() {
 
   // Enhance select dropdowns with modern styling
   enhanceSelectDropdowns();
-
-  console.log('✓ Modern date/time pickers initialized');
 }
 
 /**
@@ -86,25 +84,58 @@ function setDefaultDateAndTime() {
  */
 function enhanceSelectDropdowns() {
   const selects = document.querySelectorAll('select');
-  
+
+  function clearOpenState(exceptElement = null) {
+    selects.forEach(select => {
+      if (select !== exceptElement) {
+        select.classList.remove('is-open');
+      }
+    });
+  }
+
   selects.forEach(select => {
-    // Add smooth transitions
+    // Browser support for styling open native select varies; use a class fallback.
     select.addEventListener('focus', function() {
-      this.style.transition = 'all 0.3s ease';
+      clearOpenState(this);
+      this.classList.add('is-open');
     });
 
-    // Handle option selection feedback
+    select.addEventListener('click', function() {
+      clearOpenState(this);
+      this.classList.add('is-open');
+    });
+
+    select.addEventListener('pointerdown', function() {
+      clearOpenState(this);
+      this.classList.add('is-open');
+    });
+
+    select.addEventListener('keydown', function(event) {
+      const openKeys = [' ', 'Enter', 'ArrowDown', 'ArrowUp'];
+      if (openKeys.includes(event.key)) {
+        clearOpenState(this);
+        this.classList.add('is-open');
+      }
+      if (event.key === 'Escape') {
+        this.classList.remove('is-open');
+      }
+    });
+
+    select.addEventListener('blur', function() {
+      this.classList.remove('is-open');
+    });
+
     select.addEventListener('change', function() {
-      const selectedOption = this.options[this.selectedIndex];
-      // Visual feedback on selection
-      this.style.borderColor = 'var(--leaf)';
-      setTimeout(() => {
-        this.style.borderColor = '#dbe3ef';
-      }, 200);
+      this.classList.remove('is-open');
     });
   });
 
-  console.log('✓ Select dropdowns enhanced');
+  document.addEventListener('pointerdown', event => {
+    const targetSelect = event.target?.closest?.('select');
+    if (!targetSelect) {
+      clearOpenState();
+    }
+  });
 }
 
 /**
@@ -113,6 +144,63 @@ function enhanceSelectDropdowns() {
 function parseISO8601(dateString) {
   const date = new Date(dateString);
   return isNaN(date.getTime()) ? null : date;
+}
+
+function normalizeTimeTo24Hour(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  const twentyFourHourMatch = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (twentyFourHourMatch) {
+    const hours = String(Number.parseInt(twentyFourHourMatch[1], 10)).padStart(2, '0');
+    const minutes = twentyFourHourMatch[2];
+    return `${hours}:${minutes}`;
+  }
+
+  const twelveHourMatch = raw.match(/^(0?[1-9]|1[0-2]):([0-5]\d)\s*([AaPp][Mm])$/);
+  if (!twelveHourMatch) return null;
+
+  let hours = Number.parseInt(twelveHourMatch[1], 10) % 12;
+  const minutes = twelveHourMatch[2];
+  const meridiem = twelveHourMatch[3].toUpperCase();
+  if (meridiem === 'PM') {
+    hours += 12;
+  }
+
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function get12HourTimeParts(time24) {
+  const normalized = normalizeTimeTo24Hour(time24) || '00:00';
+  const [hourRaw, minuteRaw] = normalized.split(':');
+  const hour24 = Number.parseInt(hourRaw, 10);
+  const minute = Number.parseInt(minuteRaw, 10);
+  const period = hour24 >= 12 ? 'PM' : 'AM';
+  const hour12 = ((hour24 + 11) % 12) + 1;
+
+  return {
+    hour12: String(hour12).padStart(2, '0'),
+    minute: String(minute).padStart(2, '0'),
+    period,
+    display: `${String(hour12).padStart(2, '0')}:${String(minute).padStart(2, '0')} ${period}`
+  };
+}
+
+function to24HourString(hour12Value, minuteValue, periodValue) {
+  const hour12 = Number.parseInt(String(hour12Value), 10);
+  const minute = Number.parseInt(String(minuteValue), 10);
+  const period = String(periodValue || '').toUpperCase();
+
+  if (!Number.isFinite(hour12) || hour12 < 1 || hour12 > 12) return null;
+  if (!Number.isFinite(minute) || minute < 0 || minute > 59) return null;
+  if (period !== 'AM' && period !== 'PM') return null;
+
+  let hour24 = hour12 % 12;
+  if (period === 'PM') {
+    hour24 += 12;
+  }
+
+  return `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
 }
 
 /**
@@ -177,161 +265,177 @@ function onDatePickerChange(element, callback) {
  * @param {HTMLElement} timeInput - The time input element
  */
 function createModernTimePicker(timeInput) {
-  // Get default time from attribute or use current time
-  const defaultTime = timeInput.getAttribute('data-default-time') || getDefaultTimeString();
-  const [defaultHour, defaultMinute] = defaultTime.split(':');
-  
+  // Keep the original node so references in other scripts remain valid.
+  const initialTime24 =
+    normalizeTimeTo24Hour(timeInput.value) ||
+    normalizeTimeTo24Hour(timeInput.getAttribute('data-default-time')) ||
+    getDefaultTimeString();
+  const initialParts = get12HourTimeParts(initialTime24);
+
   const wrapper = document.createElement('div');
   wrapper.className = 'modern-time-picker-wrapper';
-  
-  // Create input display
+
   const display = document.createElement('div');
   display.className = 'modern-time-display';
-  
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.id = timeInput.id;
-  input.className = 'modern-time-input';
-  input.placeholder = '00:00';
-  input.readOnly = false;
-  input.maxLength = 5;
-  input.value = defaultTime;
-  
-  // Hidden input to store actual value
-  const hiddenInput = document.createElement('input');
-  hiddenInput.type = 'hidden';
-  hiddenInput.name = timeInput.name;
-  hiddenInput.value = defaultTime;
-  
-  // Create picker popup
+
+  // Move original input inside wrapper, then style as 12h picker field.
+  const parent = timeInput.parentNode;
+  parent.insertBefore(wrapper, timeInput);
+  wrapper.appendChild(display);
+  display.appendChild(timeInput);
+
+  timeInput.type = 'text';
+  timeInput.className = 'modern-time-input';
+  timeInput.placeholder = '12:00 AM';
+  timeInput.readOnly = true;
+  timeInput.setAttribute('data-time-format', '12h');
+  timeInput.setAttribute('data-time24', initialTime24);
+  timeInput.value = initialParts.display;
+
   const pickerPopup = document.createElement('div');
   pickerPopup.className = 'modern-time-picker-popup';
-  
-  // Hour selector
+
   const hourSection = document.createElement('div');
   hourSection.className = 'time-section';
-  
+
   const hourLabel = document.createElement('label');
   hourLabel.textContent = 'Hours';
   hourLabel.className = 'time-label';
-  
+
   const hourControls = document.createElement('div');
   hourControls.className = 'time-controls';
-  
+
   const hourDecrease = createTimeButton('-', 'hour', 'decrease');
   const hourDisplay = document.createElement('div');
   hourDisplay.className = 'time-display-value';
-  hourDisplay.textContent = String(defaultHour).padStart(2, '0');
+  hourDisplay.textContent = initialParts.hour12;
   hourDisplay.id = `hour-display-${timeInput.id}`;
   const hourIncrease = createTimeButton('+', 'hour', 'increase');
-  
+
   hourControls.appendChild(hourDecrease);
   hourControls.appendChild(hourDisplay);
   hourControls.appendChild(hourIncrease);
-  
+
   hourSection.appendChild(hourLabel);
   hourSection.appendChild(hourControls);
-  
-  // Minute selector
+
   const minuteSection = document.createElement('div');
   minuteSection.className = 'time-section';
-  
+
   const minuteLabel = document.createElement('label');
   minuteLabel.textContent = 'Minutes';
   minuteLabel.className = 'time-label';
-  
+
   const minuteControls = document.createElement('div');
   minuteControls.className = 'time-controls';
-  
+
   const minuteDecrease = createTimeButton('-', 'minute', 'decrease');
   const minuteDisplay = document.createElement('div');
   minuteDisplay.className = 'time-display-value';
-  minuteDisplay.textContent = String(defaultMinute).padStart(2, '0');
+  minuteDisplay.textContent = initialParts.minute;
   minuteDisplay.id = `minute-display-${timeInput.id}`;
   const minuteIncrease = createTimeButton('+', 'minute', 'increase');
-  
+
   minuteControls.appendChild(minuteDecrease);
   minuteControls.appendChild(minuteDisplay);
   minuteControls.appendChild(minuteIncrease);
-  
+
   minuteSection.appendChild(minuteLabel);
   minuteSection.appendChild(minuteControls);
-  
-  // Confirm button
+
+  const periodSection = document.createElement('div');
+  periodSection.className = 'time-section';
+
+  const periodLabel = document.createElement('label');
+  periodLabel.textContent = 'AM / PM';
+  periodLabel.className = 'time-label';
+
+  const periodToggle = document.createElement('button');
+  periodToggle.type = 'button';
+  periodToggle.className = 'time-period-toggle';
+  periodToggle.textContent = initialParts.period;
+
+  periodSection.appendChild(periodLabel);
+  periodSection.appendChild(periodToggle);
+
   const confirmBtn = document.createElement('button');
   confirmBtn.type = 'button';
   confirmBtn.className = 'time-confirm-btn';
   confirmBtn.textContent = 'Done';
-  
+
   pickerPopup.appendChild(hourSection);
   pickerPopup.appendChild(minuteSection);
+  pickerPopup.appendChild(periodSection);
   pickerPopup.appendChild(confirmBtn);
-  
-  // Assemble wrapper
-  display.appendChild(input);
-  wrapper.appendChild(display);
-  // Don't append popup to wrapper - append to body for fixed positioning
-  wrapper.appendChild(hiddenInput);
-  
-  // Append popup to body for proper fixed positioning
+
   document.body.appendChild(pickerPopup);
-  
-  // Replace original input
-  timeInput.parentNode.replaceChild(wrapper, timeInput);
-  
-  // Store element references
-  wrapper.timeInput = input;
-  wrapper.hiddenInput = hiddenInput;
+
   wrapper.popup = pickerPopup;
   wrapper.hourDisplay = hourDisplay;
   wrapper.minuteDisplay = minuteDisplay;
+  wrapper.periodToggle = periodToggle;
   wrapper.confirmBtn = confirmBtn;
-  
-  // Function to position the popup
+
+  function syncDisplayFromInput() {
+    const normalized = normalizeTimeTo24Hour(timeInput.getAttribute('data-time24') || timeInput.value);
+    if (!normalized) return;
+
+    const parts = get12HourTimeParts(normalized);
+    hourDisplay.textContent = parts.hour12;
+    minuteDisplay.textContent = parts.minute;
+    periodToggle.textContent = parts.period;
+    timeInput.setAttribute('data-time24', normalized);
+    timeInput.value = parts.display;
+  }
+
   function positionPopup() {
-    const rect = input.getBoundingClientRect();
+    const rect = timeInput.getBoundingClientRect();
     pickerPopup.style.position = 'fixed';
     pickerPopup.style.top = (rect.bottom + 8) + 'px';
     pickerPopup.style.left = rect.left + 'px';
     pickerPopup.style.width = rect.width + 'px';
   }
-  
-  // Event listeners
-  input.addEventListener('focus', () => {
+
+  timeInput.addEventListener('focus', () => {
+    syncDisplayFromInput();
     positionPopup();
     pickerPopup.classList.add('active');
   });
-  
-  // Reposition on scroll/resize
+
   window.addEventListener('scroll', () => {
     if (pickerPopup.classList.contains('active')) {
       positionPopup();
     }
   }, true);
-  
+
   window.addEventListener('resize', () => {
     if (pickerPopup.classList.contains('active')) {
       positionPopup();
     }
   });
-  
+
   confirmBtn.addEventListener('click', () => {
-    const hour = hourDisplay.textContent;
-    const minute = minuteDisplay.textContent;
-    const timeValue = `${hour}:${minute}`;
-    input.value = timeValue;
-    hiddenInput.value = timeValue;
+    const hour = hourDisplay.textContent || '12';
+    const minute = minuteDisplay.textContent || '00';
+    const period = periodToggle.textContent || 'AM';
+    const time24 = to24HourString(hour, minute, period);
+    const parts = get12HourTimeParts(time24 || '00:00');
+
+    timeInput.setAttribute('data-time24', time24 || '00:00');
+    timeInput.value = parts.display;
     pickerPopup.classList.remove('active');
-    input.dispatchEvent(new Event('change'));
+    timeInput.dispatchEvent(new Event('change'));
   });
-  
-  // Handle hour/minute buttons
-  hourIncrease.addEventListener('click', () => updateTimeValue(hourDisplay, 1, 24));
-  hourDecrease.addEventListener('click', () => updateTimeValue(hourDisplay, -1, 24));
+
+  hourIncrease.addEventListener('click', () => updateHourValue(hourDisplay, 1));
+  hourDecrease.addEventListener('click', () => updateHourValue(hourDisplay, -1));
   minuteIncrease.addEventListener('click', () => updateTimeValue(minuteDisplay, 1, 60));
   minuteDecrease.addEventListener('click', () => updateTimeValue(minuteDisplay, -1, 60));
-  
-  // Close popup when clicking outside
+
+  periodToggle.addEventListener('click', () => {
+    periodToggle.textContent = periodToggle.textContent === 'AM' ? 'PM' : 'AM';
+  });
+
   document.addEventListener('click', (e) => {
     if (!wrapper.contains(e.target) && !pickerPopup.contains(e.target)) {
       pickerPopup.classList.remove('active');
@@ -376,6 +480,18 @@ function updateTimeValue(displayElement, delta, max) {
     value = max - Math.abs(delta);
   }
   
+  displayElement.textContent = String(value).padStart(2, '0');
+}
+
+function updateHourValue(displayElement, delta) {
+  let value = Number.parseInt(displayElement.textContent, 10);
+  if (!Number.isFinite(value) || value < 1 || value > 12) {
+    value = 12;
+  }
+
+  value += delta;
+  if (value > 12) value = 1;
+  if (value < 1) value = 12;
   displayElement.textContent = String(value).padStart(2, '0');
 }
 

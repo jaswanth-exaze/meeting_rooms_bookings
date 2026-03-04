@@ -5,7 +5,8 @@ const {
   getBookingReports,
   createBooking,
   updateBooking,
-  cancelBooking
+  cancelBooking,
+  vacateBooking
 } = require("../controllers/booking.controller");
 const requireAuth = require("../middleware/requireAuth");
 
@@ -18,5 +19,6 @@ router.get("/reports", getBookingReports);
 router.post("/", createBooking);
 router.patch("/:bookingId", updateBooking);
 router.patch("/:bookingId/cancel", cancelBooking);
+router.patch("/:bookingId/vacate", vacateBooking);
 
 module.exports = router;
