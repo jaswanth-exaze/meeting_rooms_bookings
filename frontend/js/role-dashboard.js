@@ -28,6 +28,7 @@ const MALE_PROFILE_IMAGE = "../assets/male_profile.png";
 const FEMALE_PROFILE_IMAGE = "../assets/female_profile.png";
 const TIMEZONE_CODE_OVERRIDES = Object.freeze({
   "Asia/Kolkata": "IST",
+  "Asia/Calcutta": "IST",
   "Africa/Johannesburg": "SAST"
 });
 const BOOKING_PAST_GRACE_MS = 60 * 1000;
@@ -95,6 +96,38 @@ const paginationState = {
   reportLocations: { rows: [], page: 1, pageSize: 6 },
   reportUpcoming: { rows: [], page: 1, pageSize: 6 }
 };
+const PASSWORD_RULE_KEYS = ["length", "lowercase", "uppercase", "number", "special"];
+
+function buildTableSkeletonRows(colSpan, rowCount = 3) {
+  const safeColSpan = Math.max(1, Number.parseInt(colSpan, 10) || 1);
+  const safeRowCount = Math.max(1, Number.parseInt(rowCount, 10) || 1);
+
+  return Array.from({ length: safeRowCount })
+    .map(
+      () => `
+        <tr class="skeleton-row" aria-hidden="true">
+          <td colspan="${safeColSpan}" class="skeleton-cell">
+            <span class="table-skeleton"></span>
+          </td>
+        </tr>
+      `
+    )
+    .join("");
+}
+
+function buildAvailabilityLoadingMarkup(itemCount = 3) {
+  const safeItemCount = Math.max(1, Number.parseInt(itemCount, 10) || 1);
+  return Array.from({ length: safeItemCount })
+    .map(
+      () => `
+        <li class="availability-skeleton-item" aria-hidden="true">
+          <span class="skeleton-line"></span>
+          <small class="skeleton-line skeleton-line-sm"></small>
+        </li>
+      `
+    )
+    .join("");
+}
 
 function normalizeGender(value) {
   const normalized = String(value || "")
@@ -352,6 +385,13 @@ function formatDateTime(value, timeZone, options = {}) {
   return `${formatDate(value, timeZone)} ${formatTime(value, timeZone, options)}`;
 }
 
+function formatCompactDateTime(value, timeZone) {
+  if (!value) return "-";
+  const dateText = formatDate(value, timeZone);
+  const shortDate = dateText.replace(/,\s*\d{4}$/, "");
+  return `${shortDate} ${formatTime(value, timeZone)}`;
+}
+
 function formatTimeRange(startValue, endValue, timeZone) {
   const startText = formatTime(startValue, timeZone, { includeTimeZone: false });
   const endText = formatTime(endValue, timeZone, { includeTimeZone: false });
@@ -359,6 +399,49 @@ function formatTimeRange(startValue, endValue, timeZone) {
 
   const referenceDate = parseDateValue(startValue) || parseDateValue(endValue) || new Date();
   return `${startText} - ${endText} ${getTimeZoneCode(referenceDate, timeZone)}`;
+}
+
+function getPasswordRuleState(passwordValue) {
+  const password = String(passwordValue || "");
+  return {
+    length: password.length >= 8,
+    lowercase: /[a-z]/.test(password),
+    uppercase: /[A-Z]/.test(password),
+    number: /\d/.test(password),
+    special: /[^A-Za-z0-9]/.test(password)
+  };
+}
+
+function getPasswordRuleError(passwordValue) {
+  const ruleState = getPasswordRuleState(passwordValue);
+  if (!ruleState.length) return "Password must be at least 8 characters long.";
+  if (!ruleState.lowercase) return "Password must include at least one lowercase letter.";
+  if (!ruleState.uppercase) return "Password must include at least one uppercase letter.";
+  if (!ruleState.number) return "Password must include at least one number.";
+  if (!ruleState.special) return "Password must include at least one special character.";
+  return "";
+}
+
+function formatRefreshStamp(date = new Date()) {
+  const resolvedZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+  return formatTime(date.toISOString(), resolvedZone);
+}
+
+function setLastRefreshed(labelId, date = new Date()) {
+  const label = document.getElementById(labelId);
+  if (!label) return;
+  label.textContent = `Last refreshed: ${formatRefreshStamp(date)}`;
+}
+
+function markOverviewAndBookingsRefreshed(date = new Date()) {
+  setLastRefreshed("overviewLastRefreshed", date);
+  setLastRefreshed("bookingsLastRefreshed", date);
+}
+
+function setBookedNowPanelTone(bookedCount) {
+  const panel = document.querySelector(".panel-booked-now");
+  if (!panel) return;
+  panel.classList.toggle("is-alert", Number(bookedCount) > 0);
 }
 
 function getDurationMinutes(value, fallback = 60) {
@@ -782,7 +865,7 @@ function renderOverviewBookings(rows) {
   if (!table) return;
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    table.innerHTML = `<tr><td colspan="5" class="empty-state">No upcoming bookings found.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="5" class="empty-state">No upcoming bookings yet. Your next meeting will appear here.</td></tr>`;
     return;
   }
 
@@ -839,36 +922,99 @@ function canVacateOngoingBooking(booking) {
   return start.getTime() <= now && end.getTime() > now;
 }
 
-function buildBookingActionsCell(booking) {
-  const bookingId = Number(booking.booking_id);
+function getBookingActionState(booking) {
+  const bookingId = Number(booking?.booking_id);
   if (!bookingId) {
-    return '<span class="action-muted">Locked</span>';
+    return { type: "locked", reason: "Booking reference is missing." };
   }
 
   if (canVacateOngoingBooking(booking)) {
+    return { type: "vacate", reason: "This meeting is ongoing and can be vacated now." };
+  }
+
+  if (canManageFutureBooking(booking)) {
+    return { type: "manage", reason: "Future bookings can be edited or cancelled." };
+  }
+
+  const normalizedStatus = String(booking?.status || "").toLowerCase();
+  if (normalizedStatus === "cancelled") {
+    return { type: "view", reason: "Cancelled bookings are view-only." };
+  }
+  if (normalizedStatus === "vacated") {
+    return { type: "view", reason: "Vacated bookings are view-only." };
+  }
+
+  const endTime = parseDateValue(booking?.end_time);
+  if (endTime && endTime.getTime() <= Date.now()) {
+    return { type: "view", reason: "Completed bookings are view-only." };
+  }
+
+  return { type: "locked", reason: "Action unavailable for this booking state." };
+}
+
+function buildBookingActionsCell(booking) {
+  const bookingId = Number(booking?.booking_id);
+  const actionState = getBookingActionState(booking);
+  const actionReason = escapeHtml(actionState.reason || "Action unavailable.");
+
+  if (actionState.type === "vacate") {
     return `
       <div class="booking-actions">
-        <button class="btn btn-sm btn-danger" type="button" data-booking-action="vacate" data-booking-id="${bookingId}">
+        <button
+          class="btn btn-sm btn-danger"
+          type="button"
+          data-booking-action="vacate"
+          data-booking-id="${bookingId}"
+          title="${actionReason}"
+        >
           Vacate
         </button>
       </div>
     `;
   }
 
-  if (!canManageFutureBooking(booking)) {
-    return '<span class="action-muted">Locked</span>';
+  if (actionState.type === "manage") {
+    return `
+      <div class="booking-actions">
+        <button
+          class="btn btn-sm btn-primary"
+          type="button"
+          data-booking-action="edit"
+          data-booking-id="${bookingId}"
+          title="Edit booking details and time."
+        >
+          Edit
+        </button>
+        <button
+          class="btn btn-sm btn-warning"
+          type="button"
+          data-booking-action="cancel"
+          data-booking-id="${bookingId}"
+          title="Cancel this future booking."
+        >
+          Cancel
+        </button>
+      </div>
+    `;
   }
 
-  return `
-    <div class="booking-actions">
-      <button class="btn btn-sm btn-primary" type="button" data-booking-action="edit" data-booking-id="${bookingId}">
-        Edit
-      </button>
-      <button class="btn btn-sm btn-danger" type="button" data-booking-action="cancel" data-booking-id="${bookingId}">
-        Cancel
-      </button>
-    </div>
-  `;
+  if (actionState.type === "view") {
+    return `
+      <div class="booking-actions">
+        <button
+          class="btn btn-sm btn-secondary"
+          type="button"
+          data-booking-action="view"
+          data-booking-id="${bookingId}"
+          title="${actionReason}"
+        >
+          View
+        </button>
+      </div>
+    `;
+  }
+
+  return `<span class="action-muted" title="${actionReason}">Locked</span>`;
 }
 
 function renderBookingsPage() {
@@ -878,7 +1024,7 @@ function renderBookingsPage() {
   const rows = getPaginationSlice("bookings");
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    table.innerHTML = `<tr><td colspan="7" class="empty-state">No bookings found.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="6" class="empty-state">No bookings found yet. New reservations will appear here.</td></tr>`;
     renderPaginationControls("bookingsPagination", "bookings");
     return;
   }
@@ -886,14 +1032,18 @@ function renderBookingsPage() {
   table.innerHTML = rows
     .map(row => {
       const statusClass = getStatusClass(row.status);
+      const roomText = escapeHtml(row.room_name || "-");
+      const locationText = escapeHtml(row.location_name || "-");
+      const startText = formatCompactDateTime(row.start_time, row.location_timezone);
+      const endText = formatCompactDateTime(row.end_time, row.location_timezone);
+      const statusText = escapeHtml(row.status || "-");
       return `
         <tr>
-          <td>${escapeHtml(row.title || "-")}</td>
-          <td>${escapeHtml(row.room_name || "-")}</td>
-          <td>${escapeHtml(row.location_name || "-")}</td>
-          <td>${formatDateTime(row.start_time, row.location_timezone)}</td>
-          <td>${formatDateTime(row.end_time, row.location_timezone)}</td>
-          <td><span class="status ${statusClass}">${escapeHtml(row.status || "-")}</span></td>
+          <td><span class="cell-ellipsis" title="${roomText}">${roomText}</span></td>
+          <td><span class="cell-ellipsis" title="${locationText}">${locationText}</span></td>
+          <td><span class="cell-nowrap">${startText}</span></td>
+          <td><span class="cell-nowrap">${endText}</span></td>
+          <td><span class="status ${statusClass}">${statusText}</span></td>
           <td>${buildBookingActionsCell(row)}</td>
         </tr>
       `;
@@ -916,6 +1066,17 @@ function renderBookingsTable(rows) {
 async function loadBookings() {
   const overviewTable = document.getElementById("overviewBookingsTable");
   const bookingsTable = document.getElementById("bookingsTable");
+  const bookingsPagination = document.getElementById("bookingsPagination");
+
+  if (overviewTable) {
+    overviewTable.innerHTML = buildTableSkeletonRows(5, 3);
+  }
+  if (bookingsTable) {
+    bookingsTable.innerHTML = buildTableSkeletonRows(6, 5);
+  }
+  if (bookingsPagination) {
+    bookingsPagination.innerHTML = "";
+  }
 
   try {
     const overviewRows =
@@ -927,13 +1088,14 @@ async function loadBookings() {
 
     const myRows = await apiFetch(buildMyBookingsUrl(200));
     renderBookingsTable(myRows);
+    markOverviewAndBookingsRefreshed(new Date());
   } catch (error) {
     console.error("Failed to load bookings:", error);
     if (overviewTable) {
-      overviewTable.innerHTML = `<tr><td colspan="5" class="empty-state">Unable to load bookings right now.</td></tr>`;
+      overviewTable.innerHTML = `<tr><td colspan="5" class="empty-state">Unable to load bookings right now. Please try refresh.</td></tr>`;
     }
     if (bookingsTable) {
-      bookingsTable.innerHTML = `<tr><td colspan="7" class="empty-state">Unable to load your bookings. Please refresh.</td></tr>`;
+      bookingsTable.innerHTML = `<tr><td colspan="6" class="empty-state">Unable to load your bookings. Please refresh.</td></tr>`;
     }
     setPaginationRows("bookings", []);
     renderPaginationControls("bookingsPagination", "bookings");
@@ -995,7 +1157,7 @@ function renderRoomFinderPage() {
   const colSpan = 6;
 
   if (!Array.isArray(rooms) || rooms.length === 0) {
-    table.innerHTML = `<tr><td colspan="${colSpan}" class="empty-state">No rooms found.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="${colSpan}" class="empty-state">No rooms match this slot. Try another time, duration, or location.</td></tr>`;
     renderPaginationControls("roomFinderPagination", "roomFinder");
     return;
   }
@@ -1027,12 +1189,15 @@ function renderAvailabilityList(rooms) {
   const list = document.getElementById("overviewAvailabilityList");
   if (!list) return;
 
+  const roomRows = Array.isArray(rooms) ? rooms : [];
+  setBookedNowPanelTone(roomRows.length);
+
   availabilityRoomsById = new Map();
-  (rooms || []).forEach(room => {
+  roomRows.forEach(room => {
     availabilityRoomsById.set(Number(room.room_id), room);
   });
 
-  if (!Array.isArray(rooms) || rooms.length === 0) {
+  if (roomRows.length === 0) {
     list.innerHTML = `
       <li>
         <span>No booked rooms right now</span>
@@ -1042,22 +1207,35 @@ function renderAvailabilityList(rooms) {
     return;
   }
 
-  list.innerHTML = rooms
+  list.innerHTML = roomRows
     .slice(0, 5)
     .map(room => {
       const roomId = Number(room.room_id);
       const availabilityHint = escapeHtml(getRoomAvailabilityLabel(room));
-      const hints = ` | ${availabilityHint} | View details`;
       const detailAttrs = `class="clickable-room" data-room-id="${roomId}" tabindex="0" role="button"`;
 
       return `
         <li ${detailAttrs}>
           <span>${escapeHtml(room.name || "-")}</span>
-          <small>${escapeHtml(room.capacity || "-")} Seats${hints}</small>
+          <small>${escapeHtml(room.capacity || "-")} Seats | ${availabilityHint} | View details</small>
         </li>
       `;
     })
     .join("");
+}
+
+function renderAvailabilityErrorState() {
+  const list = document.getElementById("overviewAvailabilityList");
+  if (!list) return;
+
+  availabilityRoomsById = new Map();
+  setBookedNowPanelTone(0);
+  list.innerHTML = `
+    <li>
+      <span>Unable to refresh booked rooms</span>
+      <small>Please use refresh to retry.</small>
+    </li>
+  `;
 }
 
 async function loadFinderLocations() {
@@ -1087,6 +1265,8 @@ async function searchRooms(event) {
 
   const locationValue = document.getElementById("finderLocation")?.value || "";
   const capacityValue = document.getElementById("finderCapacity")?.value || "";
+  const table = document.getElementById("roomFinderTable");
+  const pagination = document.getElementById("roomFinderPagination");
 
   const params = new URLSearchParams();
   params.set("limit", "100");
@@ -1097,6 +1277,13 @@ async function searchRooms(event) {
   if (windowValue) {
     params.set("start_time", windowValue.start);
     params.set("end_time", windowValue.end);
+  }
+
+  if (table) {
+    table.innerHTML = buildTableSkeletonRows(6, 4);
+  }
+  if (pagination) {
+    pagination.innerHTML = "";
   }
 
   try {
@@ -1115,6 +1302,7 @@ async function loadOverviewAvailability() {
     start: start.toISOString(),
     end: end.toISOString()
   };
+  const list = document.getElementById("overviewAvailabilityList");
 
   const params = new URLSearchParams({
     start_time: availabilityWindow.start,
@@ -1122,13 +1310,17 @@ async function loadOverviewAvailability() {
     limit: "100"
   });
 
+  if (list) {
+    list.innerHTML = buildAvailabilityLoadingMarkup(3);
+  }
+
   try {
     const rooms = await apiFetch(`/rooms?${params.toString()}`, { skipAuth: true });
     const bookedRooms = (rooms || []).filter(room => !isRoomAvailable(room));
     renderAvailabilityList(bookedRooms);
   } catch (error) {
     console.error("Availability load failed:", error);
-    renderAvailabilityList([]);
+    renderAvailabilityErrorState();
   }
 }
 
@@ -1229,11 +1421,49 @@ function initializeProfileSecurity() {
   const currentPasswordInput = document.getElementById("currentPasswordInput");
   const newPasswordInput = document.getElementById("newPasswordInput");
   const confirmPasswordInput = document.getElementById("confirmPasswordInput");
+  const passwordRulesList = document.getElementById("passwordRulesList");
+  const passwordMatchHint = document.getElementById("passwordMatchHint");
 
   updatePasswordResetNotice();
   if (!form || !messageElement || !currentPasswordInput || !newPasswordInput || !confirmPasswordInput) {
     return;
   }
+
+  function renderPasswordHints() {
+    const newPassword = newPasswordInput.value || "";
+    const confirmPassword = confirmPasswordInput.value || "";
+    const ruleState = getPasswordRuleState(newPassword);
+    const hasPasswordValue = newPassword.length > 0;
+
+    if (passwordRulesList) {
+      PASSWORD_RULE_KEYS.forEach(ruleKey => {
+        const ruleItem = passwordRulesList.querySelector(`[data-rule="${ruleKey}"]`);
+        if (!ruleItem) return;
+
+        const passed = ruleState[ruleKey] === true;
+        ruleItem.classList.toggle("is-valid", passed);
+        ruleItem.classList.toggle("is-invalid", hasPasswordValue && !passed);
+      });
+    }
+
+    if (passwordMatchHint) {
+      passwordMatchHint.textContent = "";
+      passwordMatchHint.classList.remove("success", "error");
+      if (!confirmPassword) return;
+
+      if (newPassword === confirmPassword) {
+        passwordMatchHint.textContent = "Passwords match.";
+        passwordMatchHint.classList.add("success");
+      } else {
+        passwordMatchHint.textContent = "Passwords do not match.";
+        passwordMatchHint.classList.add("error");
+      }
+    }
+  }
+
+  newPasswordInput.addEventListener("input", renderPasswordHints);
+  confirmPasswordInput.addEventListener("input", renderPasswordHints);
+  renderPasswordHints();
 
   form.addEventListener("submit", async event => {
     event.preventDefault();
@@ -1245,6 +1475,12 @@ function initializeProfileSecurity() {
 
     if (!currentPassword || !newPassword || !confirmPassword) {
       setHelperMessage(messageElement, "Please fill all password fields.", "error");
+      return;
+    }
+
+    const passwordRuleError = getPasswordRuleError(newPassword);
+    if (passwordRuleError) {
+      setHelperMessage(messageElement, passwordRuleError, "error");
       return;
     }
 
@@ -1278,6 +1514,7 @@ function initializeProfileSecurity() {
       setProfileSection();
       setHelperMessage(messageElement, response?.message || "Password changed successfully.", "success");
       form.reset();
+      renderPasswordHints();
     } catch (error) {
       setHelperMessage(messageElement, error.message || "Failed to change password.", "error");
     }
@@ -1507,9 +1744,29 @@ const bookingEditDate = document.getElementById("bookingEditDate");
 const bookingEditTime = document.getElementById("bookingEditTime");
 const bookingEditDuration = document.getElementById("bookingEditDuration");
 const bookingEditMessage = document.getElementById("bookingEditMessage");
+const bookingEditHeading = document.getElementById("booking-edit-title");
+const bookingEditSubmitButton = bookingEditForm?.querySelector("button[type='submit']");
+let bookingEditMode = "edit";
 
 function setBookingEditMessage(message, type = "") {
   setHelperMessage(bookingEditMessage, message, type);
+}
+
+function setBookingEditMode(mode = "edit") {
+  bookingEditMode = mode === "view" ? "view" : "edit";
+  const isViewOnly = bookingEditMode === "view";
+
+  if (bookingEditHeading) {
+    bookingEditHeading.textContent = isViewOnly ? "Booking Details" : "Edit Booking";
+  }
+  if (bookingEditSubmitButton) {
+    bookingEditSubmitButton.hidden = isViewOnly;
+  }
+
+  [bookingEditTitle, bookingEditDescription, bookingEditDate, bookingEditTime, bookingEditDuration].forEach(field => {
+    if (!field) return;
+    field.disabled = isViewOnly;
+  });
 }
 
 function applyBookingEditDateTimeConstraints() {
@@ -1543,22 +1800,31 @@ function getBookingEditWindow() {
 function closeBookingEditModal() {
   if (!bookingEditModal) return;
   closeManagedModal(bookingEditModal);
+  setBookingEditMode("edit");
   selectedBooking = null;
+  if (bookingEditTitle) bookingEditTitle.value = "";
   if (bookingEditDescription) bookingEditDescription.value = "";
+  if (bookingEditDate) bookingEditDate.value = "";
+  if (bookingEditTime) {
+    bookingEditTime.value = "";
+    bookingEditTime.removeAttribute("data-time24");
+  }
   setBookingEditMessage("", "");
 }
 
-async function openBookingEditModal(bookingId) {
+async function openBookingEditModal(bookingId, { mode = "edit" } = {}) {
   if (!bookingEditModal) return;
 
   const booking = bookingsById.get(Number(bookingId));
   if (!booking) return;
 
-  if (!canManageFutureBooking(booking)) {
+  const resolvedMode = mode === "view" ? "view" : "edit";
+  if (resolvedMode === "edit" && !canManageFutureBooking(booking)) {
     alert("Only future active bookings can be edited.");
     return;
   }
 
+  setBookingEditMode(resolvedMode);
   selectedBooking = booking;
   setBookingEditMessage("", "");
 
@@ -1577,7 +1843,13 @@ async function openBookingEditModal(bookingId) {
   }
 
   ensureDurationOption(bookingEditDuration, getMinutesBetween(booking.start_time, booking.end_time, 60));
-  applyBookingEditDateTimeConstraints();
+  if (resolvedMode === "edit") {
+    applyBookingEditDateTimeConstraints();
+  } else {
+    if (bookingEditDate) bookingEditDate.min = "";
+    if (bookingEditTime) bookingEditTime.min = "";
+    setBookingEditMessage("View-only details for this booking.", "");
+  }
 
   openManagedModal(bookingEditModal);
 }
@@ -1585,6 +1857,11 @@ async function openBookingEditModal(bookingId) {
 async function saveBookingEdits(event) {
   event.preventDefault();
   if (!selectedBooking) return;
+
+  if (bookingEditMode !== "edit") {
+    setBookingEditMessage("This booking is in view-only mode.", "error");
+    return;
+  }
 
   setBookingEditMessage("", "");
 
@@ -1967,8 +2244,13 @@ function renderPaginatedSection(key) {
 function initializePageActions() {
   const refreshBookingsBtn = document.getElementById("refreshBookingsBtn");
   if (refreshBookingsBtn) {
-    refreshBookingsBtn.addEventListener("click", () => {
-      loadBookings();
+    refreshBookingsBtn.addEventListener("click", async () => {
+      refreshBookingsBtn.disabled = true;
+      try {
+        await refreshBookingViews();
+      } finally {
+        refreshBookingsBtn.disabled = false;
+      }
     });
   }
 
@@ -1983,7 +2265,11 @@ function initializePageActions() {
 
       const action = button.dataset.bookingAction;
       if (action === "edit") {
-        await openBookingEditModal(bookingId);
+        await openBookingEditModal(bookingId, { mode: "edit" });
+        return;
+      }
+      if (action === "view") {
+        await openBookingEditModal(bookingId, { mode: "view" });
         return;
       }
       if (action === "cancel") {

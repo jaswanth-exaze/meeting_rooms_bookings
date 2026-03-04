@@ -65,6 +65,50 @@ let lastRoomModalTrigger = null;
 let slideshowTimerId = null;
 let isSlideshowInitialized = false;
 
+function initializeStickyAuthCardState() {
+  const authCard = document.querySelector(".home-auth-card");
+  if (!authCard) return;
+
+  const desktopMediaQuery = window.matchMedia("(min-width: 1041px)");
+  let isTicking = false;
+
+  function readStickyTopPx() {
+    const computedTop = Number.parseFloat(window.getComputedStyle(authCard).top || "0");
+    return Number.isFinite(computedTop) ? computedTop : 0;
+  }
+
+  function updateStickyState() {
+    const isDesktopLayout = desktopMediaQuery.matches;
+    if (!isDesktopLayout) {
+      authCard.classList.remove("is-stuck");
+      return;
+    }
+
+    const stickyTop = readStickyTopPx();
+    const cardRect = authCard.getBoundingClientRect();
+    const parentRect = authCard.parentElement?.getBoundingClientRect();
+    const hasReachedStickyTop = cardRect.top <= stickyTop + 0.5;
+    const parentPassedStickyTop = parentRect ? parentRect.top <= stickyTop : window.scrollY > 0;
+
+    authCard.classList.toggle("is-stuck", hasReachedStickyTop && parentPassedStickyTop);
+  }
+
+  function scheduleStickyStateUpdate() {
+    if (isTicking) return;
+    isTicking = true;
+
+    window.requestAnimationFrame(() => {
+      isTicking = false;
+      updateStickyState();
+    });
+  }
+
+  window.addEventListener("scroll", scheduleStickyStateUpdate, { passive: true });
+  window.addEventListener("resize", scheduleStickyStateUpdate, { passive: true });
+  desktopMediaQuery.addEventListener("change", scheduleStickyStateUpdate);
+  scheduleStickyStateUpdate();
+}
+
 function isVisibleElement(element) {
   if (!(element instanceof HTMLElement)) return false;
   if (element.hidden) return false;
@@ -886,7 +930,11 @@ function initializeSlideshow() {
 
 // Initialize slideshow when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeSlideshow);
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeSlideshow();
+    initializeStickyAuthCardState();
+  });
 } else {
   initializeSlideshow();
+  initializeStickyAuthCardState();
 }

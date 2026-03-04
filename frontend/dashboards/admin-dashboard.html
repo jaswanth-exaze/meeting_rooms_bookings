@@ -101,7 +101,10 @@
             <article class="panel">
               <div class="panel-head">
                 <h3>Upcoming Bookings</h3>
-                <a class="tag" href="#" data-section-target="bookingsSection"><span class="icon-dot"></span>Manage</a>
+                <div class="panel-head-actions">
+                  <a class="tag" href="#" data-section-target="bookingsSection"><span class="icon-dot"></span>Manage</a>
+                  <span id="overviewLastRefreshed" class="last-refreshed">Last refreshed: --</span>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
@@ -140,28 +143,30 @@
         <section id="bookingsSection" class="dashboard-section is-hidden">
           <div class="section-head">
             <h2>My Bookings</h2>
-            <button class="btn btn-primary" id="refreshBookingsBtn" type="button">Refresh</button>
+            <div class="section-head-actions">
+              <span id="bookingsLastRefreshed" class="last-refreshed">Last refreshed: --</span>
+              <button class="btn btn-primary" id="refreshBookingsBtn" type="button">Refresh</button>
+            </div>
           </div>
           <article class="panel">
             <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Room</th>
-                    <th>Location</th>
-                    <th>Start</th>
-                    <th>End</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody id="bookingsTable">
-                  <tr>
-                    <td colspan="7" class="empty-state">Loading bookings...</td>
-                  </tr>
-                </tbody>
-              </table>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Room</th>
+                      <th>Location</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bookingsTable">
+                    <tr>
+                      <td colspan="6" class="empty-state">Loading bookings...</td>
+                    </tr>
+                  </tbody>
+                </table>
             </div>
             <div id="bookingsPagination" class="table-pagination"></div>
           </article>
@@ -412,6 +417,14 @@
                 <label for="confirmPasswordInput">Confirm New Password</label>
                 <input id="confirmPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
               </div>
+              <ul id="passwordRulesList" class="password-rules" aria-live="polite">
+                <li data-rule="length">At least 8 characters</li>
+                <li data-rule="lowercase">At least 1 lowercase letter</li>
+                <li data-rule="uppercase">At least 1 uppercase letter</li>
+                <li data-rule="number">At least 1 number</li>
+                <li data-rule="special">At least 1 special character</li>
+              </ul>
+              <p id="passwordMatchHint" class="password-match-hint" aria-live="polite"></p>
               <div class="form-actions">
                 <button class="btn btn-primary" type="submit">Change Password</button>
               </div>
