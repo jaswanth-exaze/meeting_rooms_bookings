@@ -1,0 +1,19 @@
+flowchart TB
+  A["Person tries to use the app"]
+  B["Request is for:<br/>1) Login<br/>or<br/>2) Change Password"]
+  C["System keeps a short counter<br/>for the same person/session source"]
+  D{"How many tries in the last 15 minutes?"}
+  E["10 or fewer tries:<br/>Request is allowed"]
+  F["11th try or more:<br/>Request is blocked"]
+  G["Person sees message:<br/>Too many attempts. Please try again shortly."]
+  H["System returns status 429<br/>(Too Many Requests)"]
+  I["System also tells how long to wait"]
+  J["After 15 minutes, counter resets"]
+  K["Tries can work again"]
+  L["Why this exists:<br/>Stops rapid repeated guessing<br/>and protects accounts"]
+
+  A --> B --> C --> D
+  D -- "10 or fewer" --> E
+  D -- "11 or more" --> F --> G --> H --> I --> J --> K
+  E --> L
+  K --> L

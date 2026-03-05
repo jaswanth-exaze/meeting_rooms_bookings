@@ -28,6 +28,15 @@ function buildEmployeePayload(employeeRow) {
     email: employeeRow.email,
     department: employeeRow.department,
     gender: employeeRow.gender || "male",
+    role: employeeRow.role || null,
+    project: employeeRow.project || null,
+    manager_id: Number.isFinite(Number(employeeRow.manager_id)) ? Number(employeeRow.manager_id) : null,
+    manager_name: employeeRow.manager_name || null,
+    work_location_id: Number.isFinite(Number(employeeRow.work_location_id)) ? Number(employeeRow.work_location_id) : null,
+    work_location_name: employeeRow.work_location_name || null,
+    phone_number: employeeRow.phone_number || null,
+    hire_date: employeeRow.hire_date || null,
+    employee_type: employeeRow.employee_type || null,
     is_admin: toBoolean(employeeRow.is_admin),
     password_reset_required: toBoolean(employeeRow.password_reset_required)
   };
@@ -86,9 +95,28 @@ const login = asyncHandler(async (req, res) => {
   try {
     rows = await query(
       `
-        SELECT employee_id, name, email, department, gender, is_admin, password, password_reset_required
-        FROM employee
-        WHERE email = ?
+        SELECT
+          e.employee_id,
+          e.name,
+          e.email,
+          e.department,
+          e.gender,
+          e.role,
+          e.project,
+          e.manager_id,
+          manager.name AS manager_name,
+          e.work_location_id,
+          location.name AS work_location_name,
+          e.phone_number,
+          e.hire_date,
+          e.employee_type,
+          e.is_admin,
+          e.password,
+          e.password_reset_required
+        FROM employee e
+        LEFT JOIN employee manager ON manager.employee_id = e.manager_id
+        LEFT JOIN location ON location.location_id = e.work_location_id
+        WHERE e.email = ?
         LIMIT 1
       `,
       [normalizedEmail]
@@ -99,7 +127,14 @@ const login = asyncHandler(async (req, res) => {
     }
     rows = await query(
       `
-        SELECT employee_id, name, email, department, gender, is_admin, password
+        SELECT
+          employee_id,
+          name,
+          email,
+          department,
+          gender,
+          is_admin,
+          password
         FROM employee
         WHERE email = ?
         LIMIT 1
@@ -172,9 +207,27 @@ const me = asyncHandler(async (req, res) => {
   try {
     rows = await query(
       `
-        SELECT employee_id, name, email, department, gender, is_admin, password_reset_required
-        FROM employee
-        WHERE employee_id = ?
+        SELECT
+          e.employee_id,
+          e.name,
+          e.email,
+          e.department,
+          e.gender,
+          e.role,
+          e.project,
+          e.manager_id,
+          manager.name AS manager_name,
+          e.work_location_id,
+          location.name AS work_location_name,
+          e.phone_number,
+          e.hire_date,
+          e.employee_type,
+          e.is_admin,
+          e.password_reset_required
+        FROM employee e
+        LEFT JOIN employee manager ON manager.employee_id = e.manager_id
+        LEFT JOIN location ON location.location_id = e.work_location_id
+        WHERE e.employee_id = ?
         LIMIT 1
       `,
       [employeeId]
@@ -185,7 +238,13 @@ const me = asyncHandler(async (req, res) => {
     }
     rows = await query(
       `
-        SELECT employee_id, name, email, department, gender, is_admin
+        SELECT
+          employee_id,
+          name,
+          email,
+          department,
+          gender,
+          is_admin
         FROM employee
         WHERE employee_id = ?
         LIMIT 1
@@ -229,9 +288,28 @@ const changePassword = asyncHandler(async (req, res) => {
   try {
     rows = await query(
       `
-        SELECT employee_id, name, email, department, gender, is_admin, password, password_reset_required
-        FROM employee
-        WHERE employee_id = ?
+        SELECT
+          e.employee_id,
+          e.name,
+          e.email,
+          e.department,
+          e.gender,
+          e.role,
+          e.project,
+          e.manager_id,
+          manager.name AS manager_name,
+          e.work_location_id,
+          location.name AS work_location_name,
+          e.phone_number,
+          e.hire_date,
+          e.employee_type,
+          e.is_admin,
+          e.password,
+          e.password_reset_required
+        FROM employee e
+        LEFT JOIN employee manager ON manager.employee_id = e.manager_id
+        LEFT JOIN location ON location.location_id = e.work_location_id
+        WHERE e.employee_id = ?
         LIMIT 1
       `,
       [employeeId]
@@ -242,7 +320,14 @@ const changePassword = asyncHandler(async (req, res) => {
     }
     rows = await query(
       `
-        SELECT employee_id, name, email, department, gender, is_admin, password
+        SELECT
+          employee_id,
+          name,
+          email,
+          department,
+          gender,
+          is_admin,
+          password
         FROM employee
         WHERE employee_id = ?
         LIMIT 1

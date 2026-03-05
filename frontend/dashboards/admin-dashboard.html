@@ -207,6 +207,7 @@
               </div>
               <button class="btn btn-primary" type="submit">Find Rooms</button>
             </form>
+            <p id="roomFinderMessage" class="helper-message" role="status" aria-live="polite"></p>
 
             <div class="table-wrap">
               <table>
@@ -375,57 +376,133 @@
           <div class="section-head">
             <h2>Profile</h2>
           </div>
-          <article class="panel">
+          <article class="panel profile-panel">
             <div class="profile-layout">
-              <div class="profile-photo-wrap">
-                <img id="profileImage" class="profile-photo" src="../assets/male_profile.png" alt="Profile photo" />
+              <div class="profile-hero">
+                <div class="profile-hero-banner"></div>
+                <div class="profile-photo-wrap">
+                  <img id="profileImage" class="profile-photo" src="../assets/male_profile.png" alt="Profile photo" />
+                </div>
+                <div class="profile-hero-copy">
+                  <h3 id="profileHeroName">Admin</h3>
+                  <p id="profileHeroEmail" class="profile-hero-email">admin@company.com</p>
+                  <p id="profileHeroTitle">Team Lead</p>
+                </div>
               </div>
               <div class="profile-grid">
-                <div>
-                  <p class="profile-label">Name</p>
-                  <p class="profile-value" id="profileName">-</p>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12" rx="2"></rect><path d="M9 7V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5V7"></path><path d="M3.5 12h17"></path></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Job Role</p>
+                  <p class="profile-value" id="profileJobRole">-</p>
+                  </div>
                 </div>
-                <div>
-                  <p class="profile-label">Email</p>
-                  <p class="profile-value" id="profileEmail">-</p>
-                </div>
-                <div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="2"></rect><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h6"></path></svg>
+                  </span>
+                  <div>
                   <p class="profile-label">Department</p>
                   <p class="profile-value" id="profileDepartment">-</p>
+                  </div>
                 </div>
-                <div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="11" cy="9" r="3.5"></circle><path d="M11 12.5V20"></path><path d="M8.5 17.5H13.5"></path><path d="M15 5l4-4"></path><path d="M16.7 1H19v2.3"></path></svg>
+                  </span>
+                  <div>
                   <p class="profile-label">Gender</p>
                   <p class="profile-value" id="profileGender">-</p>
+                  </div>
                 </div>
-                <div>
-                  <p class="profile-label">Role</p>
-                  <p class="profile-value" id="profileRole">Admin</p>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M6.5 4.5h2.8l1.2 3.4-1.8 1.8a14 14 0 0 0 5.4 5.4l1.8-1.8 3.4 1.2v2.8a1.5 1.5 0 0 1-1.6 1.5c-7.5-.5-13.5-6.5-14-14A1.5 1.5 0 0 1 6.5 4.5z"></path></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Phone</p>
+                  <p class="profile-value" id="profilePhone">-</p>
+                  </div>
+                </div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M12 20s6-5.4 6-10a6 6 0 1 0-12 0c0 4.6 6 10 6 10z"></path><circle cx="12" cy="10" r="2.2"></circle></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Work Location</p>
+                  <p class="profile-value" id="profileWorkLocation">-</p>
+                  </div>
+                </div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M12 8v4l2.7 1.7"></path></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Employee Type</p>
+                  <p class="profile-value" id="profileEmployeeType">-</p>
+                  </div>
+                </div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l1.8 2h7.2a2 2 0 0 1 2 2v6.8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"></path></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Project</p>
+                  <p class="profile-value" id="profileProject">-</p>
+                  </div>
+                </div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="2.5"></circle><circle cx="15.5" cy="10.5" r="2"></circle><path d="M4.8 18c1.1-2 2.8-3 4.9-3s3.8 1 4.9 3"></path><path d="M14 17.8c.7-1.4 1.8-2.1 3.2-2.1 1.4 0 2.5.7 3.2 2.1"></path></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Manager</p>
+                  <p class="profile-value" id="profileManager">-</p>
+                  </div>
+                </div>
+                <div class="profile-info-item">
+                  <span class="profile-info-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="14" rx="2"></rect><path d="M8 3.5v4M16 3.5v4M4 9.5h16"></path></svg>
+                  </span>
+                  <div>
+                  <p class="profile-label">Hire Date</p>
+                  <p class="profile-value" id="profileHireDate">-</p>
+                  </div>
                 </div>
               </div>
             </div>
             <p id="passwordResetNotice" class="profile-security-notice" hidden></p>
             <form id="changePasswordForm" class="form-grid profile-password-form">
-              <div class="form-item">
-                <label for="currentPasswordInput">Current Password</label>
-                <input id="currentPasswordInput" type="password" autocomplete="current-password" required />
+              <div class="profile-password-layout">
+                <div class="profile-password-inputs">
+                  <div class="form-item">
+                    <label for="currentPasswordInput">Current Password</label>
+                    <input id="currentPasswordInput" type="password" autocomplete="current-password" required />
+                  </div>
+                  <div class="form-item">
+                    <label for="newPasswordInput">New Password</label>
+                    <input id="newPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
+                  </div>
+                  <div class="form-item">
+                    <label for="confirmPasswordInput">Confirm New Password</label>
+                    <input id="confirmPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
+                  </div>
+                </div>
+                <div class="profile-password-rules-wrap">
+                  <p class="profile-password-rules-title">Password Requirements</p>
+                  <ul id="passwordRulesList" class="password-rules" aria-live="polite">
+                    <li data-rule="length">At least 8 characters</li>
+                    <li data-rule="lowercase">At least 1 lowercase letter</li>
+                    <li data-rule="uppercase">At least 1 uppercase letter</li>
+                    <li data-rule="number">At least 1 number</li>
+                    <li data-rule="special">At least 1 special character</li>
+                  </ul>
+                  <p id="passwordMatchHint" class="password-match-hint" aria-live="polite"></p>
+                </div>
               </div>
-              <div class="form-item">
-                <label for="newPasswordInput">New Password</label>
-                <input id="newPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
-              </div>
-              <div class="form-item">
-                <label for="confirmPasswordInput">Confirm New Password</label>
-                <input id="confirmPasswordInput" type="password" minlength="8" autocomplete="new-password" required />
-              </div>
-              <ul id="passwordRulesList" class="password-rules" aria-live="polite">
-                <li data-rule="length">At least 8 characters</li>
-                <li data-rule="lowercase">At least 1 lowercase letter</li>
-                <li data-rule="uppercase">At least 1 uppercase letter</li>
-                <li data-rule="number">At least 1 number</li>
-                <li data-rule="special">At least 1 special character</li>
-              </ul>
-              <p id="passwordMatchHint" class="password-match-hint" aria-live="polite"></p>
-              <div class="form-actions">
+              <div class="form-actions profile-password-actions">
                 <button class="btn btn-primary" type="submit">Change Password</button>
               </div>
             </form>

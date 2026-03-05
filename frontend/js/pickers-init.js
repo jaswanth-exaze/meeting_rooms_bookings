@@ -15,6 +15,7 @@ function initializeModernPickers() {
   // Initialize date pickers
   const dateInputs = document.querySelectorAll('input[type="date"]');
   dateInputs.forEach(dateInput => {
+    enforcePickerOnlyDateInput(dateInput);
     flatpickr(dateInput, {
       mode: 'single',
       dateFormat: 'Y-m-d',
@@ -28,7 +29,7 @@ function initializeModernPickers() {
       position: 'auto',
       monthSelectorType: 'static',
       // Keyboard shortcuts
-      allowInput: true,
+      allowInput: false,
       parseDate: parseISO8601,
       // Custom class for styling
       calendarWidth: 320,
@@ -144,6 +145,25 @@ function enhanceSelectDropdowns() {
 function parseISO8601(dateString) {
   const date = new Date(dateString);
   return isNaN(date.getTime()) ? null : date;
+}
+
+function enforcePickerOnlyDateInput(dateInput) {
+  if (!dateInput) return;
+
+  dateInput.readOnly = true;
+  dateInput.setAttribute('inputmode', 'none');
+  dateInput.setAttribute('autocomplete', 'off');
+
+  dateInput.addEventListener('keydown', event => {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    const allowedKeys = new Set(['Tab', 'Enter', 'Escape', 'Shift']);
+    if (!allowedKeys.has(event.key)) {
+      event.preventDefault();
+    }
+  });
+
+  dateInput.addEventListener('paste', event => event.preventDefault());
+  dateInput.addEventListener('drop', event => event.preventDefault());
 }
 
 function normalizeTimeTo24Hour(value) {

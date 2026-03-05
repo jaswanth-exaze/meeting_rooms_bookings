@@ -607,19 +607,42 @@ function updatePasswordResetNotice() {
 }
 
 function setProfileSection() {
-  const profileName = document.getElementById("profileName");
-  const profileEmail = document.getElementById("profileEmail");
+  const profileHeroName = document.getElementById("profileHeroName");
+  const profileHeroTitle = document.getElementById("profileHeroTitle");
+  const profileHeroEmail = document.getElementById("profileHeroEmail");
   const profileDepartment = document.getElementById("profileDepartment");
   const profileGender = document.getElementById("profileGender");
-  const profileRole = document.getElementById("profileRole");
+  const profileJobRole = document.getElementById("profileJobRole");
+  const profileProject = document.getElementById("profileProject");
+  const profileManager = document.getElementById("profileManager");
+  const profileWorkLocation = document.getElementById("profileWorkLocation");
+  const profilePhone = document.getElementById("profilePhone");
+  const profileHireDate = document.getElementById("profileHireDate");
+  const profileEmployeeType = document.getElementById("profileEmployeeType");
   const profileImage = document.getElementById("profileImage");
   const gender = normalizeGender(currentEmployee?.gender);
+  const hireDate = parseDateValue(currentEmployee?.hire_date);
+  const managerLabel =
+    currentEmployee?.manager_name ||
+    (Number.isFinite(Number(currentEmployee?.manager_id)) ? `Employee #${Number(currentEmployee.manager_id)}` : "-");
+  const profileTitle = currentEmployee?.role || (isAdmin ? "Administrator" : "Team Member");
 
-  if (profileName) profileName.textContent = currentEmployee?.name || "-";
-  if (profileEmail) profileEmail.textContent = currentEmployee?.email || "-";
+  if (profileHeroName) profileHeroName.textContent = currentEmployee?.name || (isAdmin ? "Admin" : "Employee");
+  if (profileHeroTitle) profileHeroTitle.textContent = profileTitle;
+  if (profileHeroEmail) profileHeroEmail.textContent = currentEmployee?.email || "-";
   if (profileDepartment) profileDepartment.textContent = currentEmployee?.department || "-";
   if (profileGender) profileGender.textContent = gender === "female" ? "Female" : "Male";
-  if (profileRole) profileRole.textContent = isAdmin ? "Admin" : "Employee";
+  if (profileJobRole) profileJobRole.textContent = currentEmployee?.role || "-";
+  if (profileProject) profileProject.textContent = currentEmployee?.project || "-";
+  if (profileManager) profileManager.textContent = managerLabel;
+  if (profileWorkLocation) profileWorkLocation.textContent = currentEmployee?.work_location_name || "-";
+  if (profilePhone) profilePhone.textContent = currentEmployee?.phone_number || "-";
+  if (profileHireDate) {
+    profileHireDate.textContent = hireDate
+      ? hireDate.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" })
+      : "-";
+  }
+  if (profileEmployeeType) profileEmployeeType.textContent = currentEmployee?.employee_type || "-";
   if (profileImage) profileImage.src = getProfileImagePath(gender);
   updatePasswordResetNotice();
 }
@@ -1109,6 +1132,11 @@ function buildFinderWindow() {
   return buildWindowFromLocalInputs(dateInput?.value, timeInput?.value, durationInput?.value);
 }
 
+function setRoomFinderMessage(message, type = "") {
+  const messageElement = document.getElementById("roomFinderMessage");
+  setHelperMessage(messageElement, message, type);
+}
+
 function applyFinderDateTimeConstraints() {
   const dateInput = document.getElementById("finderDate");
   const timeInput = document.getElementById("finderTime");
@@ -1263,6 +1291,8 @@ async function loadFinderLocations() {
 async function searchRooms(event) {
   if (event) event.preventDefault();
 
+  setRoomFinderMessage("", "");
+
   const locationValue = document.getElementById("finderLocation")?.value || "";
   const capacityValue = document.getElementById("finderCapacity")?.value || "";
   const table = document.getElementById("roomFinderTable");
@@ -1274,10 +1304,21 @@ async function searchRooms(event) {
   if (capacityValue) params.set("capacity", capacityValue);
 
   const windowValue = buildFinderWindow();
-  if (windowValue) {
-    params.set("start_time", windowValue.start);
-    params.set("end_time", windowValue.end);
+  if (!windowValue?.start || !windowValue?.end) {
+    setRoomFinderMessage("Select valid date, time, and duration.", "error");
+    renderRoomFinderTable([]);
+    return;
   }
+
+  const finderStart = parseDateValue(windowValue.start);
+  if (!finderStart || isPastBeyondGrace(finderStart.getTime())) {
+    setRoomFinderMessage("Past date/time search is not allowed. Please pick current or future time.", "error");
+    renderRoomFinderTable([]);
+    return;
+  }
+
+  params.set("start_time", windowValue.start);
+  params.set("end_time", windowValue.end);
 
   if (table) {
     table.innerHTML = buildTableSkeletonRows(6, 4);
@@ -2213,8 +2254,12 @@ function initializeRoomFinder() {
   }
 
   applyFinderDateTimeConstraints();
+  const clearFinderMessage = () => setRoomFinderMessage("", "");
   dateInput?.addEventListener("change", applyFinderDateTimeConstraints);
   timeInput?.addEventListener("focus", applyFinderDateTimeConstraints);
+  dateInput?.addEventListener("change", clearFinderMessage);
+  timeInput?.addEventListener("change", clearFinderMessage);
+  durationInput?.addEventListener("change", clearFinderMessage);
 
   form.addEventListener("submit", searchRooms);
 }
