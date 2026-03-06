@@ -89,6 +89,39 @@ LOCK TABLES `booking_audit` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `booking_participants`
+--
+
+DROP TABLE IF EXISTS `booking_participants`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `booking_participants` (
+  `booking_participant_id` int NOT NULL AUTO_INCREMENT,
+  `booking_id` int NOT NULL,
+  `employee_id` int NOT NULL,
+  `added_by_employee_id` int DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`booking_participant_id`),
+  UNIQUE KEY `uq_booking_participants_booking_employee` (`booking_id`,`employee_id`),
+  KEY `idx_booking_participants_employee` (`employee_id`),
+  KEY `idx_booking_participants_booking` (`booking_id`),
+  KEY `idx_booking_participants_added_by` (`added_by_employee_id`),
+  CONSTRAINT `fk_booking_participants_added_by` FOREIGN KEY (`added_by_employee_id`) REFERENCES `employee` (`employee_id`) ON DELETE SET NULL,
+  CONSTRAINT `fk_booking_participants_booking` FOREIGN KEY (`booking_id`) REFERENCES `booking` (`booking_id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_booking_participants_employee` FOREIGN KEY (`employee_id`) REFERENCES `employee` (`employee_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `booking_participants`
+--
+
+LOCK TABLES `booking_participants` WRITE;
+/*!40000 ALTER TABLE `booking_participants` DISABLE KEYS */;
+/*!40000 ALTER TABLE `booking_participants` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `employee`
 --
 
@@ -102,6 +135,7 @@ CREATE TABLE `employee` (
   `department` varchar(100) DEFAULT NULL,
   `gender` enum('male','female') NOT NULL DEFAULT 'male',
   `is_admin` tinyint(1) DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
   `password` varchar(255) NOT NULL,
   `password_reset_required` tinyint(1) NOT NULL DEFAULT '1',
   `password_updated_at` timestamp NULL DEFAULT NULL,
@@ -117,17 +151,17 @@ CREATE TABLE `employee` (
 
 LOCK TABLES `employee` WRITE;
 /*!40000 ALTER TABLE `employee` DISABLE KEYS */;
-INSERT INTO `employee` (`employee_id`,`name`,`email`,`department`,`gender`,`is_admin`,`password`,`password_reset_required`,`password_updated_at`,`last_login_at`) VALUES
-  (1,'Alice Johnson','alice.johnson@company.com','Engineering','female',1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (2,'Bob Smith','bob.smith@company.com','Marketing','male',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (3,'Carol White','carol.white@company.com','Sales','female',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (4,'David Brown','david.brown@company.com','Human Resources','male',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (5,'Eve Davis','eve.davis@company.com','Finance','female',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (6,'Frank Miller','frank.miller@company.com','Engineering','male',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (7,'Grace Wilson','grace.wilson@company.com','Sales','female',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (8,'Henry Taylor','henry.taylor@company.com','IT Support','male',1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (9,'Irene Moore','irene.moore@company.com','Marketing','female',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
-  (10,'Jack Anderson','jack.anderson@company.com','Operations','male',0,'REDACTED_HASH_REQUIRED',1,NULL,NULL);
+INSERT INTO `employee` (`employee_id`,`name`,`email`,`department`,`gender`,`is_admin`,`is_active`,`password`,`password_reset_required`,`password_updated_at`,`last_login_at`) VALUES
+  (1,'Alice Johnson','alice.johnson@company.com','Engineering','female',1,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (2,'Bob Smith','bob.smith@company.com','Marketing','male',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (3,'Carol White','carol.white@company.com','Sales','female',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (4,'David Brown','david.brown@company.com','Human Resources','male',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (5,'Eve Davis','eve.davis@company.com','Finance','female',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (6,'Frank Miller','frank.miller@company.com','Engineering','male',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (7,'Grace Wilson','grace.wilson@company.com','Sales','female',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (8,'Henry Taylor','henry.taylor@company.com','IT Support','male',1,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (9,'Irene Moore','irene.moore@company.com','Marketing','female',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL),
+  (10,'Jack Anderson','jack.anderson@company.com','Operations','male',0,1,'REDACTED_HASH_REQUIRED',1,NULL,NULL);
 /*!40000 ALTER TABLE `employee` ENABLE KEYS */;
 UNLOCK TABLES;
 

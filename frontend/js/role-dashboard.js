@@ -89,6 +89,10 @@ let selectedRoom = null;
 let selectedBookingWindow = null;
 let availabilityWindow = null;
 let selectedBooking = null;
+const participantPickerState = {
+  create: { selected: [], suggestions: [], directory: [], directoryKey: "" },
+  edit: { selected: [], suggestions: [], directory: [], directoryKey: "" }
+};
 const paginationState = {
   bookings: { rows: [], page: 1, pageSize: 8 },
   roomFinder: { rows: [], page: 1, pageSize: 8 },
@@ -96,7 +100,16 @@ const paginationState = {
   reportLocations: { rows: [], page: 1, pageSize: 6 },
   reportUpcoming: { rows: [], page: 1, pageSize: 6 }
 };
+const PARTICIPANT_FILTER_FIELDS = [
+  { key: "department", label: "All Departments" },
+  { key: "project", label: "All Projects" },
+  { key: "role", label: "All Roles" },
+  { key: "work_location_name", label: "All Locations" }
+];
 const PASSWORD_RULE_KEYS = ["length", "lowercase", "uppercase", "number", "special"];
+const DASHBOARD_THEME_STORAGE_KEY = "dashboard_theme_preference";
+const DASHBOARD_THEME_LIGHT = "light";
+const DASHBOARD_THEME_DARK = "dark";
 
 function buildTableSkeletonRows(colSpan, rowCount = 3) {
   const safeColSpan = Math.max(1, Number.parseInt(colSpan, 10) || 1);
@@ -720,6 +733,71 @@ function getStatusClass(status) {
   return "";
 }
 
+function getStoredDashboardTheme() {
+  const stored = localStorage.getItem(DASHBOARD_THEME_STORAGE_KEY);
+  if (stored === DASHBOARD_THEME_DARK || stored === DASHBOARD_THEME_LIGHT) {
+    return stored;
+  }
+  return null;
+}
+
+function getSystemDashboardTheme() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? DASHBOARD_THEME_DARK : DASHBOARD_THEME_LIGHT;
+}
+
+function getActiveDashboardTheme() {
+  return document.body.classList.contains("theme-dark") ? DASHBOARD_THEME_DARK : DASHBOARD_THEME_LIGHT;
+}
+
+function setThemeToggleButtonState(theme) {
+  if (!themeToggleBtn) return;
+
+  const isDark = theme === DASHBOARD_THEME_DARK;
+  themeToggleBtn.textContent = isDark ? "Light Mode" : "Dark Mode";
+  themeToggleBtn.setAttribute("aria-pressed", String(isDark));
+  themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+}
+
+function applyDashboardTheme(theme, { persist = true } = {}) {
+  const resolvedTheme = theme === DASHBOARD_THEME_DARK ? DASHBOARD_THEME_DARK : DASHBOARD_THEME_LIGHT;
+  const isDark = resolvedTheme === DASHBOARD_THEME_DARK;
+
+  document.body.classList.toggle("theme-dark", isDark);
+  document.body.dataset.theme = resolvedTheme;
+  document.documentElement.style.colorScheme = resolvedTheme;
+
+  setThemeToggleButtonState(resolvedTheme);
+
+  if (persist) {
+    localStorage.setItem(DASHBOARD_THEME_STORAGE_KEY, resolvedTheme);
+  }
+}
+
+function initializeThemeToggle() {
+  const initialTheme = getStoredDashboardTheme() || getSystemDashboardTheme();
+  applyDashboardTheme(initialTheme, { persist: false });
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      const nextTheme =
+        getActiveDashboardTheme() === DASHBOARD_THEME_DARK ? DASHBOARD_THEME_LIGHT : DASHBOARD_THEME_DARK;
+      applyDashboardTheme(nextTheme);
+    });
+  }
+
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const syncWithSystemTheme = event => {
+    if (getStoredDashboardTheme()) return;
+    applyDashboardTheme(event.matches ? DASHBOARD_THEME_DARK : DASHBOARD_THEME_LIGHT, { persist: false });
+  };
+
+  if (typeof mediaQuery.addEventListener === "function") {
+    mediaQuery.addEventListener("change", syncWithSystemTheme);
+  } else if (typeof mediaQuery.addListener === "function") {
+    mediaQuery.addListener(syncWithSystemTheme);
+  }
+}
+
 function showSection(sectionId) {
   const target = document.getElementById(sectionId);
   if (!target) return;
@@ -739,6 +817,7 @@ function showSection(sectionId) {
 const dashboardSidebar = document.getElementById("dashboardSidebar");
 const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
 const sidebarDrawerBackdrop = document.getElementById("sidebarDrawerBackdrop");
+const themeToggleBtn = document.getElementById("themeToggleBtn");
 
 function isMobileDrawerViewport() {
   return window.matchMedia("(max-width: 1040px)").matches;
@@ -888,7 +967,7 @@ function renderOverviewBookings(rows) {
   if (!table) return;
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    table.innerHTML = `<tr><td colspan="5" class="empty-state">No upcoming bookings yet. Your next meeting will appear here.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="${currentRole === "admin" ? 5 : 6}" class="empty-state">No upcoming bookings yet. Your next meeting will appear here.</td></tr>`;
     return;
   }
 
@@ -914,6 +993,7 @@ function renderOverviewBookings(rows) {
       return `
         <tr>
           <td>${escapeHtml(row.title || "-")}</td>
+          <td>${escapeHtml(getBookingOrganizerDisplayName(row))}</td>
           <td>${escapeHtml(row.room_name || "-")}</td>
           <td>${date}</td>
           <td>${time}</td>
@@ -924,9 +1004,15 @@ function renderOverviewBookings(rows) {
     .join("");
 }
 
+function userCanManageBooking(booking) {
+  if (!booking) return false;
+  return isAdmin || booking.is_organizer === true;
+}
+
 function canManageFutureBooking(booking) {
   const normalizedStatus = String(booking?.status || "").toLowerCase();
   if (normalizedStatus === "cancelled" || normalizedStatus === "vacated") return false;
+  if (!userCanManageBooking(booking)) return false;
 
   const start = parseDateValue(booking?.start_time);
   if (!start) return false;
@@ -936,6 +1022,7 @@ function canManageFutureBooking(booking) {
 function canVacateOngoingBooking(booking) {
   const normalizedStatus = String(booking?.status || "").toLowerCase();
   if (normalizedStatus === "cancelled" || normalizedStatus === "vacated") return false;
+  if (!userCanManageBooking(booking)) return false;
 
   const start = parseDateValue(booking?.start_time);
   const end = parseDateValue(booking?.end_time);
@@ -972,7 +1059,7 @@ function getBookingActionState(booking) {
     return { type: "view", reason: "Completed bookings are view-only." };
   }
 
-  return { type: "locked", reason: "Action unavailable for this booking state." };
+  return { type: "view", reason: "Booking details are view-only for invited attendees." };
 }
 
 function buildBookingActionsCell(booking) {
@@ -1040,6 +1127,22 @@ function buildBookingActionsCell(booking) {
   return `<span class="action-muted" title="${actionReason}">Locked</span>`;
 }
 
+function getBookingRoleLabel(booking) {
+  return booking?.is_organizer === true ? "Organizer" : "Invited";
+}
+
+function getBookingRoleClassName(booking) {
+  return booking?.is_organizer === true ? "organizer" : "invited";
+}
+
+function getBookingOrganizerDisplayName(booking) {
+  if (booking?.is_organizer === true) {
+    return "You";
+  }
+
+  return booking?.organizer_name || booking?.employee_name || "-";
+}
+
 function renderBookingsPage() {
   const table = document.getElementById("bookingsTable");
   if (!table) return;
@@ -1047,7 +1150,7 @@ function renderBookingsPage() {
   const rows = getPaginationSlice("bookings");
 
   if (!Array.isArray(rows) || rows.length === 0) {
-    table.innerHTML = `<tr><td colspan="6" class="empty-state">No bookings found yet. New reservations will appear here.</td></tr>`;
+    table.innerHTML = `<tr><td colspan="8" class="empty-state">No bookings found yet. New reservations will appear here.</td></tr>`;
     renderPaginationControls("bookingsPagination", "bookings");
     return;
   }
@@ -1059,6 +1162,9 @@ function renderBookingsPage() {
       const locationText = escapeHtml(row.location_name || "-");
       const startText = formatCompactDateTime(row.start_time, row.location_timezone);
       const endText = formatCompactDateTime(row.end_time, row.location_timezone);
+      const roleText = escapeHtml(getBookingRoleLabel(row));
+      const roleClassName = getBookingRoleClassName(row);
+      const organizerText = escapeHtml(getBookingOrganizerDisplayName(row));
       const statusText = escapeHtml(row.status || "-");
       return `
         <tr>
@@ -1066,6 +1172,8 @@ function renderBookingsPage() {
           <td><span class="cell-ellipsis" title="${locationText}">${locationText}</span></td>
           <td><span class="cell-nowrap">${startText}</span></td>
           <td><span class="cell-nowrap">${endText}</span></td>
+          <td><span class="booking-role-pill ${roleClassName}">${roleText}</span></td>
+          <td><span class="cell-ellipsis" title="${organizerText}">${organizerText}</span></td>
           <td><span class="status ${statusClass}">${statusText}</span></td>
           <td>${buildBookingActionsCell(row)}</td>
         </tr>
@@ -1092,10 +1200,10 @@ async function loadBookings() {
   const bookingsPagination = document.getElementById("bookingsPagination");
 
   if (overviewTable) {
-    overviewTable.innerHTML = buildTableSkeletonRows(5, 3);
+    overviewTable.innerHTML = buildTableSkeletonRows(currentRole === "admin" ? 5 : 6, 3);
   }
   if (bookingsTable) {
-    bookingsTable.innerHTML = buildTableSkeletonRows(6, 5);
+    bookingsTable.innerHTML = buildTableSkeletonRows(8, 5);
   }
   if (bookingsPagination) {
     bookingsPagination.innerHTML = "";
@@ -1115,10 +1223,10 @@ async function loadBookings() {
   } catch (error) {
     console.error("Failed to load bookings:", error);
     if (overviewTable) {
-      overviewTable.innerHTML = `<tr><td colspan="5" class="empty-state">Unable to load bookings right now. Please try refresh.</td></tr>`;
+      overviewTable.innerHTML = `<tr><td colspan="${currentRole === "admin" ? 5 : 6}" class="empty-state">Unable to load bookings right now. Please try refresh.</td></tr>`;
     }
     if (bookingsTable) {
-      bookingsTable.innerHTML = `<tr><td colspan="6" class="empty-state">Unable to load your bookings. Please refresh.</td></tr>`;
+      bookingsTable.innerHTML = `<tr><td colspan="8" class="empty-state">Unable to load your bookings. Please refresh.</td></tr>`;
     }
     setPaginationRows("bookings", []);
     renderPaginationControls("bookingsPagination", "bookings");
@@ -1456,6 +1564,641 @@ function setHelperMessage(element, message, type = "") {
   if (type) element.classList.add(type);
 }
 
+function normalizeEmployeeOption(employee) {
+  if (!employee || typeof employee !== "object") return null;
+
+  const employeeId = Number(employee.employee_id || 0);
+  if (!employeeId) return null;
+
+  return {
+    employee_id: employeeId,
+    name: String(employee.name || "").trim() || `Employee #${employeeId}`,
+    email: String(employee.email || "").trim() || "",
+    department: String(employee.department || "").trim() || "",
+    project: String(employee.project || "").trim() || "",
+    role: String(employee.role || "").trim() || "",
+    employee_type: String(employee.employee_type || "").trim() || "",
+    work_location_id: Number(employee.work_location_id || 0) || null,
+    work_location_name: String(employee.work_location_name || "").trim() || "",
+    is_available: employee.is_available !== false,
+    conflicting_booking_id: Number(employee.conflicting_booking_id || 0) || null,
+    conflicting_booking_title: String(employee.conflicting_booking_title || "").trim() || "",
+    conflicting_start_time: employee.conflicting_start_time || null,
+    conflicting_end_time: employee.conflicting_end_time || null,
+    conflicting_organizer_name: String(employee.conflicting_organizer_name || "").trim() || "",
+    conflicting_involvement_role: String(employee.conflicting_involvement_role || "").trim() || ""
+  };
+}
+
+function getParticipantPicker(mode) {
+  return participantPickerState[mode] || participantPickerState.create;
+}
+
+function getParticipantEmployeeDirectory(mode) {
+  return getParticipantPicker(mode).directory || [];
+}
+
+function getParticipantPickerAvailabilityWindow(mode) {
+  if (mode === "edit") {
+    const draftWindow = getBookingEditWindow();
+    if (draftWindow?.start && draftWindow?.end) {
+      return {
+        start: draftWindow.start,
+        end: draftWindow.end,
+        exclude_booking_id: Number(selectedBooking?.booking_id || 0) || null
+      };
+    }
+
+    if (selectedBooking?.start_time && selectedBooking?.end_time) {
+      return {
+        start: selectedBooking.start_time,
+        end: selectedBooking.end_time,
+        exclude_booking_id: Number(selectedBooking?.booking_id || 0) || null
+      };
+    }
+
+    return {
+      start: null,
+      end: null,
+      exclude_booking_id: Number(selectedBooking?.booking_id || 0) || null
+    };
+  }
+
+  const windowValue = selectedBookingWindow || buildFinderWindow() || availabilityWindow || null;
+  return {
+    start: windowValue?.start || null,
+    end: windowValue?.end || null,
+    exclude_booking_id: null
+  };
+}
+
+function buildParticipantDirectoryRequest(mode) {
+  const availabilityWindow = getParticipantPickerAvailabilityWindow(mode);
+  const params = new URLSearchParams();
+  params.set("limit", "500");
+
+  if (availabilityWindow.start && availabilityWindow.end) {
+    params.set("start_time", availabilityWindow.start);
+    params.set("end_time", availabilityWindow.end);
+  }
+
+  if (availabilityWindow.exclude_booking_id) {
+    params.set("exclude_booking_id", String(availabilityWindow.exclude_booking_id));
+  }
+
+  return {
+    key: JSON.stringify({
+      mode,
+      start_time: availabilityWindow.start || "",
+      end_time: availabilityWindow.end || "",
+      exclude_booking_id: availabilityWindow.exclude_booking_id || ""
+    }),
+    path: `/employees/search?${params.toString()}`
+  };
+}
+
+function buildParticipantConflictHint(employee) {
+  if (!employee || employee.is_available !== false) {
+    return "";
+  }
+
+  const title = employee.conflicting_booking_title ? ` "${employee.conflicting_booking_title}"` : "";
+  const organizerName = employee.conflicting_organizer_name ? ` by ${employee.conflicting_organizer_name}` : "";
+  return `Unavailable due to another meeting${title}${organizerName}.`;
+}
+
+function buildParticipantAvailabilityMessage(mode, issues) {
+  if (!Array.isArray(issues) || !issues.length) {
+    return "";
+  }
+
+  const firstIssue = issues[0];
+  const hint = buildParticipantConflictHint(firstIssue.employee);
+
+  if (firstIssue.type === "organizer") {
+    return hint ? `You are not available during this time. ${hint}` : "You are not available during this time.";
+  }
+
+  if (issues.length === 1) {
+    return hint
+      ? `${firstIssue.employee.name} is not available during this time. ${hint}`
+      : `${firstIssue.employee.name} is not available during this time.`;
+  }
+
+  const names = issues
+    .slice(0, 3)
+    .map(issue => issue.employee.name)
+    .filter(Boolean)
+    .join(", ");
+
+  return `Some selected attendees are not available during this time: ${names}.`;
+}
+
+async function loadEmployeeDirectory(mode, { force = false } = {}) {
+  const picker = getParticipantPicker(mode);
+  const request = buildParticipantDirectoryRequest(mode);
+  if (!force && picker.directoryKey === request.key && picker.directory.length > 0) {
+    return picker.directory;
+  }
+
+  const employees = await apiFetch(request.path);
+  picker.directory = Array.isArray(employees) ? employees.map(normalizeEmployeeOption).filter(Boolean) : [];
+  picker.directoryKey = request.key;
+  populateParticipantFilters(mode);
+  validateParticipantAvailability(mode, { showMessage: true });
+  return picker.directory;
+}
+
+function setParticipantPickerMessage(mode, message, type = "") {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  setHelperMessage(pickerConfig?.messageElement, message, type);
+}
+
+function getParticipantPickerSelectedIds(mode) {
+  return getParticipantPicker(mode).selected.map(employee => Number(employee.employee_id));
+}
+
+function getParticipantPickerCapacity(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const rawCapacity = pickerConfig?.getCapacity?.();
+  const capacity = Number(rawCapacity || 0);
+  return capacity > 0 ? capacity : 0;
+}
+
+function getParticipantPickerOrganizerId(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const organizerEmployeeId = Number(pickerConfig?.getOrganizerEmployeeId?.() || currentEmployeeId || 0);
+  return organizerEmployeeId > 0 ? organizerEmployeeId : 0;
+}
+
+function getParticipantPickerFilterValues(mode) {
+  const filterElements = getParticipantPickerConfig(mode)?.filterElements || {};
+  return {
+    department: String(filterElements.department?.value || "").trim(),
+    project: String(filterElements.project?.value || "").trim(),
+    role: String(filterElements.role?.value || "").trim(),
+    work_location_name: String(filterElements.work_location_name?.value || "").trim()
+  };
+}
+
+function populateParticipantFilters(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const filterElements = pickerConfig?.filterElements || {};
+  if (!Object.keys(filterElements).length) return;
+  const employeeDirectory = getParticipantEmployeeDirectory(mode);
+
+  PARTICIPANT_FILTER_FIELDS.forEach(field => {
+    const selectElement = filterElements[field.key];
+    if (!selectElement) return;
+
+    const previousValue = String(selectElement.value || "");
+    const uniqueValues = Array.from(
+      new Set(
+        employeeDirectory
+          .map(employee => String(employee[field.key] || "").trim())
+          .filter(Boolean)
+      )
+    ).sort((left, right) => left.localeCompare(right));
+
+    selectElement.innerHTML = "";
+    const defaultOption = document.createElement("option");
+    defaultOption.value = "";
+    defaultOption.textContent = field.label;
+    selectElement.appendChild(defaultOption);
+
+    uniqueValues.forEach(value => {
+      const option = document.createElement("option");
+      option.value = value;
+      option.textContent = value;
+      selectElement.appendChild(option);
+    });
+
+    selectElement.value = uniqueValues.includes(previousValue) ? previousValue : "";
+  });
+}
+
+function resetParticipantFilters(mode) {
+  const filterElements = getParticipantPickerConfig(mode)?.filterElements || {};
+  Object.values(filterElements).forEach(selectElement => {
+    if (!selectElement) return;
+    selectElement.value = "";
+  });
+}
+
+function hideParticipantSuggestions(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const suggestionContainer = pickerConfig?.suggestionsElement;
+  if (!suggestionContainer) return;
+
+  suggestionContainer.hidden = true;
+  suggestionContainer.innerHTML = "";
+  getParticipantPicker(mode).suggestions = [];
+}
+
+function updateParticipantAttendeeSummary(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const summaryElement = pickerConfig?.summaryElement;
+  if (!summaryElement) return;
+
+  const capacity = getParticipantPickerCapacity(mode);
+  const selectedCount = getParticipantPicker(mode).selected.length;
+  const totalAttendees = 1 + selectedCount;
+  const capacityLabel = capacity > 0 ? capacity : "?";
+  summaryElement.textContent = `Attendees: organizer + selected = ${totalAttendees} / ${capacityLabel}`;
+}
+
+function renderParticipantChips(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const chipContainer = pickerConfig?.chipsElement;
+  if (!chipContainer) return;
+
+  const selectedEmployees = getParticipantPicker(mode).selected;
+  const allowRemoval = !(mode === "edit" && bookingEditMode === "view");
+  if (!selectedEmployees.length) {
+    chipContainer.innerHTML = '<span class="participant-chip-empty">No additional attendees selected.</span>';
+    return;
+  }
+
+  chipContainer.innerHTML = selectedEmployees
+    .map(
+      employee => `
+        <span class="participant-chip">
+          <span class="participant-chip-text">
+            <span>${escapeHtml(employee.name)}</span>
+            <small>${escapeHtml(employee.email || employee.department || "")}</small>
+          </span>
+          ${
+            allowRemoval
+              ? `
+                <button
+                  class="participant-chip-remove"
+                  type="button"
+                  data-participant-remove="${mode}"
+                  data-employee-id="${employee.employee_id}"
+                  aria-label="Remove ${escapeHtml(employee.name)}"
+                >
+                  &times;
+                </button>
+              `
+              : ""
+          }
+        </span>
+      `
+    )
+    .join("");
+}
+
+function getFilteredParticipantSuggestions(mode, searchTerm) {
+  const normalizedSearch = String(searchTerm || "")
+    .trim()
+    .toLowerCase();
+  const selectedIds = new Set(getParticipantPickerSelectedIds(mode));
+  const organizerEmployeeId = getParticipantPickerOrganizerId(mode);
+  const activeFilters = getParticipantPickerFilterValues(mode);
+
+  return getParticipantEmployeeDirectory(mode)
+    .filter(employee => {
+      const employeeId = Number(employee.employee_id);
+      if (!employeeId || employeeId === organizerEmployeeId || selectedIds.has(employeeId)) {
+        return false;
+      }
+
+      if (activeFilters.department && employee.department !== activeFilters.department) {
+        return false;
+      }
+
+      if (activeFilters.project && employee.project !== activeFilters.project) {
+        return false;
+      }
+
+      if (activeFilters.role && employee.role !== activeFilters.role) {
+        return false;
+      }
+
+      if (activeFilters.work_location_name && employee.work_location_name !== activeFilters.work_location_name) {
+        return false;
+      }
+
+      if (!normalizedSearch) {
+        return true;
+      }
+
+      const haystack =
+        `${employee.name} ${employee.email} ${employee.department} ${employee.project} ${employee.role} ${employee.work_location_name}`.toLowerCase();
+      return haystack.includes(normalizedSearch);
+    })
+    .sort((left, right) => {
+      if (left.is_available !== right.is_available) {
+        return left.is_available === true ? -1 : 1;
+      }
+      return left.name.localeCompare(right.name);
+    })
+    .slice(0, 8);
+}
+
+function renderParticipantSuggestions(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const suggestionContainer = pickerConfig?.suggestionsElement;
+  const searchInput = pickerConfig?.searchInput;
+  if (!suggestionContainer || !searchInput || searchInput.disabled) {
+    hideParticipantSuggestions(mode);
+    return;
+  }
+
+  const suggestions = getFilteredParticipantSuggestions(mode, searchInput.value);
+  getParticipantPicker(mode).suggestions = suggestions;
+
+  if (!suggestions.length) {
+    hideParticipantSuggestions(mode);
+    return;
+  }
+
+  suggestionContainer.hidden = false;
+  suggestionContainer.innerHTML = suggestions
+    .map(
+      employee => `
+        <button
+          class="participant-suggestion ${employee.is_available === false ? "is-unavailable" : "is-available"}"
+          type="button"
+          data-participant-select="${mode}"
+          data-employee-id="${employee.employee_id}"
+          ${employee.is_available === false ? "disabled" : ""}
+        >
+          <strong>${escapeHtml(employee.name)}</strong>
+          <span>
+            ${escapeHtml(employee.email || "-")}
+            ${employee.department ? ` | ${escapeHtml(employee.department)}` : ""}
+            ${employee.project ? ` | ${escapeHtml(employee.project)}` : ""}
+            ${employee.work_location_name ? ` | ${escapeHtml(employee.work_location_name)}` : ""}
+            ${employee.is_available === false ? ` | ${escapeHtml(buildParticipantConflictHint(employee))}` : ""}
+          </span>
+        </button>
+      `
+    )
+    .join("");
+}
+
+function getParticipantAvailabilityIssues(mode, { includeOrganizer = true } = {}) {
+  const employeeDirectory = getParticipantEmployeeDirectory(mode);
+  const employeeById = new Map(employeeDirectory.map(employee => [Number(employee.employee_id), employee]));
+  const issues = [];
+
+  if (includeOrganizer) {
+    const organizerEmployeeId = getParticipantPickerOrganizerId(mode);
+    const organizer = employeeById.get(organizerEmployeeId);
+    if (organizer && organizer.is_available === false) {
+      issues.push({ type: "organizer", employee: organizer });
+    }
+  }
+
+  getParticipantPicker(mode).selected.forEach(selectedEmployee => {
+    const employee = employeeById.get(Number(selectedEmployee.employee_id));
+    if (employee && employee.is_available === false) {
+      issues.push({
+        type: "participant",
+        employee: {
+          ...employee,
+          name: selectedEmployee.name || employee.name
+        }
+      });
+    }
+  });
+
+  return issues;
+}
+
+function validateParticipantAvailability(mode, { showMessage = true } = {}) {
+  const issues = getParticipantAvailabilityIssues(mode);
+  if (issues.length > 0) {
+    if (showMessage) {
+      setParticipantPickerMessage(mode, buildParticipantAvailabilityMessage(mode, issues), "error");
+    }
+    return false;
+  }
+
+  if (showMessage) {
+    setParticipantPickerMessage(mode, "", "");
+  }
+  return true;
+}
+
+function validateParticipantCapacity(mode) {
+  const capacity = getParticipantPickerCapacity(mode);
+  if (!capacity) {
+    updateParticipantAttendeeSummary(mode);
+    return true;
+  }
+
+  const totalAttendees = 1 + getParticipantPicker(mode).selected.length;
+  updateParticipantAttendeeSummary(mode);
+
+  if (totalAttendees > capacity) {
+    setParticipantPickerMessage(mode, `Total attendees cannot exceed room capacity of ${capacity}.`, "error");
+    return false;
+  }
+
+  return true;
+}
+
+function setParticipantSelection(mode, employees) {
+  const picker = getParticipantPicker(mode);
+  const normalizedEmployees = Array.isArray(employees)
+    ? employees.map(normalizeEmployeeOption).filter(Boolean)
+    : [];
+
+  picker.selected = normalizedEmployees.filter(
+    employee => Number(employee.employee_id) !== getParticipantPickerOrganizerId(mode)
+  );
+
+  renderParticipantChips(mode);
+  updateParticipantAttendeeSummary(mode);
+  renderParticipantSuggestions(mode);
+  if (validateParticipantCapacity(mode)) {
+    validateParticipantAvailability(mode, { showMessage: true });
+  }
+}
+
+function addParticipantToPicker(mode, employee) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  if (!pickerConfig) return false;
+
+  const normalizedEmployee = normalizeEmployeeOption(employee);
+  if (!normalizedEmployee) {
+    setParticipantPickerMessage(mode, "Select a valid active employee.", "error");
+    return false;
+  }
+
+  const picker = getParticipantPicker(mode);
+  const organizerEmployeeId = getParticipantPickerOrganizerId(mode);
+  if (normalizedEmployee.employee_id === organizerEmployeeId) {
+    setParticipantPickerMessage(mode, "Organizer is already included as an attendee.", "error");
+    return false;
+  }
+
+  if (picker.selected.some(item => Number(item.employee_id) === normalizedEmployee.employee_id)) {
+    setParticipantPickerMessage(mode, `${normalizedEmployee.name} is already selected.`, "error");
+    return false;
+  }
+
+  if (normalizedEmployee.is_available === false) {
+    const hint = buildParticipantConflictHint(normalizedEmployee);
+    setParticipantPickerMessage(
+      mode,
+      hint ? `${normalizedEmployee.name} is not available during this time. ${hint}` : `${normalizedEmployee.name} is not available during this time.`,
+      "error"
+    );
+    return false;
+  }
+
+  picker.selected = [...picker.selected, normalizedEmployee];
+  renderParticipantChips(mode);
+  renderParticipantSuggestions(mode);
+  const capacityIsValid = validateParticipantCapacity(mode);
+  if (!capacityIsValid) {
+    picker.selected = picker.selected.filter(item => Number(item.employee_id) !== normalizedEmployee.employee_id);
+    renderParticipantChips(mode);
+    renderParticipantSuggestions(mode);
+    validateParticipantCapacity(mode);
+    return false;
+  }
+
+  validateParticipantAvailability(mode, { showMessage: true });
+  if (pickerConfig.searchInput) {
+    pickerConfig.searchInput.value = "";
+    pickerConfig.searchInput.focus();
+  }
+  hideParticipantSuggestions(mode);
+  return true;
+}
+
+function removeParticipantFromPicker(mode, employeeId) {
+  const picker = getParticipantPicker(mode);
+  picker.selected = picker.selected.filter(employee => Number(employee.employee_id) !== Number(employeeId));
+  renderParticipantChips(mode);
+  renderParticipantSuggestions(mode);
+  if (validateParticipantCapacity(mode)) {
+    validateParticipantAvailability(mode, { showMessage: true });
+  }
+}
+
+function resolveParticipantCandidate(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const searchInput = pickerConfig?.searchInput;
+  if (!searchInput) return null;
+
+  const rawSearch = String(searchInput.value || "").trim().toLowerCase();
+  const suggestions = getParticipantPicker(mode).suggestions;
+  if (!rawSearch) {
+    return suggestions[0] || null;
+  }
+
+  return (
+    suggestions.find(employee => {
+      const exactName = String(employee.name || "").trim().toLowerCase() === rawSearch;
+      const exactEmail = String(employee.email || "").trim().toLowerCase() === rawSearch;
+      return (exactName || exactEmail) && employee.is_available !== false;
+    }) ||
+    suggestions.find(employee => employee.is_available !== false) ||
+    null
+  );
+}
+
+async function ensureParticipantDirectory(mode) {
+  try {
+    await loadEmployeeDirectory(mode);
+    return true;
+  } catch (error) {
+    console.error("Failed to load employees for participant picker:", error);
+    setParticipantPickerMessage(mode, error.message || "Unable to load employees right now.", "error");
+    return false;
+  }
+}
+
+async function attemptAddParticipantFromInput(mode) {
+  const directoryReady = await ensureParticipantDirectory(mode);
+  if (!directoryReady) return;
+
+  const candidate = resolveParticipantCandidate(mode);
+  if (!candidate) {
+    const firstSuggestion = getParticipantPicker(mode).suggestions[0];
+    if (firstSuggestion && firstSuggestion.is_available === false) {
+      const hint = buildParticipantConflictHint(firstSuggestion);
+      setParticipantPickerMessage(
+        mode,
+        hint
+          ? `${firstSuggestion.name} is not available during this time. ${hint}`
+          : `${firstSuggestion.name} is not available during this time.`,
+        "error"
+      );
+    } else {
+      setParticipantPickerMessage(mode, "Search and select an available employee to add.", "error");
+    }
+    return;
+  }
+
+  addParticipantToPicker(mode, candidate);
+}
+
+function resetParticipantPicker(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  const picker = getParticipantPicker(mode);
+  picker.selected = [];
+  picker.suggestions = [];
+
+  if (pickerConfig?.searchInput) {
+    pickerConfig.searchInput.value = "";
+  }
+
+  resetParticipantFilters(mode);
+  picker.directory = [];
+  picker.directoryKey = "";
+  populateParticipantFilters(mode);
+  renderParticipantChips(mode);
+  updateParticipantAttendeeSummary(mode);
+  hideParticipantSuggestions(mode);
+  setParticipantPickerMessage(mode, "", "");
+}
+
+function initializeParticipantPicker(mode) {
+  const pickerConfig = getParticipantPickerConfig(mode);
+  if (!pickerConfig?.searchInput || !pickerConfig.addButton) {
+    return;
+  }
+
+  pickerConfig.searchInput.addEventListener("focus", async () => {
+    const directoryReady = await ensureParticipantDirectory(mode);
+    if (!directoryReady) return;
+    renderParticipantSuggestions(mode);
+  });
+
+  pickerConfig.searchInput.addEventListener("input", async () => {
+    const directoryReady = await ensureParticipantDirectory(mode);
+    if (!directoryReady) return;
+    setParticipantPickerMessage(mode, "", "");
+    renderParticipantSuggestions(mode);
+  });
+
+  pickerConfig.searchInput.addEventListener("keydown", async event => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    await attemptAddParticipantFromInput(mode);
+  });
+
+  pickerConfig.addButton.addEventListener("click", async () => {
+    await attemptAddParticipantFromInput(mode);
+  });
+
+  Object.values(pickerConfig.filterElements || {}).forEach(selectElement => {
+    if (!selectElement) return;
+    selectElement.addEventListener("change", async () => {
+      const directoryReady = await ensureParticipantDirectory(mode);
+      if (!directoryReady) return;
+      validateParticipantAvailability(mode, { showMessage: true });
+      renderParticipantSuggestions(mode);
+    });
+  });
+}
+
 function initializeProfileSecurity() {
   const form = document.getElementById("changePasswordForm");
   const messageElement = document.getElementById("changePasswordMessage");
@@ -1786,6 +2529,17 @@ const bookingEditTime = document.getElementById("bookingEditTime");
 const bookingEditDuration = document.getElementById("bookingEditDuration");
 const bookingEditMessage = document.getElementById("bookingEditMessage");
 const bookingEditHeading = document.getElementById("booking-edit-title");
+const bookingEditOrganizerName = document.getElementById("bookingEditOrganizerName");
+const bookingEditAttendeeSummary = document.getElementById("bookingEditAttendeeSummary");
+const bookingEditParticipantSearch = document.getElementById("bookingEditParticipantSearch");
+const bookingEditParticipantAddBtn = document.getElementById("bookingEditParticipantAddBtn");
+const bookingEditParticipantDepartmentFilter = document.getElementById("bookingEditParticipantDepartmentFilter");
+const bookingEditParticipantProjectFilter = document.getElementById("bookingEditParticipantProjectFilter");
+const bookingEditParticipantRoleFilter = document.getElementById("bookingEditParticipantRoleFilter");
+const bookingEditParticipantLocationFilter = document.getElementById("bookingEditParticipantLocationFilter");
+const bookingEditParticipantSuggestions = document.getElementById("bookingEditParticipantSuggestions");
+const bookingEditParticipantChips = document.getElementById("bookingEditParticipantChips");
+const bookingEditParticipantMessage = document.getElementById("bookingEditParticipantMessage");
 const bookingEditSubmitButton = bookingEditForm?.querySelector("button[type='submit']");
 let bookingEditMode = "edit";
 
@@ -1808,6 +2562,25 @@ function setBookingEditMode(mode = "edit") {
     if (!field) return;
     field.disabled = isViewOnly;
   });
+
+  [bookingEditParticipantSearch, bookingEditParticipantAddBtn].forEach(field => {
+    if (!field) return;
+    field.disabled = isViewOnly;
+  });
+
+  [
+    bookingEditParticipantDepartmentFilter,
+    bookingEditParticipantProjectFilter,
+    bookingEditParticipantRoleFilter,
+    bookingEditParticipantLocationFilter
+  ].forEach(field => {
+    if (!field) return;
+    field.disabled = isViewOnly;
+  });
+
+  if (isViewOnly) {
+    hideParticipantSuggestions("edit");
+  }
 }
 
 function applyBookingEditDateTimeConstraints() {
@@ -1850,24 +2623,46 @@ function closeBookingEditModal() {
     bookingEditTime.value = "";
     bookingEditTime.removeAttribute("data-time24");
   }
+  if (bookingEditOrganizerName) {
+    bookingEditOrganizerName.textContent = "-";
+  }
+  resetParticipantPicker("edit");
   setBookingEditMessage("", "");
 }
 
 async function openBookingEditModal(bookingId, { mode = "edit" } = {}) {
   if (!bookingEditModal) return;
 
-  const booking = bookingsById.get(Number(bookingId));
-  if (!booking) return;
+  const bookingSummary = bookingsById.get(Number(bookingId));
+  if (!bookingSummary) return;
 
   const resolvedMode = mode === "view" ? "view" : "edit";
-  if (resolvedMode === "edit" && !canManageFutureBooking(booking)) {
+  if (resolvedMode === "edit" && !canManageFutureBooking(bookingSummary)) {
     alert("Only future active bookings can be edited.");
+    return;
+  }
+
+  let booking;
+  try {
+    const detailResponse = await apiFetch(`/bookings/${Number(bookingId)}`);
+    booking = detailResponse?.booking || null;
+  } catch (error) {
+    console.error("Failed to load booking details:", error);
+    alert(error.message || "Unable to load booking details.");
+    return;
+  }
+
+  if (!booking) {
+    alert("Booking details are unavailable.");
     return;
   }
 
   setBookingEditMode(resolvedMode);
   selectedBooking = booking;
   setBookingEditMessage("", "");
+  if (bookingEditOrganizerName) {
+    bookingEditOrganizerName.textContent = getBookingOrganizerDisplayName(booking);
+  }
 
   if (bookingEditTitle) {
     bookingEditTitle.value = booking.title || "";
@@ -1884,6 +2679,15 @@ async function openBookingEditModal(bookingId, { mode = "edit" } = {}) {
   }
 
   ensureDurationOption(bookingEditDuration, getMinutesBetween(booking.start_time, booking.end_time, 60));
+  setParticipantSelection("edit", booking.participants || []);
+  void loadEmployeeDirectory("edit", { force: true })
+    .then(() => {
+      renderParticipantSuggestions("edit");
+    })
+    .catch(error => {
+      console.error("Failed to preload employees for booking edit:", error);
+    });
+
   if (resolvedMode === "edit") {
     applyBookingEditDateTimeConstraints();
   } else {
@@ -1929,6 +2733,17 @@ async function saveBookingEdits(event) {
     setBookingEditMessage("Meeting name and description are required.", "error");
     return;
   }
+
+  if (!validateParticipantCapacity("edit")) {
+    return;
+  }
+
+  const directoryReady = await ensureParticipantDirectory("edit");
+  if (!directoryReady || !validateParticipantAvailability("edit", { showMessage: true })) {
+    return;
+  }
+
+  payload.participant_employee_ids = getParticipantPickerSelectedIds("edit");
 
   try {
     await apiFetch(`/bookings/${selectedBooking.booking_id}`, {
@@ -2005,14 +2820,45 @@ function initializeBookingEditModalHandlers() {
   });
 
   if (bookingEditDate) {
-    bookingEditDate.addEventListener("change", applyBookingEditDateTimeConstraints);
+    bookingEditDate.addEventListener("change", () => {
+      applyBookingEditDateTimeConstraints();
+      void loadEmployeeDirectory("edit", { force: true })
+        .then(() => {
+          renderParticipantSuggestions("edit");
+        })
+        .catch(error => {
+          console.error("Failed to refresh employee availability for edit booking:", error);
+        });
+    });
   }
   if (bookingEditTime) {
     bookingEditTime.addEventListener("focus", applyBookingEditDateTimeConstraints);
+    bookingEditTime.addEventListener("change", () => {
+      void loadEmployeeDirectory("edit", { force: true })
+        .then(() => {
+          renderParticipantSuggestions("edit");
+        })
+        .catch(error => {
+          console.error("Failed to refresh employee availability for edit booking:", error);
+        });
+    });
+  }
+  if (bookingEditDuration) {
+    bookingEditDuration.addEventListener("change", () => {
+      void loadEmployeeDirectory("edit", { force: true })
+        .then(() => {
+          renderParticipantSuggestions("edit");
+        })
+        .catch(error => {
+          console.error("Failed to refresh employee availability for edit booking:", error);
+        });
+    });
   }
   if (bookingEditForm) {
     bookingEditForm.addEventListener("submit", saveBookingEdits);
   }
+
+  initializeParticipantPicker("edit");
 }
 
 const roomModal = document.getElementById("dashboard-room-modal");
@@ -2022,10 +2868,59 @@ const roomModalLocation = document.getElementById("dashboard-room-location");
 const roomModalFeatures = document.getElementById("dashboard-room-features");
 const roomModalSlot = document.getElementById("dashboard-room-slot");
 const roomModalDescription = document.getElementById("dashboard-room-description");
+const roomModalOrganizer = document.getElementById("dashboardBookingOrganizer");
+const roomModalAttendeeSummary = document.getElementById("dashboardAttendeeSummary");
 const roomModalMeetingTitle = document.getElementById("dashboardMeetingTitle");
 const roomModalMeetingDescription = document.getElementById("dashboardMeetingDescription");
+const roomModalParticipantSearch = document.getElementById("dashboardParticipantSearch");
+const roomModalParticipantAddBtn = document.getElementById("dashboardParticipantAddBtn");
+const roomModalParticipantDepartmentFilter = document.getElementById("dashboardParticipantDepartmentFilter");
+const roomModalParticipantProjectFilter = document.getElementById("dashboardParticipantProjectFilter");
+const roomModalParticipantRoleFilter = document.getElementById("dashboardParticipantRoleFilter");
+const roomModalParticipantLocationFilter = document.getElementById("dashboardParticipantLocationFilter");
+const roomModalParticipantSuggestions = document.getElementById("dashboardParticipantSuggestions");
+const roomModalParticipantChips = document.getElementById("dashboardParticipantChips");
+const roomModalParticipantMessage = document.getElementById("dashboardParticipantMessage");
 const roomModalMessage = document.getElementById("dashboard-room-message");
 const roomModalBookBtn = document.getElementById("dashboard-room-book-btn");
+
+function getParticipantPickerConfig(mode) {
+  if (mode === "edit") {
+    return {
+      searchInput: bookingEditParticipantSearch,
+      addButton: bookingEditParticipantAddBtn,
+      suggestionsElement: bookingEditParticipantSuggestions,
+      chipsElement: bookingEditParticipantChips,
+      messageElement: bookingEditParticipantMessage,
+      summaryElement: bookingEditAttendeeSummary,
+      filterElements: {
+        department: bookingEditParticipantDepartmentFilter,
+        project: bookingEditParticipantProjectFilter,
+        role: bookingEditParticipantRoleFilter,
+        work_location_name: bookingEditParticipantLocationFilter
+      },
+      getCapacity: () => Number(selectedBooking?.room_capacity || 0),
+      getOrganizerEmployeeId: () => Number(selectedBooking?.organizer_employee_id || selectedBooking?.employee_id || 0)
+    };
+  }
+
+  return {
+    searchInput: roomModalParticipantSearch,
+    addButton: roomModalParticipantAddBtn,
+    suggestionsElement: roomModalParticipantSuggestions,
+    chipsElement: roomModalParticipantChips,
+    messageElement: roomModalParticipantMessage,
+    summaryElement: roomModalAttendeeSummary,
+    filterElements: {
+      department: roomModalParticipantDepartmentFilter,
+      project: roomModalParticipantProjectFilter,
+      role: roomModalParticipantRoleFilter,
+      work_location_name: roomModalParticipantLocationFilter
+    },
+    getCapacity: () => Number(selectedRoom?.capacity || 0),
+    getOrganizerEmployeeId: () => Number(currentEmployeeId || 0)
+  };
+}
 
 function setRoomModalMessage(message, type = "") {
   setHelperMessage(roomModalMessage, message, type);
@@ -2053,12 +2948,24 @@ function openRoomModal(room, bookingWindow) {
   if (roomModalDescription) {
     roomModalDescription.textContent = room.description || "No description available for this room.";
   }
+  if (roomModalOrganizer) {
+    roomModalOrganizer.textContent = currentEmployee?.name || "You";
+  }
   if (roomModalMeetingTitle) {
     roomModalMeetingTitle.value = `Meeting in ${room.name || "Room"}`;
   }
   if (roomModalMeetingDescription) {
     roomModalMeetingDescription.value = "";
   }
+  resetParticipantPicker("create");
+  updateParticipantAttendeeSummary("create");
+  void loadEmployeeDirectory("create", { force: true })
+    .then(() => {
+      renderParticipantSuggestions("create");
+    })
+    .catch(error => {
+      console.error("Failed to preload employees for room booking:", error);
+    });
 
   const available = isRoomAvailable(room);
   if (!available) {
@@ -2083,6 +2990,10 @@ function closeRoomModal() {
   selectedBookingWindow = null;
   if (roomModalMeetingTitle) roomModalMeetingTitle.value = "";
   if (roomModalMeetingDescription) roomModalMeetingDescription.value = "";
+  if (roomModalOrganizer) {
+    roomModalOrganizer.textContent = "-";
+  }
+  resetParticipantPicker("create");
   setRoomModalMessage("", "");
 }
 
@@ -2124,6 +3035,17 @@ async function bookSelectedRoom() {
     setRoomModalMessage("Meeting name and description are required.", "error");
     return;
   }
+
+  if (!validateParticipantCapacity("create")) {
+    return;
+  }
+
+  const directoryReady = await ensureParticipantDirectory("create");
+  if (!directoryReady || !validateParticipantAvailability("create", { showMessage: true })) {
+    return;
+  }
+
+  payload.participant_employee_ids = getParticipantPickerSelectedIds("create");
 
   if (currentEmployeeId > 0) {
     payload.employee_id = currentEmployeeId;
@@ -2179,6 +3101,8 @@ function initializeRoomModalHandlers() {
   if (roomModalBookBtn) {
     roomModalBookBtn.addEventListener("click", bookSelectedRoom);
   }
+
+  initializeParticipantPicker("create");
 }
 
 function initializeRoomDetailsInteractions() {
@@ -2328,6 +3252,28 @@ function initializePageActions() {
   }
 
   document.addEventListener("click", event => {
+    const removeButton = event.target.closest("button[data-participant-remove][data-employee-id]");
+    if (removeButton) {
+      removeParticipantFromPicker(removeButton.dataset.participantRemove || "create", removeButton.dataset.employeeId);
+      return;
+    }
+
+    const selectButton = event.target.closest("button[data-participant-select][data-employee-id]");
+    if (selectButton) {
+      const mode = selectButton.dataset.participantSelect || "create";
+      const employeeId = Number(selectButton.dataset.employeeId || 0);
+      const employee = getParticipantEmployeeDirectory(mode).find(item => Number(item.employee_id) === employeeId);
+      if (employee) {
+        addParticipantToPicker(mode, employee);
+      }
+      return;
+    }
+
+    if (!event.target.closest(".participant-picker")) {
+      hideParticipantSuggestions("create");
+      hideParticipantSuggestions("edit");
+    }
+
     const button = event.target.closest("button[data-pagination-key][data-pagination-page]");
     if (!button) return;
 
@@ -2345,6 +3291,7 @@ async function initializeDashboard() {
   const isAuthenticated = await ensureAuthenticatedSession();
   if (!isAuthenticated) return;
 
+  initializeThemeToggle();
   setTodayLabel();
   setHeaderContent();
   setProfileSection();

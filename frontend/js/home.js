@@ -33,6 +33,7 @@ const bookingAttendeesSelect = document.getElementById("booking-attendees");
 const featuredLocationFilter = document.getElementById("featured-location-filter");
 const roomsGrid = document.querySelector(".rooms-grid");
 const bookingMessage = document.getElementById("booking-message");
+const themeToggleBtn = document.getElementById("themeToggleBtn");
 
 const roomDetailModal = document.getElementById("room-detail-modal");
 const roomDetailImage = document.getElementById("room-detail-image");
@@ -53,6 +54,9 @@ const TIMEZONE_CODE_OVERRIDES = Object.freeze({
   "Asia/Kolkata": "IST",
   "Africa/Johannesburg": "SAST"
 });
+const THEME_STORAGE_KEY = "dashboard_theme_preference";
+const THEME_LIGHT = "light";
+const THEME_DARK = "dark";
 const FOCUSABLE_SELECTOR = [
   "a[href]",
   "button:not([disabled])",
@@ -64,6 +68,69 @@ const FOCUSABLE_SELECTOR = [
 let lastRoomModalTrigger = null;
 let slideshowTimerId = null;
 let isSlideshowInitialized = false;
+
+function getStoredTheme() {
+  const stored = localStorage.getItem(THEME_STORAGE_KEY);
+  if (stored === THEME_DARK || stored === THEME_LIGHT) {
+    return stored;
+  }
+  return null;
+}
+
+function getSystemTheme() {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? THEME_DARK : THEME_LIGHT;
+}
+
+function getActiveTheme() {
+  return document.body.classList.contains("theme-dark") ? THEME_DARK : THEME_LIGHT;
+}
+
+function setThemeToggleButtonState(theme) {
+  if (!themeToggleBtn) return;
+
+  const isDark = theme === THEME_DARK;
+  themeToggleBtn.textContent = isDark ? "Light Mode" : "Dark Mode";
+  themeToggleBtn.setAttribute("aria-pressed", String(isDark));
+  themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+}
+
+function applyTheme(theme, { persist = true } = {}) {
+  const resolvedTheme = theme === THEME_DARK ? THEME_DARK : THEME_LIGHT;
+  const isDark = resolvedTheme === THEME_DARK;
+
+  document.body.classList.toggle("theme-dark", isDark);
+  document.body.dataset.theme = resolvedTheme;
+  document.documentElement.style.colorScheme = resolvedTheme;
+  setThemeToggleButtonState(resolvedTheme);
+
+  if (persist) {
+    localStorage.setItem(THEME_STORAGE_KEY, resolvedTheme);
+  }
+}
+
+function initializeThemeToggle() {
+  const initialTheme = getStoredTheme() || getSystemTheme();
+  applyTheme(initialTheme, { persist: false });
+
+  if (themeToggleBtn) {
+    themeToggleBtn.addEventListener("click", () => {
+      const nextTheme = getActiveTheme() === THEME_DARK ? THEME_LIGHT : THEME_DARK;
+      applyTheme(nextTheme);
+    });
+  }
+
+  const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const syncWithSystemTheme = event => {
+    if (getStoredTheme()) return;
+    applyTheme(event.matches ? THEME_DARK : THEME_LIGHT, { persist: false });
+  };
+
+  if (typeof mediaQuery.addEventListener === "function") {
+    mediaQuery.addEventListener("change", syncWithSystemTheme);
+  } else if (typeof mediaQuery.addListener === "function") {
+    mediaQuery.addListener(syncWithSystemTheme);
+  }
+}
 
 function initializeStickyAuthCardState() {
   const authCard = document.querySelector(".home-auth-card");
@@ -826,6 +893,8 @@ if (roomDetailModal) {
 if (modalBookButton) {
   modalBookButton.addEventListener("click", bookRoom);
 }
+
+initializeThemeToggle();
 
 function initializeSearchDefaults() {
   if (!bookingDateInput || !bookingTimeInput) return;

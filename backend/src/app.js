@@ -3,6 +3,7 @@ const path = require("path");
 const cors = require("cors");
 const { corsOrigins, isProduction } = require("./config/env");
 const authRoutes = require("./routes/auth.routes");
+const employeeRoutes = require("./routes/employee.routes");
 const locationRoutes = require("./routes/location.routes");
 const roomRoutes = require("./routes/room.routes");
 const bookingRoutes = require("./routes/booking.routes");
@@ -50,6 +51,7 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/employees", employeeRoutes);
 app.use("/api/locations", locationRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/bookings", bookingRoutes);

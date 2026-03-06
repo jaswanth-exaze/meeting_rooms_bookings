@@ -66,11 +66,22 @@
             <h1 id="welcomeHeading">Welcome Back</h1>
             <p>Track your bookings, find rooms quickly, and keep your profile updated.</p>
           </div>
-          <div class="profile-pill" data-section-jump="profileSection" role="button" tabindex="0">
-            <img class="avatar" src="../assets/male_profile.png" alt="Profile" />
-            <div>
-              <strong id="headerName">Employee</strong>
-              <span>Team Member</span>
+          <div class="dash-top-controls">
+            <button
+              class="theme-toggle"
+              id="themeToggleBtn"
+              type="button"
+              aria-label="Switch to dark mode"
+              aria-pressed="false"
+            >
+              Dark Mode
+            </button>
+            <div class="profile-pill" data-section-jump="profileSection" role="button" tabindex="0">
+              <img class="avatar" src="../assets/male_profile.png" alt="Profile" />
+              <div>
+                <strong id="headerName">Employee</strong>
+
+              </div>
             </div>
           </div>
         </header>
@@ -109,6 +120,7 @@
                   <thead>
                     <tr>
                       <th>Title</th>
+                      <th>Organizer</th>
                       <th>Room</th>
                       <th>Date</th>
                       <th>Time</th>
@@ -117,7 +129,7 @@
                   </thead>
                   <tbody id="overviewBookingsTable">
                     <tr>
-                      <td colspan="5" class="empty-state">Loading bookings...</td>
+                      <td colspan="6" class="empty-state">Loading bookings...</td>
                     </tr>
                   </tbody>
                 </table>
@@ -155,13 +167,15 @@
                       <th>Location</th>
                       <th>Start</th>
                       <th>End</th>
+                      <th>Role</th>
+                      <th>Organizer</th>
                       <th>Status</th>
                       <th>Action</th>
                     </tr>
                   </thead>
                   <tbody id="bookingsTable">
                     <tr>
-                      <td colspan="6" class="empty-state">Loading bookings...</td>
+                      <td colspan="8" class="empty-state">Loading bookings...</td>
                     </tr>
                   </tbody>
                 </table>
@@ -380,6 +394,16 @@
         <p id="dashboard-room-features" class="room-meta"></p>
         <p id="dashboard-room-slot" class="room-meta"></p>
         <p id="dashboard-room-description" class="room-modal-description"></p>
+        <div class="booking-meta-grid">
+          <div class="booking-meta-card">
+            <span class="booking-meta-label">Organizer</span>
+            <strong id="dashboardBookingOrganizer">-</strong>
+          </div>
+          <div class="booking-meta-card">
+            <span class="booking-meta-label">Attendees</span>
+            <strong id="dashboardAttendeeSummary">Attendees: organizer + selected = 1 / 0</strong>
+          </div>
+        </div>
         <div class="form-item">
           <label for="dashboardMeetingTitle">Meeting Name</label>
           <input id="dashboardMeetingTitle" type="text" placeholder="Enter meeting name" />
@@ -387,6 +411,42 @@
         <div class="form-item">
           <label for="dashboardMeetingDescription">Meeting Description</label>
           <textarea id="dashboardMeetingDescription" rows="3" placeholder="Enter meeting description"></textarea>
+        </div>
+        <div class="form-item participant-picker">
+          <label for="dashboardParticipantSearch">Add Employees</label>
+          <div class="participant-search-row">
+            <input id="dashboardParticipantSearch" type="text" placeholder="Search active employees" autocomplete="off" />
+            <button id="dashboardParticipantAddBtn" class="btn btn-secondary btn-sm" type="button">Add</button>
+          </div>
+          <div class="participant-filter-grid">
+            <div class="form-item">
+              <label for="dashboardParticipantDepartmentFilter">Department</label>
+              <select id="dashboardParticipantDepartmentFilter">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label for="dashboardParticipantProjectFilter">Project</label>
+              <select id="dashboardParticipantProjectFilter">
+                <option value="">All Projects</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label for="dashboardParticipantRoleFilter">Role</label>
+              <select id="dashboardParticipantRoleFilter">
+                <option value="">All Roles</option>
+              </select>
+            </div>
+            <div class="form-item">
+              <label for="dashboardParticipantLocationFilter">Location</label>
+              <select id="dashboardParticipantLocationFilter">
+                <option value="">All Locations</option>
+              </select>
+            </div>
+          </div>
+          <div id="dashboardParticipantSuggestions" class="participant-suggestions" hidden></div>
+          <div id="dashboardParticipantChips" class="participant-chip-list" aria-live="polite"></div>
+          <p id="dashboardParticipantMessage" class="helper-message" role="status" aria-live="polite"></p>
         </div>
         <p id="dashboard-room-message" class="helper-message" role="status" aria-live="polite"></p>
         <div class="room-modal-actions">
@@ -399,6 +459,16 @@
       <section class="room-modal-card" role="dialog" aria-modal="true" aria-labelledby="booking-edit-title">
         <button class="room-modal-close" type="button" aria-label="Close edit booking" data-close-booking-modal>&times;</button>
         <h3 id="booking-edit-title">Edit Booking</h3>
+        <div class="booking-meta-grid">
+          <div class="booking-meta-card">
+            <span class="booking-meta-label">Organizer</span>
+            <strong id="bookingEditOrganizerName">-</strong>
+          </div>
+          <div class="booking-meta-card">
+            <span class="booking-meta-label">Attendees</span>
+            <strong id="bookingEditAttendeeSummary">Attendees: organizer + selected = 1 / 0</strong>
+          </div>
+        </div>
         <form id="bookingEditForm" class="form-grid">
           <div class="form-item">
             <label for="bookingEditTitle">Meeting Title</label>
@@ -407,6 +477,42 @@
           <div class="form-item">
             <label for="bookingEditDescription">Meeting Description</label>
             <textarea id="bookingEditDescription" rows="3" required></textarea>
+          </div>
+          <div class="form-item participant-picker">
+            <label for="bookingEditParticipantSearch">Add Employees</label>
+            <div class="participant-search-row">
+              <input id="bookingEditParticipantSearch" type="text" placeholder="Search active employees" autocomplete="off" />
+              <button id="bookingEditParticipantAddBtn" class="btn btn-secondary btn-sm" type="button">Add</button>
+            </div>
+            <div class="participant-filter-grid">
+              <div class="form-item">
+                <label for="bookingEditParticipantDepartmentFilter">Department</label>
+                <select id="bookingEditParticipantDepartmentFilter">
+                  <option value="">All Departments</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label for="bookingEditParticipantProjectFilter">Project</label>
+                <select id="bookingEditParticipantProjectFilter">
+                  <option value="">All Projects</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label for="bookingEditParticipantRoleFilter">Role</label>
+                <select id="bookingEditParticipantRoleFilter">
+                  <option value="">All Roles</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label for="bookingEditParticipantLocationFilter">Location</label>
+                <select id="bookingEditParticipantLocationFilter">
+                  <option value="">All Locations</option>
+                </select>
+              </div>
+            </div>
+            <div id="bookingEditParticipantSuggestions" class="participant-suggestions" hidden></div>
+            <div id="bookingEditParticipantChips" class="participant-chip-list" aria-live="polite"></div>
+            <p id="bookingEditParticipantMessage" class="helper-message" role="status" aria-live="polite"></p>
           </div>
           <div class="filters-inline">
             <div class="form-item">

@@ -2,6 +2,7 @@ const express = require("express");
 const {
   getUpcomingBookings,
   getBookingSummary,
+  getBookingById,
   getBookingReports,
   createBooking,
   updateBooking,
@@ -16,6 +17,7 @@ router.use(requireAuth);
 router.get("/upcoming", getUpcomingBookings);
 router.get("/summary", getBookingSummary);
 router.get("/reports", getBookingReports);
+router.get("/:bookingId", getBookingById);
 router.post("/", createBooking);
 router.patch("/:bookingId", updateBooking);
 router.patch("/:bookingId/cancel", cancelBooking);
