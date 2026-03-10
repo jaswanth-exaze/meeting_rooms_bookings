@@ -239,6 +239,10 @@ button {
   text-align: center;
   max-width: 930px;
   margin-inline: auto;
+  display: grid;
+  grid-template-columns: 1fr;
+justify-items: center;
+
 }
 
 .hero-illustration {
@@ -249,15 +253,16 @@ button {
   -webkit-mask-image: radial-gradient(ellipse 93% 89% at 50% 50%, #000 64%, rgba(0, 0, 0, 0.72) 78%, transparent 100%);
   mask-image: radial-gradient(ellipse 93% 89% at 50% 50%, #000 64%, rgba(0, 0, 0, 0.72) 78%, transparent 100%);
   animation: float 6s ease-in-out infinite;
+
 }
 
 /* Slideshow styles */
 .hero-slideshow-container {
   position: relative;
-  width: 100%;
+  width: 670px;
   height: 360px;
   max-height: 360px;
-  display: block;
+  
   line-height: 0;
   font-size: 0;
   margin: 0;
