@@ -33,6 +33,12 @@ const TIMEZONE_CODE_OVERRIDES = Object.freeze({
 });
 const BOOKING_PAST_GRACE_MS = 60 * 1000;
 const ROOM_AVAILABLE_SOON_MS = 60 * 1000;
+const ROOM_SCHEDULE_DAYS = 7;
+const ROOM_SCHEDULE_STEP_MINUTES = 30;
+const ROOM_SCHEDULE_DEFAULT_WORKDAY_START = "10:00";
+const ROOM_SCHEDULE_DEFAULT_WORKDAY_END = "19:00";
+const ROOM_SCHEDULE_TIMEZONE = "Asia/Kolkata";
+const ROOM_SCHEDULE_TIMEZONE_LABEL = "IST";
 
 function getStoredEmployee() {
   const raw = localStorage.getItem("auth_employee");
@@ -61,6 +67,7 @@ function setCurrentEmployee(employee) {
   }
   currentEmployeeId = Number(currentEmployee?.employee_id || 0);
   isAdmin = currentEmployee?.is_admin === true;
+  selectedCreateOrganizerId = Number(currentEmployeeId || 0);
 }
 
 function clearStoredAuth() {
@@ -89,6 +96,13 @@ let selectedRoom = null;
 let selectedBookingWindow = null;
 let availabilityWindow = null;
 let selectedBooking = null;
+let selectedCreateOrganizerId = Number(currentEmployeeId || 0);
+const roomScheduleState = {
+  isOpen: false,
+  loading: false,
+  requestKey: "",
+  payload: null
+};
 const participantPickerState = {
   create: { selected: [], suggestions: [], directory: [], directoryKey: "" },
   edit: { selected: [], suggestions: [], directory: [], directoryKey: "" }
@@ -1676,7 +1690,14 @@ function buildParticipantAvailabilityMessage(mode, issues) {
   const hint = buildParticipantConflictHint(firstIssue.employee);
 
   if (firstIssue.type === "organizer") {
-    return hint ? `You are not available during this time. ${hint}` : "You are not available during this time.";
+    const organizerName = getParticipantPickerOrganizerDisplayName(mode);
+    if (organizerName === "You") {
+      return hint ? `You are not available during this time. ${hint}` : "You are not available during this time.";
+    }
+
+    return hint
+      ? `${organizerName} is not available during this time. ${hint}`
+      : `${organizerName} is not available during this time.`;
   }
 
   if (issues.length === 1) {
@@ -1705,6 +1726,9 @@ async function loadEmployeeDirectory(mode, { force = false } = {}) {
   picker.directory = Array.isArray(employees) ? employees.map(normalizeEmployeeOption).filter(Boolean) : [];
   picker.directoryKey = request.key;
   populateParticipantFilters(mode);
+  if (mode === "create") {
+    renderRoomModalOrganizerSelection();
+  }
   validateParticipantAvailability(mode, { showMessage: true });
   return picker.directory;
 }
@@ -1729,6 +1753,23 @@ function getParticipantPickerOrganizerId(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const organizerEmployeeId = Number(pickerConfig?.getOrganizerEmployeeId?.() || currentEmployeeId || 0);
   return organizerEmployeeId > 0 ? organizerEmployeeId : 0;
+}
+
+function getParticipantPickerOrganizerDisplayName(mode) {
+  const organizerEmployeeId = getParticipantPickerOrganizerId(mode);
+  if (!organizerEmployeeId) {
+    return "Organizer";
+  }
+
+  if (organizerEmployeeId === currentEmployeeId) {
+    return "You";
+  }
+
+  if (mode === "edit") {
+    return selectedBooking?.organizer_name || selectedBooking?.employee_name || `Employee #${organizerEmployeeId}`;
+  }
+
+  return getCreateBookingOrganizerOption()?.name || `Employee #${organizerEmployeeId}`;
 }
 
 function getParticipantPickerFilterValues(mode) {
@@ -1804,7 +1845,7 @@ function updateParticipantAttendeeSummary(mode) {
   const selectedCount = getParticipantPicker(mode).selected.length;
   const totalAttendees = 1 + selectedCount;
   const capacityLabel = capacity > 0 ? capacity : "?";
-  summaryElement.textContent = `Attendees: organizer + selected = ${totalAttendees} / ${capacityLabel}`;
+  summaryElement.textContent = `Total attendees: ${totalAttendees} of ${capacityLabel} seats (1 organizer + ${selectedCount} added)`;
 }
 
 function renderParticipantChips(mode) {
@@ -2157,6 +2198,9 @@ function resetParticipantPicker(mode) {
   updateParticipantAttendeeSummary(mode);
   hideParticipantSuggestions(mode);
   setParticipantPickerMessage(mode, "", "");
+  if (mode === "create") {
+    renderRoomModalOrganizerSelection();
+  }
 }
 
 function initializeParticipantPicker(mode) {
@@ -2197,6 +2241,92 @@ function initializeParticipantPicker(mode) {
       renderParticipantSuggestions(mode);
     });
   });
+}
+
+function syncCreateParticipantsWithOrganizer() {
+  setParticipantSelection("create", getParticipantPicker("create").selected);
+}
+
+function updateRoomModalOrganizerSummary() {
+  if (!roomModalOrganizer) return;
+  roomModalOrganizer.textContent = getCreateBookingOrganizerDisplayName();
+}
+
+function renderRoomModalOrganizerSelection() {
+  if (!roomModalOrganizerField || !roomModalOrganizerSelect) {
+    updateRoomModalOrganizerSummary();
+    return;
+  }
+
+  if (!(currentRole === "admin" && isAdmin)) {
+    roomModalOrganizerField.hidden = true;
+    roomModalOrganizerSelect.innerHTML = "";
+    setRoomModalOrganizerHelp("", "");
+    updateRoomModalOrganizerSummary();
+    return;
+  }
+
+  roomModalOrganizerField.hidden = false;
+  const directory = getParticipantEmployeeDirectory("create");
+  if (!directory.length) {
+    roomModalOrganizerSelect.disabled = true;
+    roomModalOrganizerSelect.innerHTML = '<option value="">Loading active employees...</option>';
+    setRoomModalOrganizerHelp("Loading active employees...", "");
+    updateRoomModalOrganizerSummary();
+    return;
+  }
+
+  const organizerExists = directory.some(employee => Number(employee.employee_id) === getCreateBookingOrganizerEmployeeId());
+  if (!organizerExists) {
+    selectedCreateOrganizerId = Number(
+      directory.find(employee => Number(employee.employee_id) === Number(currentEmployeeId || 0))?.employee_id ||
+        directory[0]?.employee_id ||
+        0
+    );
+  }
+
+  roomModalOrganizerSelect.disabled = false;
+  roomModalOrganizerSelect.innerHTML = directory
+    .map(employee => {
+      const label =
+        `${employee.name} (${employee.email || `Employee #${employee.employee_id}`})` +
+        (employee.is_available === false ? " - Unavailable" : "");
+      return `<option value="${employee.employee_id}">${escapeHtml(label)}</option>`;
+    })
+    .join("");
+  roomModalOrganizerSelect.value = String(getCreateBookingOrganizerEmployeeId());
+
+  const organizer = getCreateBookingOrganizerOption();
+  updateRoomModalOrganizerSummary();
+
+  if (organizer?.is_available === false) {
+    const hint = buildParticipantConflictHint(organizer);
+    setRoomModalOrganizerHelp(
+      hint ? `${organizer.name} is not available during this time. ${hint}` : `${organizer.name} is not available during this time.`,
+      "error"
+    );
+    return;
+  }
+
+  if (getCreateBookingOrganizerEmployeeId() === currentEmployeeId) {
+    setRoomModalOrganizerHelp("This booking will be created under your account.", "");
+    return;
+  }
+
+  setRoomModalOrganizerHelp(
+    organizer?.name ? `This booking will be created for ${organizer.name}.` : "This booking will be created for the selected employee.",
+    ""
+  );
+}
+
+function setCreateBookingOrganizer(employeeId) {
+  const nextOrganizerId = Number(employeeId || 0);
+  selectedCreateOrganizerId = nextOrganizerId > 0 ? nextOrganizerId : Number(currentEmployeeId || 0);
+  updateRoomModalOrganizerSummary();
+  renderRoomModalOrganizerSelection();
+  syncCreateParticipantsWithOrganizer();
+  renderParticipantSuggestions("create");
+  validateParticipantAvailability("create", { showMessage: true });
 }
 
 function initializeProfileSecurity() {
@@ -2870,6 +3000,9 @@ const roomModalSlot = document.getElementById("dashboard-room-slot");
 const roomModalDescription = document.getElementById("dashboard-room-description");
 const roomModalOrganizer = document.getElementById("dashboardBookingOrganizer");
 const roomModalAttendeeSummary = document.getElementById("dashboardAttendeeSummary");
+const roomModalOrganizerField = document.getElementById("dashboardOrganizerField");
+const roomModalOrganizerSelect = document.getElementById("dashboardBookingOrganizerSelect");
+const roomModalOrganizerHelp = document.getElementById("dashboardBookingOrganizerHelp");
 const roomModalMeetingTitle = document.getElementById("dashboardMeetingTitle");
 const roomModalMeetingDescription = document.getElementById("dashboardMeetingDescription");
 const roomModalParticipantSearch = document.getElementById("dashboardParticipantSearch");
@@ -2883,6 +3016,38 @@ const roomModalParticipantChips = document.getElementById("dashboardParticipantC
 const roomModalParticipantMessage = document.getElementById("dashboardParticipantMessage");
 const roomModalMessage = document.getElementById("dashboard-room-message");
 const roomModalBookBtn = document.getElementById("dashboard-room-book-btn");
+const roomModalScheduleToggle = document.getElementById("dashboardRoomScheduleToggle");
+const roomScheduleModal = document.getElementById("dashboard-room-schedule-modal");
+const roomScheduleTitle = document.getElementById("dashboardRoomScheduleTitle");
+const roomScheduleMeta = document.getElementById("dashboardRoomScheduleMeta");
+const roomScheduleMessage = document.getElementById("dashboardRoomScheduleMessage");
+const roomScheduleGrid = document.getElementById("dashboardRoomScheduleGrid");
+
+function getCreateBookingOrganizerEmployeeId() {
+  const organizerEmployeeId = Number(selectedCreateOrganizerId || currentEmployeeId || 0);
+  return organizerEmployeeId > 0 ? organizerEmployeeId : 0;
+}
+
+function getCreateBookingOrganizerOption() {
+  const organizerEmployeeId = getCreateBookingOrganizerEmployeeId();
+  return (
+    getParticipantEmployeeDirectory("create").find(employee => Number(employee.employee_id) === organizerEmployeeId) ||
+    null
+  );
+}
+
+function getCreateBookingOrganizerDisplayName() {
+  const organizerEmployeeId = getCreateBookingOrganizerEmployeeId();
+  if (!organizerEmployeeId) {
+    return "-";
+  }
+
+  if (organizerEmployeeId === currentEmployeeId) {
+    return currentEmployee?.name || "You";
+  }
+
+  return getCreateBookingOrganizerOption()?.name || `Employee #${organizerEmployeeId}`;
+}
 
 function getParticipantPickerConfig(mode) {
   if (mode === "edit") {
@@ -2918,12 +3083,27 @@ function getParticipantPickerConfig(mode) {
       work_location_name: roomModalParticipantLocationFilter
     },
     getCapacity: () => Number(selectedRoom?.capacity || 0),
-    getOrganizerEmployeeId: () => Number(currentEmployeeId || 0)
+    getOrganizerEmployeeId: getCreateBookingOrganizerEmployeeId
   };
 }
 
 function setRoomModalMessage(message, type = "") {
   setHelperMessage(roomModalMessage, message, type);
+}
+
+function setRoomModalBookButtonState(isAvailable) {
+  if (!roomModalBookBtn) return;
+  roomModalBookBtn.hidden = false;
+  roomModalBookBtn.disabled = !isAvailable;
+  roomModalBookBtn.textContent = isAvailable ? "Book This Room" : "Booked";
+}
+
+function setRoomScheduleMessage(message, type = "") {
+  setHelperMessage(roomScheduleMessage, message, type);
+}
+
+function setRoomModalOrganizerHelp(message, type = "") {
+  setHelperMessage(roomModalOrganizerHelp, message, type);
 }
 
 function getSlotLabel(windowValue) {
@@ -2934,11 +3114,433 @@ function getSlotLabel(windowValue) {
   return `Selected Slot: ${formatDateTime(windowValue.start)} - ${formatTime(windowValue.end)}`;
 }
 
+function getRoomScheduleDurationMinutes() {
+  const finderDuration = document.getElementById("finderDuration")?.value || "";
+  const fallbackDuration = getMinutesBetween(selectedBookingWindow?.start, selectedBookingWindow?.end, 60);
+  const preferredDuration = getDurationMinutes(finderDuration, fallbackDuration);
+  return Math.max(30, preferredDuration);
+}
+
+function getRoomScheduleDateRange() {
+  const startDate = new Date();
+  startDate.setHours(0, 0, 0, 0);
+
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + ROOM_SCHEDULE_DAYS);
+
+  return { startDate, endDate };
+}
+
+function buildRoomScheduleRequest(roomId) {
+  const range = getRoomScheduleDateRange();
+  const params = new URLSearchParams({
+    start_time: range.startDate.toISOString(),
+    end_time: range.endDate.toISOString(),
+    days: String(ROOM_SCHEDULE_DAYS)
+  });
+
+  return {
+    key: JSON.stringify({
+      room_id: Number(roomId || 0),
+      start_time: params.get("start_time"),
+      end_time: params.get("end_time"),
+      days: ROOM_SCHEDULE_DAYS
+    }),
+    path: `/rooms/${Number(roomId || 0)}/schedule?${params.toString()}`
+  };
+}
+
+function normalizeRoomScheduleBooking(booking) {
+  if (!booking || typeof booking !== "object") return null;
+
+  const bookingId = Number(booking.booking_id || 0);
+  const startDate = parseDateValue(booking.start_time);
+  const endDate = parseDateValue(booking.end_time);
+  if (!bookingId || !startDate || !endDate) {
+    return null;
+  }
+
+  return {
+    booking_id: bookingId,
+    room_id: Number(booking.room_id || 0),
+    title: String(booking.title || "").trim() || "Booked meeting",
+    description: String(booking.description || "").trim() || "",
+    start_time: startDate.toISOString(),
+    end_time: endDate.toISOString(),
+    start_ms: startDate.getTime(),
+    end_ms: endDate.getTime(),
+    organizer_name: String(booking.organizer_name || "").trim() || "Unknown organizer",
+    status: String(booking.status || "").trim() || "confirmed"
+  };
+}
+
+function normalizeRoomSchedulePayload(payload) {
+  return {
+    room: payload?.room || selectedRoom || null,
+    range: payload?.range || null,
+    bookings: Array.isArray(payload?.bookings) ? payload.bookings.map(normalizeRoomScheduleBooking).filter(Boolean) : []
+  };
+}
+
+function getRoomScheduleWorkingWindow(payload) {
+  const workdayStart = payload?.range?.workday_start || ROOM_SCHEDULE_DEFAULT_WORKDAY_START;
+  const workdayEnd = payload?.range?.workday_end || ROOM_SCHEDULE_DEFAULT_WORKDAY_END;
+  const startMinutes = getTimeValueMinutes(workdayStart);
+  const endMinutes = getTimeValueMinutes(workdayEnd);
+
+  return {
+    startMinutes: startMinutes === null ? 10 * 60 : startMinutes,
+    endMinutes: endMinutes === null ? 19 * 60 : endMinutes
+  };
+}
+
+function getRoomScheduleDayMeta(dayDate) {
+  const weekday = dayDate.getDay();
+  if (weekday === 0 || weekday === 6) {
+    return {
+      className: "is-holiday",
+      label: "Holiday"
+    };
+  }
+
+  if (weekday === 1 || weekday === 5) {
+    return {
+      className: "is-wfh",
+      label: "WFH"
+    };
+  }
+
+  return {
+    className: "is-office",
+    label: "Office Day"
+  };
+}
+
+function getRoomScheduleMetaText(payload) {
+  const durationMinutes = getRoomScheduleDurationMinutes();
+  const scheduleDays = Number(payload?.range?.days || ROOM_SCHEDULE_DAYS) || ROOM_SCHEDULE_DAYS;
+  const { startMinutes, endMinutes } = getRoomScheduleWorkingWindow(payload);
+  const workdayStart = format24HourAs12Hour(
+    `${String(Math.floor(startMinutes / 60)).padStart(2, "0")}:${String(startMinutes % 60).padStart(2, "0")}`
+  );
+  const workdayEnd = format24HourAs12Hour(
+    `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`
+  );
+  return `Next ${scheduleDays} days | ${workdayStart} - ${workdayEnd} | ${durationMinutes} min slots | ${ROOM_SCHEDULE_TIMEZONE_LABEL}`;
+}
+
+function buildRoomScheduleLoadingMarkup(dayCount = ROOM_SCHEDULE_DAYS) {
+  return Array.from({ length: dayCount })
+    .map(
+      () => `
+        <article class="room-schedule-day is-loading" aria-hidden="true">
+          <div class="room-schedule-day-head">
+            <span class="skeleton-line"></span>
+            <small class="skeleton-line skeleton-line-sm"></small>
+          </div>
+          <div class="room-schedule-day-slots">
+            <div class="room-schedule-slot is-skeleton"><span class="skeleton-line"></span><small class="skeleton-line skeleton-line-sm"></small></div>
+            <div class="room-schedule-slot is-skeleton"><span class="skeleton-line"></span><small class="skeleton-line skeleton-line-sm"></small></div>
+            <div class="room-schedule-slot is-skeleton"><span class="skeleton-line"></span><small class="skeleton-line skeleton-line-sm"></small></div>
+          </div>
+        </article>
+      `
+    )
+    .join("");
+}
+
+function isRoomScheduleSlotSelected(slot) {
+  return Boolean(
+    slot?.start &&
+      slot?.end &&
+      selectedBookingWindow?.start === slot.start &&
+      selectedBookingWindow?.end === slot.end
+  );
+}
+
+function buildRoomScheduleDayDates() {
+  const { startDate } = getRoomScheduleDateRange();
+  return Array.from({ length: ROOM_SCHEDULE_DAYS }).map((_, index) => {
+    const day = new Date(startDate);
+    day.setDate(startDate.getDate() + index);
+    return day;
+  });
+}
+
+function getRoomScheduleConflictBooking(bookings, slotStartMs, slotEndMs) {
+  return bookings.find(booking => booking.start_ms < slotEndMs && booking.end_ms > slotStartMs) || null;
+}
+
+function buildRoomScheduleSlotsForDay(dayDate, payload) {
+  const durationMinutes = getRoomScheduleDurationMinutes();
+  const { startMinutes, endMinutes } = getRoomScheduleWorkingWindow(payload);
+  const lastStartMinutes = endMinutes - durationMinutes;
+  const nowMs = Date.now();
+
+  if (lastStartMinutes < startMinutes) {
+    return [];
+  }
+
+  const bookings = Array.isArray(payload?.bookings) ? payload.bookings : [];
+  const slots = [];
+
+  for (let minute = startMinutes; minute <= lastStartMinutes; minute += ROOM_SCHEDULE_STEP_MINUTES) {
+    const slotStart = new Date(dayDate);
+    slotStart.setHours(0, 0, 0, 0);
+    slotStart.setMinutes(minute);
+
+    const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60 * 1000);
+    if (slotStart.getTime() < nowMs) {
+      continue;
+    }
+
+    const booking = getRoomScheduleConflictBooking(bookings, slotStart.getTime(), slotEnd.getTime());
+    slots.push({
+      start: slotStart.toISOString(),
+      end: slotEnd.toISOString(),
+      booking,
+      is_available: !booking
+    });
+  }
+
+  return slots;
+}
+
+function buildRoomScheduleSlotMarkup(slot) {
+  const slotLabel = escapeHtml(formatTimeRange(slot.start, slot.end, ROOM_SCHEDULE_TIMEZONE));
+  const selectedClassName = isRoomScheduleSlotSelected(slot) ? " is-selected" : "";
+
+  if (slot.is_available) {
+    return `
+      <button
+        class="room-schedule-slot available${selectedClassName}"
+        type="button"
+        data-room-schedule-select="true"
+        data-start-time="${escapeHtml(slot.start)}"
+        data-end-time="${escapeHtml(slot.end)}"
+      >
+        <span class="room-schedule-slot-status">Available</span>
+        <strong>${slotLabel}</strong>
+        <small>Click to use this slot</small>
+      </button>
+    `;
+  }
+
+  const booking = slot.booking || null;
+  const title = escapeHtml(booking?.title || "Booked meeting");
+  const organizer = escapeHtml(booking?.organizer_name || "Unknown organizer");
+  const bookingTime = escapeHtml(formatTimeRange(booking?.start_time, booking?.end_time, ROOM_SCHEDULE_TIMEZONE));
+
+  return `
+    <article class="room-schedule-slot booked">
+      <span class="room-schedule-slot-status">Booked</span>
+      <strong>${slotLabel}</strong>
+      <small class="room-schedule-slot-title">${title}</small>
+      <small>Organizer: ${organizer}</small>
+      <small>Meeting: ${bookingTime}</small>
+    </article>
+  `;
+}
+
+function buildRoomScheduleDayMarkup(dayDate, payload) {
+  const slots = buildRoomScheduleSlotsForDay(dayDate, payload);
+  const dayMeta = getRoomScheduleDayMeta(dayDate);
+  const dayLabel = dayDate.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: ROOM_SCHEDULE_TIMEZONE
+  });
+
+  return `
+    <article class="room-schedule-day ${dayMeta.className}">
+      <div class="room-schedule-day-head">
+        <strong>${escapeHtml(dayLabel)}</strong>
+        <small>${escapeHtml(dayMeta.label)}</small>
+      </div>
+      <div class="room-schedule-day-slots">
+        ${
+          slots.length > 0
+            ? slots.map(buildRoomScheduleSlotMarkup).join("")
+            : '<p class="room-schedule-empty-day">No upcoming working-hour slots.</p>'
+        }
+      </div>
+    </article>
+  `;
+}
+
+function renderRoomSchedule() {
+  if (!roomScheduleGrid || !roomScheduleMeta) return;
+
+  if (roomScheduleState.loading) {
+    roomScheduleMeta.textContent = "Loading upcoming room schedule...";
+    roomScheduleGrid.innerHTML = buildRoomScheduleLoadingMarkup();
+    return;
+  }
+
+  roomScheduleMeta.textContent = getRoomScheduleMetaText(roomScheduleState.payload);
+
+  if (!roomScheduleState.payload) {
+    roomScheduleGrid.innerHTML = '<div class="empty-state room-schedule-empty">Open the schedule to load the next 7 days.</div>';
+    return;
+  }
+
+  const dayDates = buildRoomScheduleDayDates();
+  roomScheduleGrid.innerHTML = dayDates.map(dayDate => buildRoomScheduleDayMarkup(dayDate, roomScheduleState.payload)).join("");
+}
+
+async function loadRoomSchedule({ force = false } = {}) {
+  if (!selectedRoom?.room_id) {
+    throw new Error("Select a room to view its schedule.");
+  }
+
+  const request = buildRoomScheduleRequest(selectedRoom.room_id);
+  if (!force && roomScheduleState.requestKey === request.key && roomScheduleState.payload) {
+    renderRoomSchedule();
+    return roomScheduleState.payload;
+  }
+
+  roomScheduleState.loading = true;
+  renderRoomSchedule();
+
+  try {
+    const payload = await apiFetch(request.path);
+    roomScheduleState.payload = normalizeRoomSchedulePayload(payload);
+    roomScheduleState.requestKey = request.key;
+    renderRoomSchedule();
+    return roomScheduleState.payload;
+  } finally {
+    roomScheduleState.loading = false;
+    renderRoomSchedule();
+  }
+}
+
+function setRoomScheduleOpen(isOpen) {
+  roomScheduleState.isOpen = Boolean(isOpen);
+
+  if (roomModalScheduleToggle) {
+    roomModalScheduleToggle.setAttribute("aria-expanded", roomScheduleState.isOpen ? "true" : "false");
+    roomModalScheduleToggle.textContent = roomScheduleState.isOpen ? "Hide Schedule" : "View Schedule";
+  }
+
+  if (!roomScheduleState.isOpen) {
+    if (roomScheduleModal && !roomScheduleModal.hidden) {
+      closeManagedModal(roomScheduleModal);
+      if (roomModal && !roomModal.hidden) {
+        activeModalElement = roomModal;
+      }
+    }
+    setRoomScheduleMessage("", "");
+    return;
+  }
+
+  if (roomScheduleTitle) {
+    roomScheduleTitle.textContent = `${selectedRoom?.name || "Room"} Schedule`;
+  }
+
+  renderRoomSchedule();
+  if (roomScheduleModal) {
+    openManagedModal(roomScheduleModal, roomModalScheduleToggle);
+  }
+  void loadRoomSchedule({ force: false }).catch(error => {
+    console.error("Failed to load room schedule:", error);
+    roomScheduleState.payload = null;
+    roomScheduleState.requestKey = "";
+    roomScheduleState.loading = false;
+    renderRoomSchedule();
+    setRoomScheduleMessage(error.message || "Unable to load room schedule right now.", "error");
+  });
+}
+
+function resetRoomScheduleState() {
+  roomScheduleState.isOpen = false;
+  roomScheduleState.loading = false;
+  roomScheduleState.requestKey = "";
+  roomScheduleState.payload = null;
+
+  if (roomScheduleModal && !roomScheduleModal.hidden) {
+    closeManagedModal(roomScheduleModal);
+  }
+
+  if (roomModalScheduleToggle) {
+    roomModalScheduleToggle.setAttribute("aria-expanded", "false");
+    roomModalScheduleToggle.textContent = "View Schedule";
+  }
+
+  if (roomScheduleTitle) {
+    roomScheduleTitle.textContent = "Room Schedule";
+  }
+
+  if (roomScheduleMeta) {
+    roomScheduleMeta.textContent = "Next 7 days, upcoming working-hour slots.";
+  }
+
+  if (roomScheduleGrid) {
+    roomScheduleGrid.innerHTML = "";
+  }
+
+  setRoomScheduleMessage("", "");
+}
+
+async function applyRoomScheduleSelection(startTime, endTime) {
+  const slotStart = parseDateValue(startTime);
+  const slotEnd = parseDateValue(endTime);
+  const dateInput = document.getElementById("finderDate");
+  const timeInput = document.getElementById("finderTime");
+  const durationInput = document.getElementById("finderDuration");
+
+  if (!slotStart || !slotEnd || !dateInput || !timeInput || !durationInput) {
+    setRoomScheduleMessage("Unable to apply the selected slot.", "error");
+    return;
+  }
+
+  const durationMinutes = getMinutesBetween(startTime, endTime, getRoomScheduleDurationMinutes());
+  dateInput.value = getLocalDateInputValue(slotStart);
+  setTimeInputValue(timeInput, getLocalTimeInputValue(slotStart));
+  ensureDurationOption(durationInput, durationMinutes);
+  durationInput.value = String(durationMinutes);
+  applyFinderDateTimeConstraints();
+
+  selectedBookingWindow = buildWindowFromLocalInputs(dateInput.value, getTimeInputValue24(timeInput), durationInput.value);
+  if (!selectedBookingWindow) {
+    setRoomScheduleMessage("Unable to update the booking form with that slot.", "error");
+    return;
+  }
+
+  if (roomModalSlot) {
+    roomModalSlot.textContent = getSlotLabel(selectedBookingWindow);
+  }
+
+  selectedRoom = {
+    ...selectedRoom,
+    is_available: 1,
+    booked_until: null
+  };
+
+  setRoomModalBookButtonState(true);
+  setRoomModalMessage("Selected slot applied from schedule.", "success");
+  setRoomScheduleOpen(false);
+
+  void loadEmployeeDirectory("create", { force: true })
+    .then(() => {
+      renderParticipantSuggestions("create");
+    })
+    .catch(error => {
+      console.error("Failed to refresh participant availability after schedule selection:", error);
+    });
+
+  void searchRooms().catch(error => {
+    console.error("Failed to refresh room finder after schedule selection:", error);
+  });
+}
+
 function openRoomModal(room, bookingWindow) {
   if (!roomModal || !room) return;
 
   selectedRoom = room;
   selectedBookingWindow = bookingWindow || buildFinderWindow() || availabilityWindow;
+  selectedCreateOrganizerId = Number(currentEmployeeId || 0);
+  resetRoomScheduleState();
 
   if (roomModalImage) roomModalImage.src = getRoomImage(room);
   if (roomModalTitle) roomModalTitle.textContent = room.name || "Room";
@@ -2948,9 +3550,8 @@ function openRoomModal(room, bookingWindow) {
   if (roomModalDescription) {
     roomModalDescription.textContent = room.description || "No description available for this room.";
   }
-  if (roomModalOrganizer) {
-    roomModalOrganizer.textContent = currentEmployee?.name || "You";
-  }
+  updateRoomModalOrganizerSummary();
+  renderRoomModalOrganizerSelection();
   if (roomModalMeetingTitle) {
     roomModalMeetingTitle.value = `Meeting in ${room.name || "Room"}`;
   }
@@ -2974,11 +3575,7 @@ function openRoomModal(room, bookingWindow) {
     setRoomModalMessage("", "");
   }
 
-  if (roomModalBookBtn) {
-    roomModalBookBtn.hidden = false;
-    roomModalBookBtn.disabled = !available;
-    roomModalBookBtn.textContent = available ? "Book This Room" : "Booked";
-  }
+  setRoomModalBookButtonState(available);
 
   openManagedModal(roomModal);
 }
@@ -2988,12 +3585,14 @@ function closeRoomModal() {
   closeManagedModal(roomModal);
   selectedRoom = null;
   selectedBookingWindow = null;
+  selectedCreateOrganizerId = Number(currentEmployeeId || 0);
   if (roomModalMeetingTitle) roomModalMeetingTitle.value = "";
   if (roomModalMeetingDescription) roomModalMeetingDescription.value = "";
-  if (roomModalOrganizer) {
-    roomModalOrganizer.textContent = "-";
-  }
+  updateRoomModalOrganizerSummary();
+  renderRoomModalOrganizerSelection();
+  resetRoomScheduleState();
   resetParticipantPicker("create");
+  setRoomModalOrganizerHelp("", "");
   setRoomModalMessage("", "");
 }
 
@@ -3036,6 +3635,12 @@ async function bookSelectedRoom() {
     return;
   }
 
+  const organizerEmployeeId = getCreateBookingOrganizerEmployeeId();
+  if (!organizerEmployeeId) {
+    setRoomModalMessage("Select a valid organizer for this booking.", "error");
+    return;
+  }
+
   if (!validateParticipantCapacity("create")) {
     return;
   }
@@ -3046,10 +3651,7 @@ async function bookSelectedRoom() {
   }
 
   payload.participant_employee_ids = getParticipantPickerSelectedIds("create");
-
-  if (currentEmployeeId > 0) {
-    payload.employee_id = currentEmployeeId;
-  }
+  payload.employee_id = organizerEmployeeId;
 
   try {
     await apiFetch("/bookings", {
@@ -3077,6 +3679,22 @@ function initializeRoomModalHandlers() {
       closeRoomModal();
     }
   });
+  if (roomScheduleModal) {
+    roomScheduleModal.addEventListener("click", event => {
+      const scheduleSelectButton = event.target.closest("button[data-room-schedule-select][data-start-time][data-end-time]");
+      if (scheduleSelectButton) {
+        void applyRoomScheduleSelection(
+          String(scheduleSelectButton.dataset.startTime || ""),
+          String(scheduleSelectButton.dataset.endTime || "")
+        );
+        return;
+      }
+
+      if (event.target.matches("[data-close-room-schedule-modal]")) {
+        setRoomScheduleOpen(false);
+      }
+    });
+  }
 
   document.addEventListener("keydown", event => {
     trapActiveModalFocus(event);
@@ -3085,6 +3703,11 @@ function initializeRoomModalHandlers() {
 
     if (dashboardSidebar && dashboardSidebar.classList.contains("is-open")) {
       closeSidebarDrawer();
+      return;
+    }
+
+    if (roomScheduleModal && !roomScheduleModal.hidden) {
+      setRoomScheduleOpen(false);
       return;
     }
 
@@ -3100,6 +3723,16 @@ function initializeRoomModalHandlers() {
 
   if (roomModalBookBtn) {
     roomModalBookBtn.addEventListener("click", bookSelectedRoom);
+  }
+  if (roomModalOrganizerSelect) {
+    roomModalOrganizerSelect.addEventListener("change", () => {
+      setCreateBookingOrganizer(roomModalOrganizerSelect.value);
+    });
+  }
+  if (roomModalScheduleToggle) {
+    roomModalScheduleToggle.addEventListener("click", () => {
+      setRoomScheduleOpen(!roomScheduleState.isOpen);
+    });
   }
 
   initializeParticipantPicker("create");

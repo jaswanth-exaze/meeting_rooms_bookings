@@ -19,7 +19,7 @@ function initializeModernPickers() {
     flatpickr(dateInput, {
       mode: 'single',
       dateFormat: 'Y-m-d',
-      minDate: new Date(),
+      minDate: getTodayAtLocalMidnight(),
       enableTime: false,
       disableWeekends: false,
       clickOpens: true,
@@ -143,8 +143,38 @@ function enhanceSelectDropdowns() {
  * ISO 8601 date parser for Flatpickr
  */
 function parseISO8601(dateString) {
+  if (dateString instanceof Date) {
+    return Number.isNaN(dateString.getTime()) ? null : new Date(dateString.getTime());
+  }
+
+  const rawValue = String(dateString || '').trim();
+  if (!rawValue) return null;
+
+  const dateOnlyMatch = rawValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnlyMatch) {
+    const year = Number.parseInt(dateOnlyMatch[1], 10);
+    const monthIndex = Number.parseInt(dateOnlyMatch[2], 10) - 1;
+    const day = Number.parseInt(dateOnlyMatch[3], 10);
+    const localDate = new Date(year, monthIndex, day);
+
+    if (
+      localDate.getFullYear() !== year ||
+      localDate.getMonth() !== monthIndex ||
+      localDate.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return localDate;
+  }
+
   const date = new Date(dateString);
   return isNaN(date.getTime()) ? null : date;
+}
+
+function getTodayAtLocalMidnight() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
 function enforcePickerOnlyDateInput(dateInput) {

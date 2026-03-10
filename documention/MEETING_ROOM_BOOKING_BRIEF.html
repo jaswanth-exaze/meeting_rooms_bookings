@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meeting Room Booking Brief</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 11mm 10mm 11mm 10mm;
+    }
+
+    :root {
+      --text: #1f2937;
+      --muted: #4b5563;
+      --border: #dbe3ee;
+      --accent: #1f4e79;
+      --surface: #ffffff;
+      --soft: #f4f7fb;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text);
+      background: var(--surface);
+      line-height: 1.42;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    main {
+      max-width: none;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3 {
+      color: var(--accent);
+      page-break-after: avoid;
+      break-after: avoid-page;
+      line-height: 1.2;
+    }
+
+    h1 {
+      font-size: 25px;
+      margin: 0 0 0.55em;
+      border-bottom: 2px solid var(--accent);
+      padding-bottom: 7px;
+    }
+
+    h2 {
+      font-size: 17px;
+      margin: 1.05em 0 0.4em;
+      padding-bottom: 3px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    h3 {
+      font-size: 14px;
+      margin: 0.9em 0 0.32em;
+    }
+
+    p {
+      margin: 0.45em 0;
+      font-size: 12.2px;
+    }
+
+    ul, ol {
+      margin: 0.35em 0 0.6em 1.15em;
+      padding: 0;
+      font-size: 12.2px;
+    }
+
+    li {
+      margin: 0.18em 0;
+    }
+
+    figure.shot {
+      margin: 8px auto 10px;
+      text-align: center;
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+
+    img {
+      display: block;
+      width: 92%;
+      max-width: 680px;
+      max-height: 145mm;
+      object-fit: contain;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 8px 18px rgba(31, 78, 121, 0.07);
+    }
+
+    strong {
+      color: #17324d;
+    }
+
+    p + ul,
+    p + ol {
+      margin-top: 0.2em;
+    }
+
+    hr {
+      border: 0;
+      border-top: 1px solid var(--border);
+      margin: 0.9em 0;
+    }
+
+    blockquote {
+      margin: 0.7em 0;
+      padding: 0.55em 0.8em;
+      background: var(--soft);
+      border-left: 4px solid var(--accent);
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Meeting Room Booking Application</h1>
+<h2>Brief Note on the Idea, Current Work, and Next Steps</h2>
+<p>I wanted to put together a simple note on the meeting room booking application idea, what I have built so far, and how I see it growing further. I am sharing this mainly to explain the thought process behind the idea and to show that the work is already moving beyond just a concept.</p>
+<h2>Why I Thought of This</h2>
+<p>The basic idea came from a very practical problem. In office environments, meeting rooms are often available, but the process of finding the right room at the right time is not always smooth. People usually end up checking manually, asking others, or using disconnected methods to figure out availability.</p>
+<p>That creates common issues:</p>
+<ul>
+<li>time gets wasted finding a room</li>
+<li>booking conflicts happen</li>
+<li>there is no single clear view of room availability</li>
+<li>admins do not have an easy way to understand how rooms are being used</li>
+</ul>
+<p>Because of this, I felt there was value in building a proper internal application where employees can search, book, and manage meeting rooms in one place.</p>
+<h2>What I Wanted This Application To Do</h2>
+<p>My intention was to create a centralized platform for meeting room booking across office locations.</p>
+<p>From the employee side, the application should make it easy to:</p>
+<ul>
+<li>log in and access the system quickly</li>
+<li>check which rooms are available</li>
+<li>search by location, date, time, and capacity</li>
+<li>book a room without manual follow-up</li>
+<li>manage their bookings later if anything changes</li>
+</ul>
+<p>From the admin side, it should make it easier to:</p>
+<ul>
+<li>manage employee access</li>
+<li>monitor booking activity</li>
+<li>view reports and booking patterns</li>
+<li>have better operational control as usage grows</li>
+</ul>
+<p>So overall, the idea is not just to book rooms. It is to make room usage more visible, organized, and manageable.</p>
+<h2>How I Made It More Practical</h2>
+<p>To avoid making this feel like a generic demo project, I also spoke with some people from our South Africa and Pune offices to understand room-related details.</p>
+<p>Based on those discussions:</p>
+<ul>
+<li>I collected room capacity information for those locations</li>
+<li>I used that information while shaping the room data in the application</li>
+<li>in cases where there were no specific room names available, I assigned names so the rooms could still be represented clearly inside the system</li>
+</ul>
+<p>This helped me make the application closer to a real office-use scenario instead of keeping it as just a sample booking tool.</p>
+<h2>What I Have Implemented So Far</h2>
+<p>At this stage, I have already built a working foundation for the application.</p>
+<h3>1. Home Page and Entry Flow</h3>
+<p>The home page is designed to act as the first entry point into the application. It gives users a clear place to log in and also presents the product as a workspace booking platform.</p>
+<figure class="shot"><img alt="Home page with login" src="./homePage with login.PNG" /></figure>
+<p>What this currently supports:</p>
+<ul>
+<li>login entry for users</li>
+<li>branded landing experience</li>
+<li>room-focused presentation from the first screen</li>
+</ul>
+<h3>2. Employee Overview Dashboard</h3>
+<p>The employee overview is meant to give users a quick understanding of their booking activity once they enter the system.</p>
+<figure class="shot"><img alt="Employee overview dashboard" src="./employeeOverview.PNG" /></figure>
+<p>What this helps with:</p>
+<ul>
+<li>users can immediately see booking-related information</li>
+<li>the system feels useful right after login</li>
+<li>employees get a better summary view instead of searching manually</li>
+</ul>
+<h3>3. Room Finder</h3>
+<p>This is one of the main parts of the application. The room finder is where the core idea becomes useful in practice.</p>
+<figure class="shot"><img alt="Employee room finder" src="./EmployeeRoomFinder.PNG" /></figure>
+<p>What is implemented here:</p>
+<ul>
+<li>search by date</li>
+<li>search by time</li>
+<li>search by duration</li>
+<li>search by location</li>
+<li>search by room capacity</li>
+<li>room availability visibility before booking</li>
+</ul>
+<p>This is important because it reduces the back-and-forth people usually go through when they are trying to find a suitable meeting room.</p>
+<h3>4. Booking Modal</h3>
+<p>I also built the booking modal so that users can review room details and proceed with booking from the same flow.</p>
+<figure class="shot"><img alt="Room booking modal" src="./RoomBookingModal.PNG" /></figure>
+<p>This helps because:</p>
+<ul>
+<li>room information is visible before booking</li>
+<li>the booking action feels more guided</li>
+<li>users are less likely to make rushed or incorrect bookings</li>
+</ul>
+<h3>5. Room Schedule View</h3>
+<p>The schedule view gives a more visual idea of availability across upcoming slots.</p>
+<figure class="shot"><img alt="Room schedule view" src="./RoomShedule.PNG" /></figure>
+<p>This adds value because:</p>
+<ul>
+<li>users can understand occupancy more easily</li>
+<li>alternate slots are easier to identify</li>
+<li>it reduces repeated failed booking attempts</li>
+</ul>
+<h3>6. My Bookings</h3>
+<p>I added a bookings section where users can see and manage their existing reservations.</p>
+<figure class="shot"><img alt="Employee my bookings" src="./employeeMyBookings.PNG" /></figure>
+<p>This currently supports the booking lifecycle after creation:</p>
+<ul>
+<li>viewing booked meetings</li>
+<li>tracking booking status</li>
+<li>managing future reservations</li>
+</ul>
+<p>One important part I have already implemented is participant-based booking visibility. If an employee is added to a booking, that booking becomes visible to them in their Overview and My Bookings sections as an invited meeting. This makes the booking useful not only for the organizer, but also for the employees included in it.</p>
+<h3>7. Employee Profile</h3>
+<p>I included a profile section so the application feels like a real internal system instead of a single-purpose page.</p>
+<figure class="shot"><img alt="Employee profile" src="./EmployeeProfile.PNG" /></figure>
+<p>This currently supports:</p>
+<ul>
+<li>user profile visibility</li>
+<li>password management</li>
+<li>a more complete employee-facing experience</li>
+</ul>
+<h3>8. Admin Reports</h3>
+<p>From the admin side, I wanted the system to give some visibility into usage, not just booking actions.</p>
+<figure class="shot"><img alt="Admin reports" src="./AdminReports.PNG" /></figure>
+<p>This helps show:</p>
+<ul>
+<li>booking volume</li>
+<li>upcoming usage</li>
+<li>how the platform can later support reporting and analytics</li>
+</ul>
+<h3>9. Admin Settings and Employee Management</h3>
+<p>I also added admin-side employee management so the system can be controlled properly as an internal application.</p>
+<figure class="shot"><img alt="Admin settings and employee management" src="./AdminSettings.PNG" /></figure>
+<p>This currently supports:</p>
+<ul>
+<li>employee management</li>
+<li>admin-level control</li>
+<li>a more realistic internal operations flow</li>
+</ul>
+<h2>Current Functional Scope</h2>
+<p>From the implementation side, the application already includes:</p>
+<ul>
+<li>employee and admin login flow</li>
+<li>separate dashboards for employee and admin users</li>
+<li>room search and availability checks</li>
+<li>room booking creation</li>
+<li>booking edit flow</li>
+<li>booking cancellation</li>
+<li>vacate flow for ongoing bookings</li>
+<li>participant support</li>
+<li>room schedule support</li>
+<li>profile and password management</li>
+<li>admin employee management</li>
+<li>basic booking reports</li>
+<li>role-based access control</li>
+<li>secure backend with authentication and validation</li>
+</ul>
+<p>The project also already supports multiple locations in the data model, and the current setup includes multiple offices and meeting rooms, so it is not limited to a single-location concept.</p>
+<h2>Why I Believe This Is Useful</h2>
+<p>I see this as a useful internal product because it solves a real day-to-day problem in a practical way.</p>
+<p>The value is mainly in these areas:</p>
+<ul>
+<li>less manual coordination</li>
+<li>better visibility of room availability</li>
+<li>fewer booking conflicts</li>
+<li>easier self-service for employees</li>
+<li>more control and visibility for admins</li>
+<li>good foundation for future reporting and automation</li>
+</ul>
+<h2>What I Would Like To Add Next</h2>
+<p>Once the current foundation is stable, I think the next improvements should focus on making the product smarter and more helpful in real office use.</p>
+<p>Some good next steps would be:</p>
+<ul>
+<li>recurring bookings</li>
+<li>email notifications and reminders</li>
+<li>better conflict messaging</li>
+<li>favorite rooms or quick re-book options</li>
+<li>waitlist for unavailable rooms</li>
+<li>alternate room suggestions</li>
+<li>no-show handling or auto-release</li>
+<li>stronger analytics and reporting</li>
+<li>calendar integration in future</li>
+</ul>
+<p>At the moment, I am also looking into the next improvement of sending email notifications when an employee is included in a booking. I feel this will make the flow more complete, because invited employees should not only see the booking inside the application, but should also receive direct communication through email.</p>
+<h2>Closing Note</h2>
+<p>This application started as an idea to solve a simple but recurring office problem. After working on it, I now see it as something that can become a useful internal platform rather than just a booking screen.</p>
+<p>The main reason I am sharing this is to present both the idea and the work already completed. I wanted the system to be practical, relevant to actual office usage, and capable of growing further with more business value over time.</p>
+  </main>
+</body>
+</html>
