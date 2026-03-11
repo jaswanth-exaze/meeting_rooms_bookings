@@ -31,7 +31,7 @@
             <a href="#" data-section-target="bookingsSection">My Bookings</a>
             <a href="#" data-section-target="roomFinderSection">Room Finder</a>
             <a href="#" data-section-target="reportsSection">Reports</a>
-            <a href="#" data-section-target="settingsSection">Settings</a>
+            <a href="#" data-section-target="employeesSection">Employees</a>
           </nav>
         </div>
 
@@ -45,7 +45,7 @@
         <div class="side-card">
           <h4>Admin Controls</h4>
           <p>Manage employee access and monitor organization-wide room usage.</p>
-          <button class="btn" data-section-jump="settingsSection" type="button">Go to Settings</button>
+          <button class="btn" data-section-jump="employeesSection" type="button">Go to Employees</button>
         </div>
       </aside>
 
@@ -311,78 +311,90 @@
           </section>
         </section>
 
-        <section id="settingsSection" class="dashboard-section is-hidden">
+        <section id="employeesSection" class="dashboard-section is-hidden">
           <div class="section-head">
-            <h2>Settings</h2>
+            <h2>Employees</h2>
+            <div class="section-head-actions">
+              <button class="btn btn-secondary" id="refreshEmployeesBtn" type="button">Refresh</button>
+              <button class="btn btn-primary" id="openAddEmployeeModalBtn" type="button">Add Employee</button>
+            </div>
           </div>
-          <section class="settings-grid">
-            <article class="panel">
-              <div class="panel-head">
-                <h3>Add Employee</h3>
+          <article class="panel">
+            <div class="panel-head">
+              <h3>Employee Directory</h3>
+            </div>
+            <div id="employeeDirectoryFilters" class="filters-inline employee-directory-filters">
+              <div class="form-item">
+                <label for="employeeDirectorySearch">Search</label>
+                <input id="employeeDirectorySearch" type="search" placeholder="Name, email, project, manager..." autocomplete="off" />
               </div>
-              <form id="addEmployeeForm" class="form-grid">
-                <div class="form-item">
-                  <label for="newEmployeeName">Name</label>
-                  <input id="newEmployeeName" type="text" required />
-                </div>
-                <div class="form-item">
-                  <label for="newEmployeeEmail">Email</label>
-                  <input id="newEmployeeEmail" type="email" required />
-                </div>
-                <div class="form-item">
-                  <label for="newEmployeeDept">Department</label>
-                  <input id="newEmployeeDept" type="text" />
-                </div>
-                <div class="form-item">
-                  <label for="newEmployeeGender">Gender</label>
-                  <select id="newEmployeeGender" required>
-                    <option value="male" selected>Male</option>
-                    <option value="female">Female</option>
-                  </select>
-                </div>
-                <div class="form-item">
-                  <label for="newEmployeePassword">Password</label>
-                  <input id="newEmployeePassword" type="password" minlength="8" required />
-                </div>
-                <label class="inline-check" for="newEmployeeAdmin">
-                  <input id="newEmployeeAdmin" type="checkbox" />
-                  Grant admin access
-                </label>
-                <div class="form-actions">
-                  <button class="btn btn-primary" type="submit">Add Employee</button>
-                </div>
-              </form>
-              <p id="addEmployeeMessage" class="helper-message" role="status" aria-live="polite"></p>
-            </article>
-
-            <article class="panel">
-              <div class="panel-head">
-                <h3>Employee Directory</h3>
-                <button class="btn btn-primary" id="refreshEmployeesBtn" type="button">Refresh</button>
+              <div class="form-item">
+                <label for="employeeDirectoryDepartmentFilter">Department</label>
+                <select id="employeeDirectoryDepartmentFilter">
+                  <option value="">All Departments</option>
+                </select>
               </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>ID</th>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Department</th>
-                      <th>Gender</th>
-                      <th>Role</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="employeeAdminTable">
-                    <tr>
-                      <td colspan="7" class="empty-state">Loading employees...</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="form-item">
+                <label for="employeeDirectoryRoleFilter">Job Role</label>
+                <select id="employeeDirectoryRoleFilter">
+                  <option value="">All Roles</option>
+                </select>
               </div>
-              <div id="employeePagination" class="table-pagination"></div>
-            </article>
-          </section>
+              <div class="form-item">
+                <label for="employeeDirectoryLocationFilter">Location</label>
+                <select id="employeeDirectoryLocationFilter">
+                  <option value="">All Locations</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label for="employeeDirectoryAccessFilter">Access</label>
+                <select id="employeeDirectoryAccessFilter">
+                  <option value="">All Access</option>
+                  <option value="admin">Admin</option>
+                  <option value="employee">Employee</option>
+                </select>
+              </div>
+              <div class="form-item">
+                <label for="employeeDirectoryStatusFilter">Status</label>
+                <select id="employeeDirectoryStatusFilter">
+                  <option value="">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary" id="resetEmployeeFiltersBtn" type="button">Reset Filters</button>
+            </div>
+            <p id="employeeFilterSummary" class="helper-message employee-filter-summary" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Department</th>
+                    <th>Job Role</th>
+                    <th>Project</th>
+                    <th>Type</th>
+                    <th>Location</th>
+                    <th>Manager</th>
+                    <th>Gender</th>
+                    <th>Phone</th>
+                    <th>Hire Date</th>
+                    <th>Access</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="employeeAdminTable">
+                  <tr>
+                    <td colspan="15" class="empty-state">Loading employees...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="employeePagination" class="table-pagination"></div>
+          </article>
         </section>
 
         <section id="profileSection" class="dashboard-section is-hidden">
@@ -525,6 +537,99 @@
       </section>
     </main>
     <div id="sidebarDrawerBackdrop" class="sidebar-drawer-backdrop" hidden></div>
+    <div id="employee-admin-modal" class="room-modal" hidden>
+      <div class="room-modal-backdrop" data-close-employee-admin-modal></div>
+      <section class="room-modal-card employee-admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="employee-admin-modal-title">
+        <button class="room-modal-close" type="button" aria-label="Close add employee form" data-close-employee-admin-modal>&times;</button>
+        <div class="panel-head employee-admin-modal-head">
+          <div>
+            <h3 id="employee-admin-modal-title">Add Employee</h3>
+            <p class="room-meta">Create a new employee profile and set access in one place.</p>
+          </div>
+        </div>
+        <form id="addEmployeeForm" class="form-grid employee-admin-form">
+          <div class="form-item">
+            <label for="newEmployeeName">Name</label>
+            <input id="newEmployeeName" type="text" required />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeEmail">Email</label>
+            <input id="newEmployeeEmail" type="email" required />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeDept">Department</label>
+            <input id="newEmployeeDept" type="text" />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeRole">Job Role</label>
+            <input id="newEmployeeRole" type="text" placeholder="e.g. Delivery Lead" />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeProject">Project</label>
+            <input id="newEmployeeProject" type="text" placeholder="e.g. Vitality" />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeType">Employee Type</label>
+            <select id="newEmployeeType">
+              <option value="Full-time" selected>Full-time</option>
+              <option value="Part-time">Part-time</option>
+              <option value="Contractor">Contractor</option>
+              <option value="Intern">Intern</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeGender">Gender</label>
+            <select id="newEmployeeGender" required>
+              <option value="male" selected>Male</option>
+              <option value="female">Female</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeWorkLocation">Work Location</label>
+            <select id="newEmployeeWorkLocation">
+              <option value="">Select Work Location</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeManager">Manager</label>
+            <select id="newEmployeeManager">
+              <option value="">No Manager</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="newEmployeePhone">Phone Number</label>
+            <input id="newEmployeePhone" type="tel" placeholder="e.g. +91 98765 43210" />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeHireDate">Hire Date</label>
+            <input id="newEmployeeHireDate" type="date" />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeePassword">Password</label>
+            <input id="newEmployeePassword" type="password" minlength="8" required />
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeAdminAccess">Grant Admin Access</label>
+            <select id="newEmployeeAdminAccess">
+              <option value="false" selected>No</option>
+              <option value="true">Yes</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="newEmployeeActiveStatus">Employee Status</label>
+            <select id="newEmployeeActiveStatus">
+              <option value="true" selected>Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+          <p id="addEmployeeMessage" class="helper-message" role="status" aria-live="polite"></p>
+          <div class="form-actions employee-admin-form-actions">
+            <button class="btn btn-secondary" type="button" data-close-employee-admin-modal>Cancel</button>
+            <button class="btn btn-primary" type="submit">Add Employee</button>
+          </div>
+        </form>
+      </section>
+    </div>
     <div id="dashboard-room-modal" class="room-modal" hidden>
       <div class="room-modal-backdrop" data-close-modal></div>
       <section class="room-modal-card room-booking-modal-card" role="dialog" aria-modal="true" aria-labelledby="dashboard-room-title">
