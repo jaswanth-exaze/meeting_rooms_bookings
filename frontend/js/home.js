@@ -37,6 +37,7 @@ const featuredLocationFilter = document.getElementById("featured-location-filter
 const featuredRoomsGrid = document.getElementById("featured-rooms-grid");
 const bookingMessage = document.getElementById("booking-message");
 const themeToggleBtn = document.getElementById("themeToggleBtn");
+const signInIllustrationVideo = document.getElementById("signInIllustrationVideo");
 const officeMapPreview = document.getElementById("office-map-preview");
 const locationMapModal = document.getElementById("location-map-modal");
 const locationMapCanvas = document.getElementById("location-map-canvas");
@@ -140,6 +141,29 @@ function initializeThemeToggle() {
   } else if (typeof mediaQuery.addListener === "function") {
     mediaQuery.addListener(syncWithSystemTheme);
   }
+}
+
+function initializeSignInIllustrationVideo() {
+  if (!signInIllustrationVideo) return;
+
+  signInIllustrationVideo.muted = true;
+  signInIllustrationVideo.defaultMuted = true;
+
+  const ensurePlayback = () => {
+    const playPromise = signInIllustrationVideo.play();
+    if (playPromise && typeof playPromise.catch === "function") {
+      playPromise.catch(() => {});
+    }
+  };
+
+  signInIllustrationVideo.addEventListener("loadeddata", ensurePlayback, { once: true });
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      ensurePlayback();
+    }
+  });
+
+  ensurePlayback();
 }
 
 function initializeStickyAuthCardState() {
@@ -1081,6 +1105,7 @@ window.addEventListener("resize", () => {
 });
 
 initializeThemeToggle();
+initializeSignInIllustrationVideo();
 loadHomeData();
 
 function initializeSlideshow() {

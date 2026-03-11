@@ -124,7 +124,21 @@
       </section>
 
       <aside class="card-surface home-auth-card fade-rise delay-1" aria-label="Quick sign in">
-        <img class="mini-illustration" src="assets/cell_pod_1.png" alt="Professional working at desk" />
+        <video
+          id="signInIllustrationVideo"
+          class="mini-illustration"
+          autoplay
+          muted
+          loop
+          playsinline
+          preload="auto"
+          poster="assets/exaze-logo.png"
+          aria-hidden="true"
+          disablepictureinpicture
+          disableremoteplayback
+        >
+          <source src="assets/mini-illustration-sign-in.mp4" type="video/mp4" />
+        </video>
         <form id="login-form" action="home.html">
           <label class="home-auth-label" for="homeLoginEmail">Work Email</label>
           <input

@@ -869,6 +869,7 @@ justify-items: center;
 }
 
 .mini-illustration {
+  display: block;
   max-height: 245px;
   width: 100%;
   object-fit: contain;
