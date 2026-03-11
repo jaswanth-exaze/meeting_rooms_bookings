@@ -611,9 +611,10 @@ function setHeaderContent() {
   const headerAvatar = document.querySelector(".profile-pill .avatar");
 
   const name = currentEmployee?.name || (currentRole === "admin" ? "Admin" : "Employee");
+
   if (headerName) headerName.textContent = name;
   if (welcomeHeading) {
-    welcomeHeading.textContent = currentRole === "admin" ? `Welcome, ${name}` : `Welcome Back, ${name}`;
+    welcomeHeading.textContent = currentRole === "admin" ? `Welcome, ${name}` : `Welcome Back, ${name.charAt(0).toUpperCase()+name.slice(1)}`;
   }
   if (headerAvatar) {
     headerAvatar.src = getProfileImagePath(currentEmployee?.gender);

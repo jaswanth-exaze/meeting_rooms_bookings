@@ -13,6 +13,12 @@
     <link rel="icon" href="https://exazeit.com/wp-content/uploads/2020/09/exaze-favi-150x150.png" sizes="32x32">
     <!-- Flatpickr Date/Time Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
     <link rel="stylesheet" href="css/styles.css" />
     <script src="js/config.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -70,7 +76,7 @@
                 alt="Meeting room with advanced technology"
                 data-slide="3"
               />
-             <img 
+              <img 
                 class="hero-illustration hero-slide"
                 src="assets/home_page_image_4.png"
                 alt="Team working together in a bright office space"
@@ -79,6 +85,8 @@
             </div>
           </div>
         </section>
+
+       
 
         <section class="featured-section fade-rise delay-2">
           <div class="section-head">
@@ -90,7 +98,7 @@
               </select>
             </div>
           </div>
-          <div class="rooms-grid">
+          <div id="featured-rooms-grid" class="rooms-grid">
             <article class="room-card room-loading">
               <div class="room-body">
                 <h3 class="room-title">Loading featured rooms...</h3>
@@ -99,6 +107,19 @@
             </article>
           </div>
           <p id="booking-message" class="auth-foot booking-message" role="status" aria-live="polite"></p>
+        </section>
+         <section class="office-map-section fade-rise delay-2" aria-label="Office location map preview">
+          <div class="office-map-preview-card">
+            <div
+              id="office-map-preview"
+              class="office-map-preview"
+              role="button"
+              tabindex="0"
+              aria-haspopup="dialog"
+              aria-controls="location-map-modal"
+              aria-label="Open full office map"
+            ></div>
+          </div>
         </section>
       </section>
 
@@ -135,6 +156,49 @@
       </aside>
     </main>
 
+    <div id="location-map-modal" class="room-modal location-map-modal" hidden>
+      <div class="room-modal-backdrop" data-close-location-map></div>
+      <section class="room-modal-card location-map-modal-card" role="dialog" aria-modal="true" aria-label="Office location map">
+        <button class="room-modal-close" type="button" aria-label="Close location map" data-close-location-map>&times;</button>
+        <div class="location-map-modal-layout">
+          <div class="location-map-stage-panel">
+            <div class="location-map-toolbar">
+              <p id="location-map-selected-meta" class="location-map-selected-meta">6 office locations available</p>
+              <button id="location-map-reset-btn" class="btn btn-secondary location-map-reset-btn" type="button">
+                Show All Locations
+              </button>
+            </div>
+            <div id="location-map-canvas" class="location-map-canvas" aria-label="Leaflet office map"></div>
+            <p id="location-map-status" class="location-map-status" hidden></p>
+
+            <div id="location-map-focus-card" class="location-map-focus-card" hidden>
+              <p class="location-map-focus-kicker">Selected Office</p>
+              <h4 id="location-map-focus-title">Office</h4>
+              <p id="location-map-focus-address" class="room-meta"></p>
+              <p id="location-map-focus-meta" class="location-map-focus-meta"></p>
+            </div>
+          </div>
+
+          <div class="location-room-panel">
+            <div class="location-room-panel-head">
+              <h4 id="location-room-panel-title">Choose a location marker</h4>
+              <p id="location-room-panel-copy" class="room-meta">
+                The room cards for the selected office will appear here.
+              </p>
+            </div>
+            <div id="location-room-grid" class="location-room-grid">
+              <article class="room-card room-loading">
+                <div class="room-body">
+                  <h3 class="room-title">Select a location</h3>
+                  <p class="room-meta">Click any marker on the map to load room cards for that office.</p>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
     <div id="room-detail-modal" class="room-modal" hidden>
       <div class="room-modal-backdrop" data-close-modal></div>
       <section class="room-modal-card room-booking-modal-card home-room-modal-card" role="dialog" aria-modal="true" aria-labelledby="room-detail-title">
@@ -145,13 +209,18 @@
           </div>
           <div class="room-booking-modal-summary home-room-modal-summary">
             <h3 id="room-detail-title">Room</h3>
-            <p id="room-detail-meta" class="room-meta"></p>
+            <div id="room-detail-meta" class="home-room-modal-details"></div>
             <p id="room-detail-description" class="room-modal-description"></p>
           </div>
         </div>
       </section>
     </div>
 
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
     <script src="js/home.js"></script>
   </body>
 </html>
