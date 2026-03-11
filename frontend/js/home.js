@@ -24,6 +24,7 @@ const ROOM_IMAGES_BY_NAME = {
 };
 
 const FEATURED_ROOM_LIMIT = 9;
+const HERO_SLIDE_DURATION_MS = 5000;
 const LOCATION_MAP_PRESETS = {
   "south africa (head office)": { lat: -26.0596, lng: 28.0594, zoom: 14, shortLabel: "ZA" },
   "india headquarters": { lat: 21.1938, lng: 81.3509, zoom: 13, shortLabel: "IN" },
@@ -1122,8 +1123,29 @@ function initializeSlideshow() {
 
   isSlideshowInitialized = true;
   let currentSlideIndex = 0;
-  const autoPlayInterval = 5000;
+  const autoPlayInterval = HERO_SLIDE_DURATION_MS;
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  heroSlides.forEach(slide => {
+    if (!(slide instanceof HTMLVideoElement)) {
+      return;
+    }
+
+    const syncDuration = () => {
+      if (!Number.isFinite(slide.duration) || slide.duration <= 0) {
+        return;
+      }
+
+      const playbackRate = slide.duration / (HERO_SLIDE_DURATION_MS / 1000);
+      slide.defaultPlaybackRate = playbackRate;
+      slide.playbackRate = playbackRate;
+    };
+
+    if (slide.readyState >= 1) {
+      syncDuration();
+    }
+
+    slide.addEventListener("loadedmetadata", syncDuration, { once: true });
+  });
   const syncSlidePlayback = activeIndex => {
     heroSlides.forEach((slide, index) => {
       if (!(slide instanceof HTMLVideoElement)) {
