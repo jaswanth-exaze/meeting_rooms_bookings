@@ -26,6 +26,15 @@ function normalizeOptionalText(value) {
   return normalized || null;
 }
 
+function normalizeOptionalNumber(value) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!raw) return null;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return parsed;
+}
+
 function normalizeDate(value) {
   if (value === null || value === undefined) return null;
 
@@ -61,6 +70,28 @@ function buildEmployeePayload(row) {
     is_admin: toBoolean(row.is_admin),
     is_active: row.is_active === undefined ? true : toBoolean(row.is_active),
     password_reset_required: row.password_reset_required === undefined ? true : toBoolean(row.password_reset_required)
+  };
+}
+
+function buildRoomPayload(row) {
+  return {
+    room_id: Number(row.room_id || 0),
+    location_id: Number(row.location_id || 0),
+    location_name: row.location_name || null,
+    location_timezone: row.location_timezone || null,
+    name: row.name || null,
+    capacity: Number(row.capacity || 0),
+    size_sqft: row.size_sqft === null || row.size_sqft === undefined ? null : Number(row.size_sqft),
+    has_projector: toBoolean(row.has_projector),
+    has_screen: toBoolean(row.has_screen),
+    has_whiteboard: toBoolean(row.has_whiteboard),
+    has_webcam: toBoolean(row.has_webcam),
+    has_video_conferencing: toBoolean(row.has_video_conferencing),
+    has_tv_set: toBoolean(row.has_tv_set),
+    has_wifi: toBoolean(row.has_wifi),
+    has_ac: toBoolean(row.has_ac),
+    has_power_backup: toBoolean(row.has_power_backup),
+    description: row.description || null
   };
 }
 
@@ -285,6 +316,151 @@ const createEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+const listRooms = asyncHandler(async (_req, res) => {
+  const rows = await query(
+    `
+      SELECT
+        mr.room_id,
+        mr.location_id,
+        l.name AS location_name,
+        l.timezone AS location_timezone,
+        mr.name,
+        mr.capacity,
+        mr.size_sqft,
+        mr.has_projector,
+        mr.has_screen,
+        mr.has_whiteboard,
+        mr.has_webcam,
+        mr.has_video_conferencing,
+        mr.has_tv_set,
+        mr.has_wifi,
+        mr.has_ac,
+        mr.has_power_backup,
+        mr.description
+      FROM meeting_room mr
+      INNER JOIN location l ON l.location_id = mr.location_id
+      ORDER BY l.name ASC, mr.name ASC
+    `
+  );
+
+  res.json(rows.map(buildRoomPayload));
+});
+
+const createRoom = asyncHandler(async (req, res) => {
+  const rawName = req.body?.name;
+  const rawLocationId = req.body?.location_id;
+  const rawCapacity = req.body?.capacity;
+  const rawSizeSqft = req.body?.size_sqft;
+  const rawDescription = req.body?.description;
+
+  const name = String(rawName || "").trim();
+  const locationId = parsePositiveInt(rawLocationId);
+  const capacity = parsePositiveInt(rawCapacity);
+  const sizeSqft = normalizeOptionalNumber(rawSizeSqft);
+  const description = normalizeOptionalText(rawDescription);
+
+  const hasProjector = toBoolean(req.body?.has_projector);
+  const hasScreen = toBoolean(req.body?.has_screen);
+  const hasWhiteboard = toBoolean(req.body?.has_whiteboard);
+  const hasWebcam = toBoolean(req.body?.has_webcam);
+  const hasVideoConferencing = toBoolean(req.body?.has_video_conferencing);
+  const hasTvSet = toBoolean(req.body?.has_tv_set);
+  const hasWifi = toBoolean(req.body?.has_wifi);
+  const hasAc = toBoolean(req.body?.has_ac);
+  const hasPowerBackup = toBoolean(req.body?.has_power_backup);
+
+  if (!name || !locationId || !capacity) {
+    return res.status(400).json({ message: "name, location_id, and capacity are required." });
+  }
+
+  if (rawSizeSqft !== undefined && rawSizeSqft !== null && String(rawSizeSqft).trim() && !sizeSqft) {
+    return res.status(400).json({ message: "size_sqft must be a positive number." });
+  }
+
+  const locationRows = await query(
+    `
+      SELECT location_id, name, timezone
+      FROM location
+      WHERE location_id = ?
+      LIMIT 1
+    `,
+    [locationId]
+  );
+
+  if (locationRows.length === 0) {
+    return res.status(400).json({ message: "Selected location does not exist." });
+  }
+
+  let insertResult;
+  try {
+    insertResult = await query(
+      `
+        INSERT INTO meeting_room (
+          location_id,
+          name,
+          capacity,
+          size_sqft,
+          has_projector,
+          has_screen,
+          has_whiteboard,
+          has_webcam,
+          has_video_conferencing,
+          has_tv_set,
+          has_wifi,
+          has_ac,
+          has_power_backup,
+          description
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+      [
+        locationId,
+        name,
+        capacity,
+        sizeSqft,
+        hasProjector ? 1 : 0,
+        hasScreen ? 1 : 0,
+        hasWhiteboard ? 1 : 0,
+        hasWebcam ? 1 : 0,
+        hasVideoConferencing ? 1 : 0,
+        hasTvSet ? 1 : 0,
+        hasWifi ? 1 : 0,
+        hasAc ? 1 : 0,
+        hasPowerBackup ? 1 : 0,
+        description
+      ]
+    );
+  } catch (error) {
+    if (error?.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ message: "A room with this name already exists at the selected location." });
+    }
+    throw error;
+  }
+
+  res.status(201).json({
+    message: "Meeting room added successfully.",
+    room: buildRoomPayload({
+      room_id: insertResult.insertId,
+      location_id: locationId,
+      location_name: locationRows[0].name || null,
+      location_timezone: locationRows[0].timezone || null,
+      name,
+      capacity,
+      size_sqft: sizeSqft,
+      has_projector: hasProjector,
+      has_screen: hasScreen,
+      has_whiteboard: hasWhiteboard,
+      has_webcam: hasWebcam,
+      has_video_conferencing: hasVideoConferencing,
+      has_tv_set: hasTvSet,
+      has_wifi: hasWifi,
+      has_ac: hasAc,
+      has_power_backup: hasPowerBackup,
+      description
+    })
+  });
+});
+
 const deleteEmployee = asyncHandler(async (req, res) => {
   const employeeId = parsePositiveInt(req.params.employeeId);
   const currentUserId = parsePositiveInt(req.user?.employee_id);
@@ -309,5 +485,7 @@ const deleteEmployee = asyncHandler(async (req, res) => {
 module.exports = {
   listEmployees,
   createEmployee,
-  deleteEmployee
+  deleteEmployee,
+  listRooms,
+  createRoom
 };

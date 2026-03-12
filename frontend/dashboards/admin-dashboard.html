@@ -31,6 +31,7 @@
             <a href="#" data-section-target="bookingsSection">My Bookings</a>
             <a href="#" data-section-target="roomFinderSection">Room Finder</a>
             <a href="#" data-section-target="reportsSection">Reports</a>
+            <a href="#" data-section-target="roomsSection">Meeting Rooms</a>
             <a href="#" data-section-target="employeesSection">Employees</a>
           </nav>
         </div>
@@ -44,7 +45,8 @@
 
         <div class="side-card">
           <h4>Admin Controls</h4>
-          <p>Manage employee access and monitor organization-wide room usage.</p>
+          <p>Manage employee access and keep every meeting space ready.</p>
+          <button class="btn" data-section-jump="roomsSection" type="button">Go to Rooms</button>
           <button class="btn" data-section-jump="employeesSection" type="button">Go to Employees</button>
         </div>
       </aside>
@@ -309,6 +311,56 @@
               <div id="reportUpcomingPagination" class="table-pagination"></div>
             </article>
           </section>
+        </section>
+
+        <section id="roomsSection" class="dashboard-section is-hidden">
+          <div class="section-head">
+            <h2>Meeting Rooms</h2>
+            <div class="section-head-actions">
+              <button class="btn btn-secondary" id="refreshRoomsBtn" type="button">Refresh</button>
+              <button class="btn btn-primary" id="openAddRoomModalBtn" type="button">Add Room</button>
+            </div>
+          </div>
+          <article class="panel">
+            <div class="panel-head">
+              <h3>All Meeting Rooms</h3>
+            </div>
+            <div class="filters-inline">
+              <div class="form-item">
+                <label for="roomDirectorySearch">Search</label>
+                <input id="roomDirectorySearch" type="search" placeholder="Room name or location..." autocomplete="off" />
+              </div>
+              <div class="form-item">
+                <label for="roomDirectoryLocationFilter">Location</label>
+                <select id="roomDirectoryLocationFilter">
+                  <option value="">All Locations</option>
+                </select>
+              </div>
+              <button class="btn btn-secondary" id="resetRoomFiltersBtn" type="button">Reset Filters</button>
+            </div>
+            <p id="roomFilterSummary" class="helper-message employee-filter-summary" role="status" aria-live="polite"></p>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Room</th>
+                    <th>Location</th>
+                    <th>Capacity</th>
+                    <th>Size</th>
+                    <th>Amenities</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="roomAdminTable">
+                  <tr>
+                    <td colspan="7" class="empty-state">Loading rooms...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div id="roomPagination" class="table-pagination"></div>
+          </article>
         </section>
 
         <section id="employeesSection" class="dashboard-section is-hidden">
@@ -626,6 +678,61 @@
           <div class="form-actions employee-admin-form-actions">
             <button class="btn btn-secondary" type="button" data-close-employee-admin-modal>Cancel</button>
             <button class="btn btn-primary" type="submit">Add Employee</button>
+          </div>
+        </form>
+      </section>
+    </div>
+    <div id="room-admin-modal" class="room-modal" hidden>
+      <div class="room-modal-backdrop" data-close-room-admin-modal></div>
+      <section class="room-modal-card employee-admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="room-admin-modal-title">
+        <button class="room-modal-close" type="button" aria-label="Close add room form" data-close-room-admin-modal>&times;</button>
+        <div class="panel-head employee-admin-modal-head">
+          <div>
+            <h3 id="room-admin-modal-title">Add Meeting Room</h3>
+            <p class="room-meta">Add a new room and set its amenities.</p>
+          </div>
+        </div>
+        <form id="addRoomForm" class="form-grid employee-admin-form">
+          <div class="form-item">
+            <label for="newRoomName">Room Name</label>
+            <input id="newRoomName" type="text" required />
+          </div>
+          <div class="form-item">
+            <label for="newRoomLocation">Location</label>
+            <select id="newRoomLocation" required>
+              <option value="">Select Location</option>
+            </select>
+          </div>
+          <div class="form-item">
+            <label for="newRoomCapacity">Capacity</label>
+            <input id="newRoomCapacity" type="number" min="1" required />
+          </div>
+          <div class="form-item">
+            <label for="newRoomSize">Size (sq ft)</label>
+            <input id="newRoomSize" type="number" min="0" step="0.01" placeholder="Optional" />
+          </div>
+          <div class="form-item form-item-full">
+            <label for="newRoomDescription">Description</label>
+            <textarea id="newRoomDescription" rows="3" placeholder="Optional"></textarea>
+          </div>
+          <div class="form-item form-item-full">
+            <label>Room Amenities</label>
+            <div class="amenities-checklist">
+              <label class="inline-check"><input id="newRoomProjector" type="checkbox" />Projector</label>
+              <label class="inline-check"><input id="newRoomScreen" type="checkbox" />Display Screen</label>
+              <label class="inline-check"><input id="newRoomWhiteboard" type="checkbox" />Whiteboard</label>
+              <label class="inline-check"><input id="newRoomWebcam" type="checkbox" />Web Cam</label>
+              <label class="inline-check"><input id="newRoomVideoConferencing" type="checkbox" />Video Conference</label>
+              <label class="inline-check"><input id="newRoomTvSet" type="checkbox" />TV Set</label>
+              <label class="inline-check"><input id="newRoomWifi" type="checkbox" checked />WiFi</label>
+              <label class="inline-check"><input id="newRoomAc" type="checkbox" checked />AC</label>
+              <label class="inline-check"><input id="newRoomPowerBackup" type="checkbox" />Power Backup</label>
+            </div>
+          </div>
+          <p id="addRoomMessage" class="helper-message" role="status" aria-live="polite"></p>
+          <div class="form-actions employee-admin-form-actions">
+            <button class="btn btn-secondary" type="button" data-close-room-admin-modal>Cancel</button>
+            <button class="btn btn-primary" type="submit">Add Room</button>
           </div>
         </form>
       </section>

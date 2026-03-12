@@ -3349,6 +3349,10 @@ tr.clickable-room td {
   column-gap: 0.9rem;
 }
 
+.employee-admin-form .form-item-full {
+  grid-column: 1 / -1;
+}
+
 .employee-admin-form .helper-message,
 .employee-admin-form .form-actions {
   grid-column: 1 / -1;
@@ -3370,6 +3374,13 @@ tr.clickable-room td {
   gap: 0.5rem;
   font-weight: 600;
   color: var(--navy);
+}
+
+.amenities-checklist {
+  margin-top: 0.35rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.4rem 0.8rem;
 }
 
 .form-actions {
@@ -4367,6 +4378,7 @@ body.page-dashboard.theme-dark .availability-list small,
 body.page-dashboard.theme-dark .action-muted,
 body.page-dashboard.theme-dark .profile-label,
 body.page-dashboard.theme-dark .pagination-meta,
+body.page-dashboard.theme-dark .inline-check,
 body.page-dashboard.theme-dark th {
   color: #9eb3cf;
 }

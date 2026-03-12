@@ -147,10 +147,12 @@ const paginationState = {
   bookings: { rows: [], page: 1, pageSize: 8 },
   roomFinder: { rows: [], page: 1, pageSize: 8 },
   employees: { rows: [], page: 1, pageSize: 8 },
+  rooms: { rows: [], page: 1, pageSize: 8 },
   reportLocations: { rows: [], page: 1, pageSize: 6 },
   reportUpcoming: { rows: [], page: 1, pageSize: 6 }
 };
 let adminEmployeeDirectory = [];
+let adminRoomDirectory = [];
 let adminLocationDirectory = [];
 const PARTICIPANT_FILTER_FIELDS = [
   { key: "department", label: "All Departments" },
@@ -1572,6 +1574,44 @@ function populateAdminLocationOptions() {
   }
 }
 
+function populateAdminRoomLocationOptions() {
+  const locationSelect = document.getElementById("newRoomLocation");
+  if (!locationSelect) return;
+
+  const selectedValue = String(locationSelect.value || "");
+  locationSelect.innerHTML = '<option value="">Select Location</option>';
+
+  adminLocationDirectory.forEach(location => {
+    const option = document.createElement("option");
+    option.value = String(location.location_id);
+    option.textContent = location.name;
+    locationSelect.appendChild(option);
+  });
+
+  if (selectedValue && adminLocationDirectory.some(location => String(location.location_id) === selectedValue)) {
+    locationSelect.value = selectedValue;
+  }
+}
+
+function populateAdminRoomFilters() {
+  const locationFilter = document.getElementById("roomDirectoryLocationFilter");
+  if (!locationFilter) return;
+
+  const selectedValue = String(locationFilter.value || "");
+  locationFilter.innerHTML = '<option value="">All Locations</option>';
+
+  adminLocationDirectory.forEach(location => {
+    const option = document.createElement("option");
+    option.value = String(location.location_id);
+    option.textContent = location.name;
+    locationFilter.appendChild(option);
+  });
+
+  if (selectedValue && adminLocationDirectory.some(location => String(location.location_id) === selectedValue)) {
+    locationFilter.value = selectedValue;
+  }
+}
+
 function populateAdminManagerOptions() {
   const managerSelect = document.getElementById("newEmployeeManager");
   if (!managerSelect) return;
@@ -1602,6 +1642,8 @@ async function loadAdminLocations() {
     const locations = await apiFetch("/locations", { skipAuth: true });
     adminLocationDirectory = Array.isArray(locations) ? locations : [];
     populateAdminLocationOptions();
+    populateAdminRoomLocationOptions();
+    populateAdminRoomFilters();
   } catch (error) {
     console.error("Failed to load admin location options:", error);
   }
@@ -1747,6 +1789,116 @@ function applyAdminEmployeeFilters() {
   setPaginationRows("employees", filteredRows);
   setAdminEmployeeFilterSummary(filteredRows.length, adminEmployeeDirectory.length);
   renderEmployeePage();
+}
+
+function getAdminRoomFilterElements() {
+  return {
+    search: document.getElementById("roomDirectorySearch"),
+    location: document.getElementById("roomDirectoryLocationFilter"),
+    summary: document.getElementById("roomFilterSummary")
+  };
+}
+
+function getAdminRoomFilterValues() {
+  const filters = getAdminRoomFilterElements();
+  return {
+    search: String(filters.search?.value || "").trim().toLowerCase(),
+    location: String(filters.location?.value || "").trim()
+  };
+}
+
+function hasActiveAdminRoomFilters() {
+  return Object.values(getAdminRoomFilterValues()).some(Boolean);
+}
+
+function setAdminRoomFilterSummary(filteredCount, totalCount) {
+  const summaryElement = getAdminRoomFilterElements().summary;
+  if (!summaryElement) return;
+
+  if (!totalCount) {
+    summaryElement.textContent = "No rooms available.";
+    return;
+  }
+
+  if (!hasActiveAdminRoomFilters()) {
+    summaryElement.textContent = `Showing all ${totalCount} rooms.`;
+    return;
+  }
+
+  summaryElement.textContent = `Showing ${filteredCount} of ${totalCount} rooms.`;
+}
+
+function applyAdminRoomFilters() {
+  const filters = getAdminRoomFilterValues();
+  const filteredRows = adminRoomDirectory.filter(row => {
+    if (filters.location && String(row.location_id || "") !== filters.location) {
+      return false;
+    }
+
+    if (!filters.search) {
+      return true;
+    }
+
+    const haystack = [row.name, row.location_name, row.description]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return haystack.includes(filters.search);
+  });
+
+  setPaginationRows("rooms", filteredRows);
+  setAdminRoomFilterSummary(filteredRows.length, adminRoomDirectory.length);
+  renderRoomPage();
+}
+
+function getRoomSizeLabel(sizeSqft) {
+  const parsed = Number(sizeSqft);
+  if (!Number.isFinite(parsed) || parsed <= 0) return "-";
+  return `${Math.round(parsed)} sq ft`;
+}
+
+function renderRoomPage() {
+  const table = document.getElementById("roomAdminTable");
+  if (!table) return;
+
+  const rows = getPaginationSlice("rooms");
+  if (!Array.isArray(rows) || rows.length === 0) {
+    const emptyStateMessage =
+      adminRoomDirectory.length > 0 && hasActiveAdminRoomFilters()
+        ? "No rooms match the selected filters."
+        : "No rooms found.";
+    table.innerHTML = `<tr><td colspan="7" class="empty-state">${emptyStateMessage}</td></tr>`;
+    renderPaginationControls("roomPagination", "rooms");
+    return;
+  }
+
+  table.innerHTML = rows
+    .map(row => {
+      return `
+        <tr>
+          <td>${escapeHtml(row.room_id)}</td>
+          <td>${escapeHtml(row.name || "-")}</td>
+          <td>${escapeHtml(row.location_name || "-")}</td>
+          <td>${escapeHtml(row.capacity || "-")}</td>
+          <td>${escapeHtml(getRoomSizeLabel(row.size_sqft))}</td>
+          <td>${escapeHtml(buildRoomFeatures(row, { limit: 4 }))}</td>
+          <td>${escapeHtml(row.description || "-")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  renderPaginationControls("roomPagination", "rooms");
+}
+
+function renderRoomTable(rows) {
+  const table = document.getElementById("roomAdminTable");
+  if (!table) return;
+
+  adminRoomDirectory = Array.isArray(rows) ? rows : [];
+  populateAdminRoomFilters();
+  applyAdminRoomFilters();
 }
 
 async function searchRooms(event) {
@@ -2864,6 +3016,32 @@ function renderEmployeePage() {
   renderPaginationControls("employeePagination", "employees");
 }
 
+async function loadRooms() {
+  if (currentRole !== "admin") return;
+
+  const table = document.getElementById("roomAdminTable");
+  const pagination = document.getElementById("roomPagination");
+  const summaryElement = getAdminRoomFilterElements().summary;
+  if (!table) return;
+
+  table.innerHTML = `<tr><td colspan="7" class="empty-state">Loading rooms...</td></tr>`;
+  if (pagination) pagination.innerHTML = "";
+  if (summaryElement) summaryElement.textContent = "Loading rooms...";
+
+  try {
+    const rows = await apiFetch("/admin/rooms");
+    renderRoomTable(rows);
+  } catch (error) {
+    console.error("Failed to load rooms:", error);
+    adminRoomDirectory = [];
+    populateAdminRoomFilters();
+    if (summaryElement) summaryElement.textContent = "Unable to load rooms.";
+    table.innerHTML = `<tr><td colspan="7" class="empty-state">Failed to load rooms.</td></tr>`;
+    setPaginationRows("rooms", []);
+    renderPaginationControls("roomPagination", "rooms");
+  }
+}
+
 async function loadEmployees() {
   if (currentRole !== "admin") return;
 
@@ -2895,6 +3073,10 @@ const employeeAdminModal = document.getElementById("employee-admin-modal");
 const addEmployeeForm = document.getElementById("addEmployeeForm");
 const addEmployeeMessage = document.getElementById("addEmployeeMessage");
 const openAddEmployeeModalBtn = document.getElementById("openAddEmployeeModalBtn");
+const roomAdminModal = document.getElementById("room-admin-modal");
+const addRoomForm = document.getElementById("addRoomForm");
+const addRoomMessage = document.getElementById("addRoomMessage");
+const openAddRoomModalBtn = document.getElementById("openAddRoomModalBtn");
 
 function openEmployeeAdminModal(triggerElement = null) {
   if (!employeeAdminModal || !addEmployeeForm) return;
@@ -2911,6 +3093,20 @@ function closeEmployeeAdminModal() {
   closeManagedModal(employeeAdminModal);
 }
 
+function openRoomAdminModal(triggerElement = null) {
+  if (!roomAdminModal || !addRoomForm) return;
+
+  addRoomForm.reset();
+  populateAdminRoomLocationOptions();
+  setHelperMessage(addRoomMessage, "", "");
+  openManagedModal(roomAdminModal, triggerElement);
+}
+
+function closeRoomAdminModal() {
+  if (!roomAdminModal) return;
+  closeManagedModal(roomAdminModal);
+}
+
 function initializeAdminSettings() {
   if (currentRole !== "admin") return;
 
@@ -2918,6 +3114,9 @@ function initializeAdminSettings() {
   const resetFiltersBtn = document.getElementById("resetEmployeeFiltersBtn");
   const table = document.getElementById("employeeAdminTable");
   const filterElements = getAdminEmployeeFilterElements();
+  const refreshRoomsBtn = document.getElementById("refreshRoomsBtn");
+  const resetRoomFiltersBtn = document.getElementById("resetRoomFiltersBtn");
+  const roomFilterElements = getAdminRoomFilterElements();
 
   void loadAdminLocations();
 
@@ -2930,6 +3129,18 @@ function initializeAdminSettings() {
   if (openAddEmployeeModalBtn) {
     openAddEmployeeModalBtn.addEventListener("click", () => {
       openEmployeeAdminModal(openAddEmployeeModalBtn);
+    });
+  }
+
+  if (refreshRoomsBtn) {
+    refreshRoomsBtn.addEventListener("click", () => {
+      loadRooms();
+    });
+  }
+
+  if (openAddRoomModalBtn) {
+    openAddRoomModalBtn.addEventListener("click", () => {
+      openRoomAdminModal(openAddRoomModalBtn);
     });
   }
 
@@ -2947,6 +3158,18 @@ function initializeAdminSettings() {
       });
     });
 
+  if (roomFilterElements.search) {
+    roomFilterElements.search.addEventListener("input", () => {
+      applyAdminRoomFilters();
+    });
+  }
+
+  if (roomFilterElements.location) {
+    roomFilterElements.location.addEventListener("change", () => {
+      applyAdminRoomFilters();
+    });
+  }
+
   if (resetFiltersBtn) {
     resetFiltersBtn.addEventListener("click", () => {
       if (filterElements.search) filterElements.search.value = "";
@@ -2959,10 +3182,26 @@ function initializeAdminSettings() {
     });
   }
 
+  if (resetRoomFiltersBtn) {
+    resetRoomFiltersBtn.addEventListener("click", () => {
+      if (roomFilterElements.search) roomFilterElements.search.value = "";
+      if (roomFilterElements.location) roomFilterElements.location.value = "";
+      applyAdminRoomFilters();
+    });
+  }
+
   if (employeeAdminModal) {
     employeeAdminModal.addEventListener("click", event => {
       if (event.target.matches("[data-close-employee-admin-modal]")) {
         closeEmployeeAdminModal();
+      }
+    });
+  }
+
+  if (roomAdminModal) {
+    roomAdminModal.addEventListener("click", event => {
+      if (event.target.matches("[data-close-room-admin-modal]")) {
+        closeRoomAdminModal();
       }
     });
   }
@@ -3005,6 +3244,52 @@ function initializeAdminSettings() {
       } catch (error) {
         console.error("Add employee failed:", error);
         setHelperMessage(addEmployeeMessage, error.message, "error");
+      }
+    });
+  }
+
+  if (addRoomForm) {
+    addRoomForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      setHelperMessage(addRoomMessage, "", "");
+
+      const payload = {
+        name: document.getElementById("newRoomName")?.value?.trim(),
+        location_id: Number(document.getElementById("newRoomLocation")?.value || 0) || null,
+        capacity: Number(document.getElementById("newRoomCapacity")?.value || 0) || null,
+        size_sqft: document.getElementById("newRoomSize")?.value?.trim() || null,
+        description: document.getElementById("newRoomDescription")?.value?.trim() || null,
+        has_projector: document.getElementById("newRoomProjector")?.checked === true,
+        has_screen: document.getElementById("newRoomScreen")?.checked === true,
+        has_whiteboard: document.getElementById("newRoomWhiteboard")?.checked === true,
+        has_webcam: document.getElementById("newRoomWebcam")?.checked === true,
+        has_video_conferencing: document.getElementById("newRoomVideoConferencing")?.checked === true,
+        has_tv_set: document.getElementById("newRoomTvSet")?.checked === true,
+        has_wifi: document.getElementById("newRoomWifi")?.checked === true,
+        has_ac: document.getElementById("newRoomAc")?.checked === true,
+        has_power_backup: document.getElementById("newRoomPowerBackup")?.checked === true
+      };
+
+      if (!payload.name || !payload.location_id || !payload.capacity) {
+        setHelperMessage(addRoomMessage, "Please provide room name, location, and capacity.", "error");
+        return;
+      }
+
+      try {
+        await apiFetch("/admin/rooms", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        });
+        addRoomForm.reset();
+        populateAdminRoomLocationOptions();
+        setHelperMessage(addRoomMessage, "Meeting room added successfully.", "success");
+        await loadRooms();
+        window.setTimeout(() => {
+          closeRoomAdminModal();
+        }, 300);
+      } catch (error) {
+        console.error("Add room failed:", error);
+        setHelperMessage(addRoomMessage, error.message, "error");
       }
     });
   }
@@ -4321,6 +4606,10 @@ function renderPaginatedSection(key) {
     renderEmployeePage();
     return;
   }
+  if (key === "rooms") {
+    renderRoomPage();
+    return;
+  }
   if (key === "reportLocations") {
     renderReportLocationPage();
     return;
@@ -4433,7 +4722,7 @@ async function initializeDashboard() {
   await searchRooms();
 
   if (currentRole === "admin") {
-    await Promise.all([loadReports(), loadEmployees()]);
+    await Promise.all([loadReports(), loadEmployees(), loadRooms()]);
   }
 }
 
