@@ -23,6 +23,50 @@ const ROOM_IMAGES_BY_NAME = {
   "table mountain": "assets/fussion-6-members.png",
 };
 
+const ROOM_AMENITY_DEFINITIONS = Object.freeze([
+  { key: "has_projector", label: "Projector", icon: "projector" },
+  { key: "has_screen", label: "Display Screen", icon: "screen" },
+  { key: "has_webcam", label: "Web Cam", icon: "camera" },
+  { key: "has_video_conferencing", label: "Video Conference", icon: "video" },
+  { key: "has_tv_set", label: "TV Set", icon: "tv" },
+  { key: "has_wifi", label: "WiFi", icon: "wifi" },
+  { key: "has_ac", label: "AC", icon: "air" },
+  { key: "has_whiteboard", label: "Whiteboard", icon: "whiteboard" },
+  { key: "has_power_backup", label: "Power Backup", icon: "battery" },
+]);
+
+const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
+  projector:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7 3 5"></path><path d="M9 6V3"></path><path d="m13 7 2-2"></path><circle cx="9" cy="13" r="3"></circle><path d="M11.83 12H20a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2.17"></path><path d="M16 16h2"></path></svg>',
+  screen:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>',
+  camera:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path><path d="M12 16v4"></path><path d="M9 20h6"></path><path d="M5 6h14"></path><path d="M7 6a5 5 0 0 1 10 0"></path></svg>',
+  video:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="10" rx="2"></rect><path d="m16 10 5-3v10l-5-3z"></path></svg>',
+  tv:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 3 4-3"></path><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path></svg>',
+  wifi:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.86a10 10 0 0 1 14 0"></path><path d="M8.5 16.43a5 5 0 0 1 7 0"></path></svg>',
+  air:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 17.5a2.5 2.5 0 1 1-4 2.03V12"></path><path d="M6 12H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 8h12"></path><path d="M6.6 15.57A2 2 0 1 0 10 17v-5"></path></svg>',
+  whiteboard:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h20"></path><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"></path><path d="m7 21 5-5 5 5"></path></svg>',
+  battery:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m11 7-3 5h4l-3 5"></path><path d="M14.86 6H16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.94"></path><path d="M22 14v-4"></path><path d="M5.14 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2.94"></path></svg>',
+  default:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>',
+});
+
+const ROOM_DETAIL_META_ICON_MARKUP = Object.freeze({
+  location:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"></path><circle cx="12" cy="11" r="2.4"></circle></svg>',
+  capacity:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>',
+  default:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle></svg>',
+});
+
 const FEATURED_ROOM_LIMIT = 9;
 const HERO_SLIDE_DURATION_MS = 5000;
 const LOCATION_MAP_PRESETS = {
@@ -57,6 +101,10 @@ const roomDetailImage = document.getElementById("room-detail-image");
 const roomDetailTitle = document.getElementById("room-detail-title");
 const roomDetailMeta = document.getElementById("room-detail-meta");
 const roomDetailDescription = document.getElementById("room-detail-description");
+const roomDetailAmenities = document.getElementById("room-detail-amenities");
+const roomDetailPurpose = document.getElementById("room-detail-purpose");
+const roomDetailSetup = document.getElementById("room-detail-setup");
+const roomDetailComfort = document.getElementById("room-detail-comfort");
 
 const THEME_STORAGE_KEY = "dashboard_theme_preference";
 const THEME_LIGHT = "light";
@@ -347,26 +395,75 @@ function getRoomImage(room) {
   return ROOM_IMAGES_BY_NAME[normalizedRoomName] || "assets/image(3).png";
 }
 
-function getFeatureText(room) {
-  const features = [];
+function isAmenityEnabled(value) {
+  return value === 1 || value === true || value === "1" || value === "true";
+}
 
-  if (room.has_projector === 1 || room.has_projector === true || room.has_projector === "1") {
-    features.push("Projector");
-  }
-  if (room.has_screen === 1 || room.has_screen === true || room.has_screen === "1") {
-    features.push("Screen");
-  }
-  if (room.has_whiteboard === 1 || room.has_whiteboard === true || room.has_whiteboard === "1") {
-    features.push("Whiteboard");
+function getRoomAmenities(room) {
+  return ROOM_AMENITY_DEFINITIONS.filter(amenity => isAmenityEnabled(room?.[amenity.key]));
+}
+
+function getFeatureText(room, { limit = null } = {}) {
+  const features = getRoomAmenities(room).map(amenity => amenity.label);
+  if (features.length === 0) {
+    return "Standard setup";
   }
 
-  return features.length > 0 ? features.join(" | ") : "Standard setup";
+  const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
+  if (!safeLimit || features.length <= safeLimit) {
+    return features.join(" | ");
+  }
+
+  return `${features.slice(0, safeLimit).join(" | ")} | +${features.length - safeLimit} more`;
+}
+
+function createAmenityIcon(iconKey) {
+  const iconElement = document.createElement("span");
+  iconElement.className = "room-amenity-icon";
+  iconElement.setAttribute("aria-hidden", "true");
+  iconElement.innerHTML = ROOM_AMENITY_ICON_MARKUP[iconKey] || ROOM_AMENITY_ICON_MARKUP.default;
+  return iconElement;
+}
+
+function createRoomDetailMetaIcon(iconKey) {
+  const iconElement = document.createElement("span");
+  iconElement.className = "home-room-modal-detail-icon";
+  iconElement.setAttribute("aria-hidden", "true");
+  iconElement.innerHTML = ROOM_DETAIL_META_ICON_MARKUP[iconKey] || ROOM_DETAIL_META_ICON_MARKUP.default;
+  return iconElement;
+}
+
+function renderRoomAmenities(container, room) {
+  if (!container) return;
+
+  container.replaceChildren();
+  const amenities = getRoomAmenities(room);
+
+  if (amenities.length === 0) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "room-amenity-empty";
+    emptyState.textContent = "Amenities have not been configured for this room yet.";
+    container.appendChild(emptyState);
+    return;
+  }
+
+  amenities.forEach(({ label, icon }) => {
+    const item = document.createElement("div");
+    item.className = "room-amenity-item";
+
+    const labelElement = document.createElement("p");
+    labelElement.className = "room-amenity-label";
+    labelElement.textContent = label;
+
+    item.append(createAmenityIcon(icon), labelElement);
+    container.appendChild(item);
+  });
 }
 
 function getRoomMetaText(room) {
   const location = room.location_name || "Unknown location";
   const capacity = `${room.capacity || 0} Seats`;
-  return `${location} | ${capacity} | ${getFeatureText(room)}`;
+  return `${location} | ${capacity} | ${getFeatureText(room, { limit: 3 })}`;
 }
 
 function getRoomCapacityText(room) {
@@ -375,30 +472,108 @@ function getRoomCapacityText(room) {
   return `${seatCount} ${seatCount === 1 ? "seat" : "seats"}`;
 }
 
+function getRoomPurposeText(room) {
+  const normalizedRoomName = normalizeRoomName(room?.name);
+  const capacity = Number(room?.capacity || 0);
+
+  if (normalizedRoomName.includes("cell pod") || normalizedRoomName === "hubble" || capacity <= 1) {
+    return "Private calls";
+  }
+  if (normalizedRoomName === "think tank") {
+    return "Brainstorming";
+  }
+  if (normalizedRoomName === "training room") {
+    return "Training sessions";
+  }
+  if (normalizedRoomName === "boardroom" || normalizedRoomName === "pinnacle") {
+    return "Leadership reviews";
+  }
+  if (normalizedRoomName.startsWith("conference room")) {
+    return "Client meetings";
+  }
+  if (normalizedRoomName === "innovation hub") {
+    return "Presentations";
+  }
+  if (capacity <= 2) {
+    return "1:1 huddles";
+  }
+  if (capacity <= 5) {
+    return "Small team syncs";
+  }
+  if (capacity <= 10) {
+    return "Planning sessions";
+  }
+  return "Team sessions";
+}
+
+function getRoomSetupText(room) {
+  if (isAmenityEnabled(room?.has_video_conferencing) && (isAmenityEnabled(room?.has_tv_set) || isAmenityEnabled(room?.has_screen))) {
+    return "VC-ready";
+  }
+  if (isAmenityEnabled(room?.has_projector) && isAmenityEnabled(room?.has_whiteboard)) {
+    return "Workshop-ready";
+  }
+  if (isAmenityEnabled(room?.has_projector) || isAmenityEnabled(room?.has_screen) || isAmenityEnabled(room?.has_tv_set)) {
+    return "Presentation-ready";
+  }
+  if (isAmenityEnabled(room?.has_whiteboard)) {
+    return "Whiteboard setup";
+  }
+  return "Essential setup";
+}
+
+function getRoomComfortText(room) {
+  if (isAmenityEnabled(room?.has_wifi) && isAmenityEnabled(room?.has_ac) && isAmenityEnabled(room?.has_power_backup)) {
+    return "WiFi, AC, backup";
+  }
+  if (isAmenityEnabled(room?.has_wifi) && isAmenityEnabled(room?.has_ac)) {
+    return "WiFi and AC";
+  }
+  if (isAmenityEnabled(room?.has_wifi)) {
+    return "WiFi enabled";
+  }
+  return "Core essentials";
+}
+
+function renderRoomMediaSummary(room) {
+  if (roomDetailPurpose) {
+    roomDetailPurpose.textContent = getRoomPurposeText(room);
+  }
+  if (roomDetailSetup) {
+    roomDetailSetup.textContent = getRoomSetupText(room);
+  }
+  if (roomDetailComfort) {
+    roomDetailComfort.textContent = getRoomComfortText(room);
+  }
+}
+
 function renderRoomDetailMeta(room) {
   if (!roomDetailMeta) return;
 
   const detailRows = [
-    ["Location", room.location_name || "Unknown location"],
-    ["Capacity", getRoomCapacityText(room)],
-    ["Features", getFeatureText(room)],
+    { label: "Location", value: room.location_name || "Unknown location", icon: "location" },
+    { label: "Capacity", value: getRoomCapacityText(room), icon: "capacity" },
   ];
 
   roomDetailMeta.replaceChildren();
 
-  detailRows.forEach(([label, value]) => {
+  detailRows.forEach(({ label, value, icon }) => {
     const row = document.createElement("div");
     row.className = "home-room-modal-detail";
 
+    const copy = document.createElement("div");
+    copy.className = "home-room-modal-detail-copy";
+
     const labelElement = document.createElement("span");
     labelElement.className = "home-room-modal-detail-label";
-    labelElement.textContent = `${label}:`;
+    labelElement.textContent = label;
 
     const valueElement = document.createElement("span");
     valueElement.className = "home-room-modal-detail-value";
     valueElement.textContent = value;
 
-    row.append(labelElement, valueElement);
+    copy.append(labelElement, valueElement);
+    row.append(createRoomDetailMetaIcon(icon), copy);
     roomDetailMeta.appendChild(row);
   });
 }
@@ -898,7 +1073,9 @@ function openRoomModal(room, triggerElement = null) {
   roomDetailImage.src = getRoomImage(room);
   roomDetailTitle.textContent = room.name || "Meeting Room";
   renderRoomDetailMeta(room);
+  renderRoomMediaSummary(room);
   roomDetailDescription.textContent = room.description || "No description available.";
+  renderRoomAmenities(roomDetailAmenities, room);
   roomDetailModal.hidden = false;
   focusFirstElementInModal(roomDetailModal);
 }

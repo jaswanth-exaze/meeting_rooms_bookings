@@ -252,11 +252,41 @@
         <div class="room-booking-modal-layout">
           <div class="room-booking-modal-media">
             <img id="room-detail-image" class="room-modal-image" src="assets/image(3).png" alt="Room preview" />
+            <section class="room-modal-media-panel" aria-label="Room summary">
+              <div class="room-modal-media-head">
+                <h4 class="room-modal-media-title">At a Glance</h4>
+              </div>
+              <div class="room-modal-media-grid">
+                <article class="room-modal-media-card">
+                  <span class="room-modal-media-label">Best For</span>
+                  <strong id="room-detail-purpose" class="room-modal-media-value">-</strong>
+                </article>
+                <article class="room-modal-media-card">
+                  <span class="room-modal-media-label">Setup</span>
+                  <strong id="room-detail-setup" class="room-modal-media-value">-</strong>
+                </article>
+                <article class="room-modal-media-card">
+                  <span class="room-modal-media-label">Comfort</span>
+                  <strong id="room-detail-comfort" class="room-modal-media-value">-</strong>
+                </article>
+              </div>
+            </section>
           </div>
           <div class="room-booking-modal-summary home-room-modal-summary">
-            <h3 id="room-detail-title">Room</h3>
+            <div class="room-modal-title-block">
+              <p class="room-modal-eyebrow">Meeting Room</p>
+              <h3 id="room-detail-title" class="room-modal-title">Room</h3>
+            </div>
+            <div class="room-modal-description-block">
+              <p id="room-detail-description" class="room-modal-description"></p>
+            </div>
             <div id="room-detail-meta" class="home-room-modal-details"></div>
-            <p id="room-detail-description" class="room-modal-description"></p>
+            <section class="room-amenities-panel home-room-amenities-panel" aria-label="Room amenities">
+              <div class="room-amenities-head room-amenities-head-compact">
+                <h4 class="room-amenities-title">Facilities</h4>
+              </div>
+              <div id="room-detail-amenities" class="room-amenities-grid home-room-amenities-grid" aria-live="polite"></div>
+            </section>
           </div>
         </div>
       </section>

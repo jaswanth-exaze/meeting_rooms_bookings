@@ -637,9 +637,34 @@
         <div class="room-booking-modal-layout">
           <div class="room-booking-modal-media">
             <img id="dashboard-room-image" class="room-modal-image" src="../assets/image(3).png" alt="Room preview" />
+            <section class="room-modal-media-panel" aria-label="Room summary">
+              <div class="room-modal-media-head">
+                <h4 class="room-modal-media-title">At a Glance</h4>
+              </div>
+              <div class="room-modal-media-grid">
+                <article class="room-modal-media-card">
+                  <span class="room-modal-media-label">Best For</span>
+                  <strong id="dashboard-room-purpose" class="room-modal-media-value">-</strong>
+                </article>
+                <article class="room-modal-media-card">
+                  <span class="room-modal-media-label">Setup</span>
+                  <strong id="dashboard-room-setup" class="room-modal-media-value">-</strong>
+                </article>
+                <article class="room-modal-media-card">
+                  <span class="room-modal-media-label">Comfort</span>
+                  <strong id="dashboard-room-comfort" class="room-modal-media-value">-</strong>
+                </article>
+              </div>
+            </section>
           </div>
           <div class="room-booking-modal-summary">
-            <h3 id="dashboard-room-title">Room</h3>
+            <div class="room-modal-title-block">
+              <p class="room-modal-eyebrow">Meeting Room</p>
+              <h3 id="dashboard-room-title" class="room-modal-title">Room</h3>
+            </div>
+            <div class="room-modal-description-block">
+              <p id="dashboard-room-description" class="room-modal-description"></p>
+            </div>
             <p id="dashboard-room-location" class="room-meta"></p>
             <p id="dashboard-room-features" class="room-meta"></p>
             <div class="room-modal-toolbar">
@@ -654,7 +679,12 @@
                 View Schedule
               </button>
             </div>
-            <p id="dashboard-room-description" class="room-modal-description"></p>
+            <section class="room-amenities-panel" aria-labelledby="dashboard-room-amenities-title">
+              <div class="room-amenities-head room-amenities-head-compact">
+                <h4 id="dashboard-room-amenities-title" class="room-amenities-title">Facilities</h4>
+              </div>
+              <div id="dashboard-room-amenities" class="room-amenities-grid" aria-live="polite"></div>
+            </section>
             <div class="booking-meta-grid">
               <div class="booking-meta-card">
                 <span class="booking-meta-label">Organizer</span>
@@ -733,9 +763,9 @@
         <div class="room-schedule-modal-head">
           <div>
             <h3 id="dashboardRoomScheduleTitle">Room Schedule</h3>
-            <p id="dashboardRoomScheduleMeta" class="room-schedule-meta">Next 7 days, upcoming working-hour slots.</p>
+            <p id="dashboardRoomScheduleMeta" class="room-schedule-meta">Weekly overview | 10:00 AM - 7:00 PM | 18 half-hour slots</p>
           </div>
-          <p class="room-schedule-modal-note">Click any available slot to update the booking form.</p>
+          <p class="room-schedule-modal-note">Pick any open 30-minute slot.</p>
         </div>
         <p id="dashboardRoomScheduleMessage" class="helper-message" role="status" aria-live="polite"></p>
         <div id="dashboardRoomScheduleGrid" class="room-schedule-grid"></div>

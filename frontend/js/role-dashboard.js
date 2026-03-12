@@ -24,6 +24,42 @@ const ROOM_IMAGES_BY_NAME = {
   "table mountain": "../assets/fussion-6-members.png",
 
 };
+
+const ROOM_AMENITY_DEFINITIONS = Object.freeze([
+  { key: "has_projector", label: "Projector", icon: "projector" },
+  { key: "has_screen", label: "Display Screen", icon: "screen" },
+  { key: "has_webcam", label: "Web Cam", icon: "camera" },
+  { key: "has_video_conferencing", label: "Video Conference", icon: "video" },
+  { key: "has_tv_set", label: "TV Set", icon: "tv" },
+  { key: "has_wifi", label: "WiFi", icon: "wifi" },
+  { key: "has_ac", label: "AC", icon: "air" },
+  { key: "has_whiteboard", label: "Whiteboard", icon: "whiteboard" },
+  { key: "has_power_backup", label: "Power Backup", icon: "battery" },
+]);
+
+const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
+  projector:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7 3 5"></path><path d="M9 6V3"></path><path d="m13 7 2-2"></path><circle cx="9" cy="13" r="3"></circle><path d="M11.83 12H20a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2.17"></path><path d="M16 16h2"></path></svg>',
+  screen:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>',
+  camera:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"></path><path d="M12 16v4"></path><path d="M9 20h6"></path><path d="M5 6h14"></path><path d="M7 6a5 5 0 0 1 10 0"></path></svg>',
+  video:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="10" rx="2"></rect><path d="m16 10 5-3v10l-5-3z"></path></svg>',
+  tv:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m8 3 4 3 4-3"></path><rect x="3" y="6" width="18" height="12" rx="2"></rect><path d="M8 21h8"></path></svg>',
+  wifi:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h.01"></path><path d="M2 8.82a15 15 0 0 1 20 0"></path><path d="M5 12.86a10 10 0 0 1 14 0"></path><path d="M8.5 16.43a5 5 0 0 1 7 0"></path></svg>',
+  air:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 17.5a2.5 2.5 0 1 1-4 2.03V12"></path><path d="M6 12H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 8h12"></path><path d="M6.6 15.57A2 2 0 1 0 10 17v-5"></path></svg>',
+  whiteboard:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h20"></path><path d="M21 3v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V3"></path><path d="m7 21 5-5 5 5"></path></svg>',
+  battery:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m11 7-3 5h4l-3 5"></path><path d="M14.86 6H16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.94"></path><path d="M22 14v-4"></path><path d="M5.14 18H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h2.94"></path></svg>',
+  default:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>',
+});
+
 const MALE_PROFILE_IMAGE = "../assets/male_profile.png";
 const FEMALE_PROFILE_IMAGE = "../assets/female_profile.png";
 const TIMEZONE_CODE_OVERRIDES = Object.freeze({
@@ -559,20 +595,61 @@ function getRoomImage(room) {
   return ROOM_IMAGES_BY_NAME[normalized] || "../assets/image(3).png";
 }
 
-function buildRoomFeatures(room) {
-  const features = [];
+function isAmenityEnabled(value) {
+  return value === 1 || value === true || value === "1" || value === "true";
+}
 
-  if (room.has_projector === 1 || room.has_projector === true || room.has_projector === "1") {
-    features.push("Projector");
-  }
-  if (room.has_screen === 1 || room.has_screen === true || room.has_screen === "1") {
-    features.push("Screen");
-  }
-  if (room.has_whiteboard === 1 || room.has_whiteboard === true || room.has_whiteboard === "1") {
-    features.push("Whiteboard");
+function getRoomAmenities(room) {
+  return ROOM_AMENITY_DEFINITIONS.filter(amenity => isAmenityEnabled(room?.[amenity.key]));
+}
+
+function buildRoomFeatures(room, { limit = null } = {}) {
+  const features = getRoomAmenities(room).map(amenity => amenity.label);
+  if (features.length === 0) {
+    return "Standard setup";
   }
 
-  return features.length > 0 ? features.join(" | ") : "Standard setup";
+  const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : 0;
+  if (!safeLimit || features.length <= safeLimit) {
+    return features.join(" | ");
+  }
+
+  return `${features.slice(0, safeLimit).join(" | ")} | +${features.length - safeLimit} more`;
+}
+
+function createAmenityIcon(iconKey) {
+  const iconElement = document.createElement("span");
+  iconElement.className = "room-amenity-icon";
+  iconElement.setAttribute("aria-hidden", "true");
+  iconElement.innerHTML = ROOM_AMENITY_ICON_MARKUP[iconKey] || ROOM_AMENITY_ICON_MARKUP.default;
+  return iconElement;
+}
+
+function renderRoomAmenities(container, room) {
+  if (!container) return;
+
+  container.replaceChildren();
+  const amenities = getRoomAmenities(room);
+
+  if (amenities.length === 0) {
+    const emptyState = document.createElement("p");
+    emptyState.className = "room-amenity-empty";
+    emptyState.textContent = "Amenities have not been configured for this room yet.";
+    container.appendChild(emptyState);
+    return;
+  }
+
+  amenities.forEach(({ label, icon }) => {
+    const item = document.createElement("div");
+    item.className = "room-amenity-item";
+
+    const labelElement = document.createElement("p");
+    labelElement.className = "room-amenity-label";
+    labelElement.textContent = label;
+
+    item.append(createAmenityIcon(icon), labelElement);
+    container.appendChild(item);
+  });
 }
 
 function isRoomAvailable(room) {
@@ -593,6 +670,69 @@ function getRoomAvailabilityLabel(room) {
   }
 
   return "Booked";
+}
+
+function getRoomPurposeText(room) {
+  const normalizedRoomName = normalizeRoomName(room?.name);
+  const capacity = Number(room?.capacity || 0);
+
+  if (normalizedRoomName.includes("cell pod") || normalizedRoomName === "hubble" || capacity <= 1) {
+    return "Private calls";
+  }
+  if (normalizedRoomName === "think tank") {
+    return "Brainstorming";
+  }
+  if (normalizedRoomName === "training room") {
+    return "Training sessions";
+  }
+  if (normalizedRoomName === "boardroom" || normalizedRoomName === "pinnacle") {
+    return "Leadership reviews";
+  }
+  if (normalizedRoomName.startsWith("conference room")) {
+    return "Client meetings";
+  }
+  if (normalizedRoomName === "innovation hub") {
+    return "Presentations";
+  }
+  if (capacity <= 2) {
+    return "1:1 huddles";
+  }
+  if (capacity <= 5) {
+    return "Small team syncs";
+  }
+  if (capacity <= 10) {
+    return "Planning sessions";
+  }
+  return "Team sessions";
+}
+
+function getRoomSetupText(room) {
+  if (isAmenityEnabled(room?.has_video_conferencing) && (isAmenityEnabled(room?.has_tv_set) || isAmenityEnabled(room?.has_screen))) {
+    return "VC-ready";
+  }
+  if (isAmenityEnabled(room?.has_projector) && isAmenityEnabled(room?.has_whiteboard)) {
+    return "Workshop-ready";
+  }
+  if (isAmenityEnabled(room?.has_projector) || isAmenityEnabled(room?.has_screen) || isAmenityEnabled(room?.has_tv_set)) {
+    return "Presentation-ready";
+  }
+  if (isAmenityEnabled(room?.has_whiteboard)) {
+    return "Whiteboard setup";
+  }
+  return "Essential setup";
+}
+
+function getRoomComfortText(room) {
+  if (isAmenityEnabled(room?.has_wifi) && isAmenityEnabled(room?.has_ac) && isAmenityEnabled(room?.has_power_backup)) {
+    return "WiFi, AC, backup";
+  }
+  if (isAmenityEnabled(room?.has_wifi) && isAmenityEnabled(room?.has_ac)) {
+    return "WiFi and AC";
+  }
+  if (isAmenityEnabled(room?.has_wifi)) {
+    return "WiFi enabled";
+  }
+  return "Core essentials";
 }
 
 function setTodayLabel() {
@@ -1328,7 +1468,7 @@ function renderRoomFinderPage() {
           <td>${escapeHtml(room.location_name || "-")}</td>
           <td>${escapeHtml(room.capacity || "-")}</td>
           <td><span class="availability-pill ${available ? "available" : "booked"}">${escapeHtml(availabilityText)}</span></td>
-          <td>${escapeHtml(buildRoomFeatures(room))}</td>
+          <td>${escapeHtml(buildRoomFeatures(room, { limit: 3 }))}</td>
           ${actionCol}
         </tr>
       `;
@@ -3320,6 +3460,10 @@ const roomModalLocation = document.getElementById("dashboard-room-location");
 const roomModalFeatures = document.getElementById("dashboard-room-features");
 const roomModalSlot = document.getElementById("dashboard-room-slot");
 const roomModalDescription = document.getElementById("dashboard-room-description");
+const roomModalAmenities = document.getElementById("dashboard-room-amenities");
+const roomModalPurpose = document.getElementById("dashboard-room-purpose");
+const roomModalSetup = document.getElementById("dashboard-room-setup");
+const roomModalComfort = document.getElementById("dashboard-room-comfort");
 const roomModalOrganizer = document.getElementById("dashboardBookingOrganizer");
 const roomModalAttendeeSummary = document.getElementById("dashboardAttendeeSummary");
 const roomModalOrganizerField = document.getElementById("dashboardOrganizerField");
@@ -3344,6 +3488,18 @@ const roomScheduleTitle = document.getElementById("dashboardRoomScheduleTitle");
 const roomScheduleMeta = document.getElementById("dashboardRoomScheduleMeta");
 const roomScheduleMessage = document.getElementById("dashboardRoomScheduleMessage");
 const roomScheduleGrid = document.getElementById("dashboardRoomScheduleGrid");
+
+function renderRoomMediaSummary(room) {
+  if (roomModalPurpose) {
+    roomModalPurpose.textContent = getRoomPurposeText(room);
+  }
+  if (roomModalSetup) {
+    roomModalSetup.textContent = getRoomSetupText(room);
+  }
+  if (roomModalComfort) {
+    roomModalComfort.textContent = getRoomComfortText(room);
+  }
+}
 
 function getCreateBookingOrganizerEmployeeId() {
   const organizerEmployeeId = Number(selectedCreateOrganizerId || currentEmployeeId || 0);
@@ -3504,11 +3660,9 @@ function normalizeRoomSchedulePayload(payload) {
   };
 }
 
-function getRoomScheduleWorkingWindow(payload) {
-  const workdayStart = payload?.range?.workday_start || ROOM_SCHEDULE_DEFAULT_WORKDAY_START;
-  const workdayEnd = payload?.range?.workday_end || ROOM_SCHEDULE_DEFAULT_WORKDAY_END;
-  const startMinutes = getTimeValueMinutes(workdayStart);
-  const endMinutes = getTimeValueMinutes(workdayEnd);
+function getRoomScheduleWorkingWindow() {
+  const startMinutes = getTimeValueMinutes(ROOM_SCHEDULE_DEFAULT_WORKDAY_START);
+  const endMinutes = getTimeValueMinutes(ROOM_SCHEDULE_DEFAULT_WORKDAY_END);
 
   return {
     startMinutes: startMinutes === null ? 10 * 60 : startMinutes,
@@ -3521,7 +3675,7 @@ function getRoomScheduleDayMeta(dayDate) {
   if (weekday === 0 || weekday === 6) {
     return {
       className: "is-holiday",
-      label: "Holiday"
+      label: "Weekend"
     };
   }
 
@@ -3534,13 +3688,11 @@ function getRoomScheduleDayMeta(dayDate) {
 
   return {
     className: "is-office",
-    label: "Office Day"
+    label: "Office"
   };
 }
 
 function getRoomScheduleMetaText(payload) {
-  const durationMinutes = getRoomScheduleDurationMinutes();
-  const scheduleDays = Number(payload?.range?.days || ROOM_SCHEDULE_DAYS) || ROOM_SCHEDULE_DAYS;
   const { startMinutes, endMinutes } = getRoomScheduleWorkingWindow(payload);
   const workdayStart = format24HourAs12Hour(
     `${String(Math.floor(startMinutes / 60)).padStart(2, "0")}:${String(startMinutes % 60).padStart(2, "0")}`
@@ -3548,7 +3700,7 @@ function getRoomScheduleMetaText(payload) {
   const workdayEnd = format24HourAs12Hour(
     `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`
   );
-  return `Next ${scheduleDays} days | ${workdayStart} - ${workdayEnd} | ${durationMinutes} min slots | ${ROOM_SCHEDULE_TIMEZONE_LABEL}`;
+  return `Weekly overview | ${workdayStart} - ${workdayEnd} | 18 half-hour slots`;
 }
 
 function buildRoomScheduleLoadingMarkup(dayCount = ROOM_SCHEDULE_DAYS) {
@@ -3594,7 +3746,7 @@ function getRoomScheduleConflictBooking(bookings, slotStartMs, slotEndMs) {
 }
 
 function buildRoomScheduleSlotsForDay(dayDate, payload) {
-  const durationMinutes = getRoomScheduleDurationMinutes();
+  const durationMinutes = ROOM_SCHEDULE_STEP_MINUTES;
   const { startMinutes, endMinutes } = getRoomScheduleWorkingWindow(payload);
   const lastStartMinutes = endMinutes - durationMinutes;
   const nowMs = Date.now();
@@ -3612,16 +3764,17 @@ function buildRoomScheduleSlotsForDay(dayDate, payload) {
     slotStart.setMinutes(minute);
 
     const slotEnd = new Date(slotStart.getTime() + durationMinutes * 60 * 1000);
-    if (slotStart.getTime() < nowMs) {
-      continue;
-    }
-
     const booking = getRoomScheduleConflictBooking(bookings, slotStart.getTime(), slotEnd.getTime());
+    const isPast = slotStart.getTime() < nowMs;
+    const state = booking ? "booked" : isPast ? "past" : "available";
+
     slots.push({
       start: slotStart.toISOString(),
       end: slotEnd.toISOString(),
       booking,
-      is_available: !booking
+      is_available: state === "available",
+      is_past: state === "past",
+      state
     });
   }
 
@@ -3629,7 +3782,9 @@ function buildRoomScheduleSlotsForDay(dayDate, payload) {
 }
 
 function buildRoomScheduleSlotMarkup(slot) {
-  const slotLabel = escapeHtml(formatTimeRange(slot.start, slot.end, ROOM_SCHEDULE_TIMEZONE));
+  const startLabel = formatTime(slot.start, ROOM_SCHEDULE_TIMEZONE, { includeTimeZone: false });
+  const endLabel = formatTime(slot.end, ROOM_SCHEDULE_TIMEZONE, { includeTimeZone: false });
+  const slotLabel = escapeHtml(`${startLabel} - ${endLabel}`);
   const selectedClassName = isRoomScheduleSlotSelected(slot) ? " is-selected" : "";
 
   if (slot.is_available) {
@@ -3641,25 +3796,28 @@ function buildRoomScheduleSlotMarkup(slot) {
         data-start-time="${escapeHtml(slot.start)}"
         data-end-time="${escapeHtml(slot.end)}"
       >
-        <span class="room-schedule-slot-status">Available</span>
         <strong>${slotLabel}</strong>
-        <small>Click to use this slot</small>
+        <span class="room-schedule-slot-status">Open</span>
       </button>
+    `;
+  }
+
+  if (slot.is_past) {
+    return `
+      <article class="room-schedule-slot past">
+        <strong>${slotLabel}</strong>
+        <span class="room-schedule-slot-status">Past</span>
+      </article>
     `;
   }
 
   const booking = slot.booking || null;
   const title = escapeHtml(booking?.title || "Booked meeting");
-  const organizer = escapeHtml(booking?.organizer_name || "Unknown organizer");
-  const bookingTime = escapeHtml(formatTimeRange(booking?.start_time, booking?.end_time, ROOM_SCHEDULE_TIMEZONE));
 
   return `
-    <article class="room-schedule-slot booked">
-      <span class="room-schedule-slot-status">Booked</span>
+    <article class="room-schedule-slot booked" title="${title}">
       <strong>${slotLabel}</strong>
-      <small class="room-schedule-slot-title">${title}</small>
-      <small>Organizer: ${organizer}</small>
-      <small>Meeting: ${bookingTime}</small>
+      <span class="room-schedule-slot-status">Busy</span>
     </article>
   `;
 }
@@ -3684,7 +3842,7 @@ function buildRoomScheduleDayMarkup(dayDate, payload) {
         ${
           slots.length > 0
             ? slots.map(buildRoomScheduleSlotMarkup).join("")
-            : '<p class="room-schedule-empty-day">No upcoming working-hour slots.</p>'
+            : '<p class="room-schedule-empty-day">No slots available.</p>'
         }
       </div>
     </article>
@@ -3794,7 +3952,7 @@ function resetRoomScheduleState() {
   }
 
   if (roomScheduleMeta) {
-    roomScheduleMeta.textContent = "Next 7 days, upcoming working-hour slots.";
+    roomScheduleMeta.textContent = "Weekly overview | 10:00 AM - 7:00 PM | 18 half-hour slots";
   }
 
   if (roomScheduleGrid) {
@@ -3867,11 +4025,13 @@ function openRoomModal(room, bookingWindow) {
   if (roomModalImage) roomModalImage.src = getRoomImage(room);
   if (roomModalTitle) roomModalTitle.textContent = room.name || "Room";
   if (roomModalLocation) roomModalLocation.textContent = room.location_name || "Unknown location";
-  if (roomModalFeatures) roomModalFeatures.textContent = buildRoomFeatures(room);
+  if (roomModalFeatures) roomModalFeatures.textContent = buildRoomFeatures(room, { limit: 4 });
   if (roomModalSlot) roomModalSlot.textContent = getSlotLabel(selectedBookingWindow);
   if (roomModalDescription) {
     roomModalDescription.textContent = room.description || "No description available for this room.";
   }
+  renderRoomMediaSummary(room);
+  renderRoomAmenities(roomModalAmenities, room);
   updateRoomModalOrganizerSummary();
   renderRoomModalOrganizerSelection();
   if (roomModalMeetingTitle) {

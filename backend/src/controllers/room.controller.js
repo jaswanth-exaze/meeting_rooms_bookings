@@ -87,6 +87,12 @@ const getRooms = asyncHandler(async (req, res) => {
         mr.has_projector,
         mr.has_screen,
         mr.has_whiteboard,
+        mr.has_webcam,
+        mr.has_video_conferencing,
+        mr.has_tv_set,
+        mr.has_wifi,
+        mr.has_ac,
+        mr.has_power_backup,
         mr.description,
         CASE WHEN COUNT(ob.booking_id) = 0 THEN 1 ELSE 0 END AS is_available,
         MAX(ob.end_time) AS booked_until
@@ -113,6 +119,12 @@ const getRooms = asyncHandler(async (req, res) => {
         mr.has_projector,
         mr.has_screen,
         mr.has_whiteboard,
+        mr.has_webcam,
+        mr.has_video_conferencing,
+        mr.has_tv_set,
+        mr.has_wifi,
+        mr.has_ac,
+        mr.has_power_backup,
         mr.description,
         1 AS is_available,
         NULL AS booked_until
@@ -145,6 +157,12 @@ const getRooms = asyncHandler(async (req, res) => {
         mr.has_projector,
         mr.has_screen,
         mr.has_whiteboard,
+        mr.has_webcam,
+        mr.has_video_conferencing,
+        mr.has_tv_set,
+        mr.has_wifi,
+        mr.has_ac,
+        mr.has_power_backup,
         mr.description
     `;
 
@@ -183,6 +201,12 @@ const getRoomById = asyncHandler(async (req, res) => {
         mr.has_projector,
         mr.has_screen,
         mr.has_whiteboard,
+        mr.has_webcam,
+        mr.has_video_conferencing,
+        mr.has_tv_set,
+        mr.has_wifi,
+        mr.has_ac,
+        mr.has_power_backup,
         mr.description
       FROM meeting_room mr
       INNER JOIN location l ON l.location_id = mr.location_id
@@ -247,6 +271,12 @@ const getRoomSchedule = asyncHandler(async (req, res) => {
         mr.has_projector,
         mr.has_screen,
         mr.has_whiteboard,
+        mr.has_webcam,
+        mr.has_video_conferencing,
+        mr.has_tv_set,
+        mr.has_wifi,
+        mr.has_ac,
+        mr.has_power_backup,
         mr.description
       FROM meeting_room mr
       INNER JOIN location l ON l.location_id = mr.location_id

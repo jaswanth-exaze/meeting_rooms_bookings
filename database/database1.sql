@@ -207,6 +207,12 @@ CREATE TABLE `meeting_room` (
   `has_projector` tinyint(1) DEFAULT '0',
   `has_screen` tinyint(1) DEFAULT '0',
   `has_whiteboard` tinyint(1) DEFAULT '0',
+  `has_webcam` tinyint(1) NOT NULL DEFAULT '0',
+  `has_video_conferencing` tinyint(1) NOT NULL DEFAULT '0',
+  `has_tv_set` tinyint(1) NOT NULL DEFAULT '0',
+  `has_wifi` tinyint(1) NOT NULL DEFAULT '0',
+  `has_ac` tinyint(1) NOT NULL DEFAULT '0',
+  `has_power_backup` tinyint(1) NOT NULL DEFAULT '0',
   `description` text,
   PRIMARY KEY (`room_id`),
   UNIQUE KEY `unique_room_per_location` (`location_id`,`name`),
@@ -221,7 +227,71 @@ CREATE TABLE `meeting_room` (
 
 LOCK TABLES `meeting_room` WRITE;
 /*!40000 ALTER TABLE `meeting_room` DISABLE KEYS */;
-INSERT INTO `meeting_room` VALUES (1,1,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(2,1,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(3,1,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(4,1,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(5,1,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(6,1,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(7,1,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(8,1,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(9,1,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(10,1,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(11,2,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(12,2,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(13,2,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(14,2,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(15,2,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(16,2,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(17,2,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(18,2,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(19,2,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(20,2,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(21,3,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(22,3,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(23,3,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(24,3,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(25,3,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(26,3,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(27,3,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(28,3,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(29,3,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(30,3,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(31,4,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(32,4,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(33,4,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(34,4,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(35,4,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(36,4,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(37,4,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(38,4,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(39,4,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(40,4,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(41,5,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(42,5,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(43,5,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(44,5,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(45,5,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(46,5,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(47,5,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(48,5,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(49,5,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(50,5,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(51,6,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(52,6,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(53,6,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(54,6,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(55,6,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(56,6,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(57,6,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(58,6,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(59,6,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(60,6,'Training Room',25,500.00,1,1,1,'Equipped for training sessions');
+INSERT INTO `meeting_room` (`room_id`,`location_id`,`name`,`capacity`,`size_sqft`,`has_projector`,`has_screen`,`has_whiteboard`,`description`) VALUES (1,1,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(2,1,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(3,1,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(4,1,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(5,1,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(6,1,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(7,1,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(8,1,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(9,1,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(10,1,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(11,2,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(12,2,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(13,2,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(14,2,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(15,2,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(16,2,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(17,2,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(18,2,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(19,2,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(20,2,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(21,3,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(22,3,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(23,3,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(24,3,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(25,3,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(26,3,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(27,3,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(28,3,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(29,3,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(30,3,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(31,4,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(32,4,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(33,4,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(34,4,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(35,4,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(36,4,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(37,4,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(38,4,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(39,4,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(40,4,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(41,5,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(42,5,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(43,5,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(44,5,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(45,5,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(46,5,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(47,5,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(48,5,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(49,5,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(50,5,'Training Room',25,500.00,1,1,1,'Equipped for training sessions'),(51,6,'Think Tank',10,200.00,1,1,0,'Ideal for brainstorming sessions'),(52,6,'Fusion',12,250.00,1,1,1,'Collaborative space with all amenities'),(53,6,'Nexus',8,180.00,0,1,1,'Small meeting room with whiteboard'),(54,6,'Cell Pod 1',4,100.00,0,0,1,'Private phone booth style'),(55,6,'Cell Pod 2',4,100.00,0,0,1,'Private focus pod'),(56,6,'Innovation Hub',20,400.00,1,1,1,'Large room for presentations'),(57,6,'Boardroom',14,300.00,1,1,0,'Formal board meetings'),(58,6,'Conference Room A',16,350.00,1,1,1,'Standard conference room'),(59,6,'Conference Room B',16,350.00,1,1,0,'Second conference room'),(60,6,'Training Room',25,500.00,1,1,1,'Equipped for training sessions');
+UPDATE `meeting_room`
+SET
+  `has_wifi` = 1,
+  `has_ac` = 1;
+
+UPDATE `meeting_room`
+SET `has_power_backup` = 1
+WHERE `name` IN (
+  'Think Tank',
+  'Fusion',
+  'Nexus',
+  'Innovation Hub',
+  'Boardroom',
+  'Conference Room A',
+  'Conference Room B',
+  'Training Room',
+  'Synergy',
+  'Zenith',
+  'Pinnacle',
+  'Tranquil',
+  'Table Mountain',
+  'Drakensberg',
+  'Cape Town',
+  'Karoo',
+  'Meerkat'
+);
+
+UPDATE `meeting_room`
+SET
+  `has_webcam` = 1,
+  `has_video_conferencing` = 1
+WHERE `name` IN (
+  'Fusion',
+  'Innovation Hub',
+  'Boardroom',
+  'Conference Room A',
+  'Conference Room B',
+  'Training Room',
+  'Synergy',
+  'Pinnacle',
+  'Tranquil',
+  'Table Mountain',
+  'Drakensberg',
+  'Cape Town',
+  'Karoo',
+  'Meerkat'
+);
+
+UPDATE `meeting_room`
+SET `has_tv_set` = 1
+WHERE `name` IN (
+  'Fusion',
+  'Innovation Hub',
+  'Boardroom',
+  'Conference Room A',
+  'Conference Room B',
+  'Pinnacle',
+  'Tranquil',
+  'Table Mountain',
+  'Drakensberg',
+  'Cape Town',
+  'Karoo',
+  'Meerkat'
+);
 /*!40000 ALTER TABLE `meeting_room` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
