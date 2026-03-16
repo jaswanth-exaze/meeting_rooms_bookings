@@ -1,0 +1,93 @@
+sequenceDiagram
+autonumber
+participant Admin
+participant Frontend
+participant API
+participant PasswordUtils
+participant DB
+
+Admin->>Frontend: Submit create employee form
+Frontend->>API: POST /api/admin/employees
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>Admin: Show auth error
+else Authenticated
+API->>API: requireAdmin
+alt Not admin
+API-->>Frontend: 403 Admin access is required
+Frontend-->>Admin: Show forbidden
+else Admin
+API->>API: Normalize and validate required fields
+alt Missing name/email/gender/password
+API-->>Frontend: 400 name, email, gender, and password are required
+Frontend-->>Admin: Show validation error
+else Required fields present
+alt Invalid hire_date format
+API-->>Frontend: 400 hire_date must be YYYY-MM-DD
+Frontend-->>Admin: Show validation error
+else Hire date OK or not provided
+API->>PasswordUtils: getPasswordValidationError(password)
+alt Password validation fails
+PasswordUtils-->>API: error message
+API-->>Frontend: 400 validation error
+Frontend-->>Admin: Show validation error
+else Password valid
+API->>DB: Query employee by email
+alt Email already exists
+DB-->>API: employee found
+API-->>Frontend: 409 email already exists
+Frontend-->>Admin: Show conflict
+else Email unique
+API->>DB: Query manager (if manager_id provided)
+alt Manager provided but not found
+DB-->>API: empty
+API-->>Frontend: 400 selected manager does not exist
+Frontend-->>Admin: Show validation error
+else Manager OK or not provided
+API->>API: Continue
+end
+API->>DB: Query location (if work_location_id provided)
+alt Location provided but not found
+DB-->>API: empty
+API-->>Frontend: 400 selected work location does not exist
+Frontend-->>Admin: Show validation error
+else Location OK or not provided
+API->>API: Continue
+end
+API->>PasswordUtils: hashPassword(password)
+alt Hashing error
+PasswordUtils-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>Admin: Show error state
+else Hashing success
+API->>DB: Insert employee (full schema)
+alt Insert success
+DB-->>API: insertId
+API-->>Frontend: 201 Employee added successfully
+Frontend-->>Admin: Show success and new employee
+else Insert error
+DB-->>API: error
+alt ER_BAD_FIELD_ERROR
+API->>DB: Insert employee (legacy schema)
+alt Legacy insert error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>Admin: Show error state
+else Legacy insert success
+DB-->>API: insertId
+API-->>Frontend: 201 Employee added successfully
+Frontend-->>Admin: Show success and new employee
+end
+else Other DB error
+API-->>Frontend: 500 with error message
+Frontend-->>Admin: Show error state
+end
+end
+end
+end
+end
+end
+end
+end
+end

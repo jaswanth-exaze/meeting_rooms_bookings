@@ -1,0 +1,48 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: View room schedule
+Frontend->>API: GET /api/rooms/:roomId/schedule
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: parsePositiveInt(roomId)
+alt Invalid room id
+API-->>Frontend: 400 Invalid room id
+Frontend-->>User: Show validation error
+else Valid room id
+API->>API: Validate start_time/end_time or compute range
+alt Only one of start_time/end_time provided
+API-->>Frontend: 400 Both start_time and end_time are required together
+Frontend-->>User: Show validation error
+else Both provided or computed
+alt Invalid start_time or end_time format
+API-->>Frontend: 400 Invalid start_time or end_time format
+Frontend-->>User: Show validation error
+else Range determined
+alt end_time <= start_time
+API-->>Frontend: 400 end_time must be greater than start_time
+Frontend-->>User: Show validation error
+else Range valid
+API->>DB: Query room by id
+alt Room not found
+DB-->>API: empty
+API-->>Frontend: 404 Room not found
+Frontend-->>User: Show not found
+else Room found
+API->>DB: Query bookings in range
+DB-->>API: booking rows
+API-->>Frontend: 200 schedule payload
+Frontend-->>User: Render schedule
+end
+end
+end
+end
+end
+end

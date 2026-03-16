@@ -1,0 +1,32 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: View booking summary
+Frontend->>API: GET /api/bookings/summary
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: getEmployeeScope(employee_id)
+alt Invalid authenticated user
+API-->>Frontend: 401 Invalid authenticated user
+Frontend-->>User: Show auth error
+else Scope ok
+API->>DB: Query booking summary stats
+API->>DB: Query total rooms
+alt DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+else Success
+DB-->>API: summary + room count
+API-->>Frontend: 200 summary payload
+Frontend-->>User: Render summary
+end
+end
+end

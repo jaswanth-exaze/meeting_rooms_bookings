@@ -1,0 +1,19 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: Browse locations
+Frontend->>API: GET /api/locations
+API->>DB: Query locations
+alt DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+else Success
+DB-->>API: rows
+API-->>Frontend: 200 location list
+Frontend-->>User: Render locations
+end

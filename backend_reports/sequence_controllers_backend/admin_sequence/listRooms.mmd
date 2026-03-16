@@ -1,0 +1,32 @@
+sequenceDiagram
+autonumber
+participant Admin
+participant Frontend
+participant API
+participant PasswordUtils
+participant DB
+
+Admin->>Frontend: Open Rooms list
+Frontend->>API: GET /api/admin/rooms
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>Admin: Show auth error
+else Authenticated
+API->>API: requireAdmin
+alt Not admin
+API-->>Frontend: 403 Admin access is required
+Frontend-->>Admin: Show forbidden
+else Admin
+API->>DB: Query meeting rooms with location join
+alt DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>Admin: Show error state
+else Success
+DB-->>API: rows
+API-->>Frontend: 200 room list
+Frontend-->>Admin: Render rooms
+end
+end
+end

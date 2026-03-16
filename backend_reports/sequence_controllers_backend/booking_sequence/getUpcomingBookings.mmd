@@ -1,0 +1,32 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: View upcoming bookings
+Frontend->>API: GET /api/bookings/upcoming
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: getEmployeeScope(employee_id)
+alt Invalid authenticated user
+API-->>Frontend: 401 Invalid authenticated user
+Frontend-->>User: Show auth error
+else Scope ok
+API->>API: Build SQL filters (include_past, include_cancelled)
+API->>DB: Query upcoming bookings
+alt DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+else Success
+DB-->>API: rows
+API-->>Frontend: 200 booking list
+Frontend-->>User: Render bookings
+end
+end
+end

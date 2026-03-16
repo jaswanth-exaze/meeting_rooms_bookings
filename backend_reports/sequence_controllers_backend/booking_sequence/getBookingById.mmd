@@ -1,0 +1,37 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: View booking details
+Frontend->>API: GET /api/bookings/:bookingId
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: parse bookingId and auth employee id
+alt Invalid booking id
+API-->>Frontend: 400 Invalid booking id
+Frontend-->>User: Show validation error
+else Valid booking id
+alt Invalid authenticated user
+API-->>Frontend: 401 Invalid authenticated user
+Frontend-->>User: Show auth error
+else Valid user
+API->>DB: Query booking with visibility filter
+alt Booking not found
+DB-->>API: empty
+API-->>Frontend: 404 Booking not found
+Frontend-->>User: Show not found
+else Found
+API->>DB: Fetch booking participants
+DB-->>API: participants
+API-->>Frontend: 200 booking details + participants
+Frontend-->>User: Render booking
+end
+end
+end
+end

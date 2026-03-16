@@ -1,0 +1,99 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant Pool
+participant DB
+participant Logger
+
+User->>Frontend: Create booking
+Frontend->>API: POST /api/bookings
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: Validate required fields and status
+alt Missing required fields
+API-->>Frontend: 400 room_id, title, description, start_time, end_time are required
+Frontend-->>User: Show validation error
+else Required fields present
+alt Invalid status
+API-->>Frontend: 400 Invalid booking status
+Frontend-->>User: Show validation error
+else Status valid
+alt Invalid participant list
+API-->>Frontend: 400 participant_employee_ids validation error
+Frontend-->>User: Show validation error
+else Participants valid
+alt Invalid start_time or end_time format
+API-->>Frontend: 400 Invalid start_time or end_time format
+Frontend-->>User: Show validation error
+else Time format valid
+alt end_time <= start_time
+API-->>Frontend: 400 end_time must be greater than start_time
+Frontend-->>User: Show validation error
+else Time range valid
+alt Past date/time
+API-->>Frontend: 400 You cannot book for past date/time
+Frontend-->>User: Show validation error
+else Ready for transaction
+API->>Pool: getConnection + beginTransaction
+API->>DB: Fetch organizer employee (active)
+alt Organizer invalid or inactive
+API->>Pool: rollback
+API-->>Frontend: 400 Organizer employee is invalid or inactive
+Frontend-->>User: Show validation error
+else Organizer ok
+API->>DB: Fetch participant employees (active)
+alt Participants invalid or inactive
+API->>Pool: rollback
+API-->>Frontend: 400 One or more participant employees are invalid or inactive
+Frontend-->>User: Show validation error
+else Participants ok
+API->>DB: Lock employees for scheduling
+API->>DB: Select room FOR UPDATE
+alt Room not found
+API->>Pool: rollback
+API-->>Frontend: 404 Room not found
+Frontend-->>User: Show not found
+else Room found
+API->>DB: Check room capacity
+alt Capacity exceeded
+API->>Pool: rollback
+API-->>Frontend: 400 Total attendees cannot exceed room capacity
+Frontend-->>User: Show validation error
+else Capacity ok
+API->>DB: Check room conflict
+alt Room already booked
+API->>Pool: rollback
+API-->>Frontend: 409 Room is already booked for the selected time slot
+Frontend-->>User: Show conflict
+else Room available
+API->>DB: Validate employee scheduling conflicts
+alt Attendee conflicts
+API->>Pool: rollback
+API-->>Frontend: 409 Scheduling conflicts
+Frontend-->>User: Show conflict details
+else No conflicts
+API->>DB: Insert booking
+API->>DB: Insert participants
+API->>DB: Insert booking audit
+API->>Logger: booking_created
+API->>Pool: commit
+API-->>Frontend: 201 Booking created successfully
+Frontend-->>User: Show success
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end

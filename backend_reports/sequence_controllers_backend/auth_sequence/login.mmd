@@ -1,0 +1,67 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant PasswordUtils
+participant DB
+participant JWT
+
+User->>Frontend: Submit login form
+Frontend->>API: POST /api/auth/login
+API->>API: authRateLimit
+alt Rate limited
+API-->>Frontend: 429 Too many requests
+Frontend-->>User: Show rate limit message
+else Allowed
+API->>API: Validate email and password
+alt Missing email or password
+API-->>Frontend: 400 Email and password are required
+Frontend-->>User: Show validation error
+else Provided
+API->>DB: Query employee by email (primary schema)
+alt Primary query error
+alt ER_BAD_FIELD_ERROR
+DB-->>API: error code ER_BAD_FIELD_ERROR
+API->>DB: Query employee by email (legacy schema)
+alt Fallback error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+else Fallback success
+DB-->>API: rows
+end
+else Other DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+end
+else Primary query success
+DB-->>API: rows
+end
+API->>API: Check if employee exists
+alt No employee
+API-->>Frontend: 401 Invalid credentials
+Frontend-->>User: Show auth error
+else Employee found
+API->>PasswordUtils: verifyPassword(stored, provided)
+alt Password mismatch
+PasswordUtils-->>API: matched = false
+API-->>Frontend: 401 Invalid credentials
+Frontend-->>User: Show auth error
+else Password match
+alt Legacy password
+PasswordUtils-->>API: legacy = true
+API->>PasswordUtils: hashPassword(provided)
+API->>DB: Update password + reset flag (fallback on ER_BAD_FIELD_ERROR)
+else Not legacy
+API->>DB: Update last_login_at (ignore ER_BAD_FIELD_ERROR)
+end
+API->>JWT: sign token
+API->>API: set auth cookie
+API-->>Frontend: 200 Login successful + employee
+Frontend-->>User: Signed in
+end
+end
+end
+end

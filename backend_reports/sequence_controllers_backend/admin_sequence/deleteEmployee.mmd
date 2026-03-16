@@ -1,0 +1,44 @@
+sequenceDiagram
+autonumber
+participant Admin
+participant Frontend
+participant API
+participant PasswordUtils
+participant DB
+
+Admin->>Frontend: Delete employee
+Frontend->>API: DELETE /api/admin/employees/:employeeId
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>Admin: Show auth error
+else Authenticated
+API->>API: requireAdmin
+alt Not admin
+API-->>Frontend: 403 Admin access is required
+Frontend-->>Admin: Show forbidden
+else Admin
+API->>API: parsePositiveInt(employeeId)
+alt Invalid employee id
+API-->>Frontend: 400 Invalid employee id
+Frontend-->>Admin: Show validation error
+else Valid employee id
+API->>API: Compare to current user id
+alt Attempt to delete self
+API-->>Frontend: 400 You cannot delete your own account
+Frontend-->>Admin: Show validation error
+else Allowed
+API->>DB: DELETE employee by id
+alt Not found
+DB-->>API: affectedRows = 0
+API-->>Frontend: 404 Employee not found
+Frontend-->>Admin: Show not found
+else Deleted
+DB-->>API: affectedRows = 1
+API-->>Frontend: 200 Employee deleted successfully
+Frontend-->>Admin: Remove from list
+end
+end
+end
+end
+end

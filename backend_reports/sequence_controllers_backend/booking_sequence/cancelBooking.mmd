@@ -1,0 +1,65 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant Pool
+participant DB
+
+User->>Frontend: Cancel booking
+Frontend->>API: PATCH /api/bookings/:bookingId/cancel
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: Validate bookingId and actor employee id
+alt Invalid booking id
+API-->>Frontend: 400 Invalid booking id
+Frontend-->>User: Show validation error
+else Valid booking id
+alt Invalid authenticated user
+API-->>Frontend: 401 Invalid authenticated user
+Frontend-->>User: Show auth error
+else Valid user
+API->>Pool: getConnection + beginTransaction
+API->>DB: Select booking FOR UPDATE
+alt Booking not found
+API->>Pool: rollback
+API-->>Frontend: 404 Booking not found
+Frontend-->>User: Show not found
+else Booking found
+API->>API: Check permission (organizer or admin)
+alt Not allowed
+API->>Pool: rollback
+API-->>Frontend: 403 You do not have permission to cancel this booking
+Frontend-->>User: Show forbidden
+else Allowed
+API->>API: Check status
+alt Already cancelled
+API->>Pool: rollback
+API-->>Frontend: 200 Booking is already cancelled
+Frontend-->>User: Show status
+else Vacated
+API->>Pool: rollback
+API-->>Frontend: 400 Vacated bookings cannot be cancelled
+Frontend-->>User: Show validation error
+else Status ok
+API->>API: Check start_time is in the future
+alt Not future
+API->>Pool: rollback
+API-->>Frontend: 400 Only future bookings can be cancelled
+Frontend-->>User: Show validation error
+else Future booking
+API->>DB: Update booking status to cancelled
+API->>DB: Insert booking audit
+API->>Pool: commit
+API-->>Frontend: 200 Booking cancelled successfully
+Frontend-->>User: Show success
+end
+end
+end
+end
+end
+end
+end

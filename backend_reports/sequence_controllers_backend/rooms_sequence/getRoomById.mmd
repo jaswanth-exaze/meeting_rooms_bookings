@@ -1,0 +1,25 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: View room details
+Frontend->>API: GET /api/rooms/:roomId
+API->>API: parsePositiveInt(roomId)
+alt Invalid room id
+API-->>Frontend: 400 Invalid room id
+Frontend-->>User: Show validation error
+else Valid room id
+API->>DB: Query room by id
+alt Room not found
+DB-->>API: empty
+API-->>Frontend: 404 Room not found
+Frontend-->>User: Show not found
+else Found
+DB-->>API: row
+API-->>Frontend: 200 room details
+Frontend-->>User: Render room
+end
+end

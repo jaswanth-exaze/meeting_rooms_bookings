@@ -1,0 +1,33 @@
+sequenceDiagram
+autonumber
+participant Admin
+participant Frontend
+participant API
+participant DB
+
+Admin->>Frontend: View booking reports
+Frontend->>API: GET /api/bookings/reports
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>Admin: Show auth error
+else Authenticated
+API->>API: Check is_admin
+alt Not admin
+API-->>Frontend: 403 Admin access is required
+Frontend-->>Admin: Show forbidden
+else Admin
+API->>DB: Query summary stats
+API->>DB: Query bookings by location
+API->>DB: Query upcoming bookings
+alt DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>Admin: Show error state
+else Success
+DB-->>API: report rows
+API-->>Frontend: 200 reports payload
+Frontend-->>Admin: Render reports
+end
+end
+end

@@ -1,0 +1,41 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: Search employees
+Frontend->>API: GET /api/employees/search
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: Validate start_time and end_time
+alt Only one of start_time/end_time provided
+API-->>Frontend: 400 Both start_time and end_time are required together
+Frontend-->>User: Show validation error
+else Both provided or both absent
+alt Invalid start_time or end_time format
+API-->>Frontend: 400 Invalid start_time or end_time format
+Frontend-->>User: Show validation error
+else Valid time filters
+alt end_time <= start_time
+API-->>Frontend: 400 end_time must be greater than start_time
+Frontend-->>User: Show validation error
+else Filters valid
+API->>DB: Execute search query with filters
+alt DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+else Success
+DB-->>API: rows
+API-->>Frontend: 200 employee results
+Frontend-->>User: Render results
+end
+end
+end
+end
+end

@@ -1,0 +1,50 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: Load profile
+Frontend->>API: GET /api/auth/me
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: parse employee_id from token
+alt Invalid authenticated user
+API-->>Frontend: 401 Invalid authenticated user
+Frontend-->>User: Show auth error
+else Valid user
+API->>DB: Query employee by id (primary schema)
+alt Primary query error
+alt ER_BAD_FIELD_ERROR
+DB-->>API: error code ER_BAD_FIELD_ERROR
+API->>DB: Query employee by id (legacy schema)
+alt Fallback error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+else Fallback success
+DB-->>API: rows
+end
+else Other DB error
+DB-->>API: error
+API-->>Frontend: 500 with error message
+Frontend-->>User: Show error state
+end
+else Primary query success
+DB-->>API: rows
+end
+API->>API: Check if employee exists
+alt Not found
+API->>API: clear auth cookie
+API-->>Frontend: 401 Authenticated user was not found
+Frontend-->>User: Show auth error
+else Found
+API-->>Frontend: 200 employee payload
+Frontend-->>User: Render profile
+end
+end
+end

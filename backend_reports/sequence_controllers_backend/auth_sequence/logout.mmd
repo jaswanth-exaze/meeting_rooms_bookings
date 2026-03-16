@@ -1,0 +1,18 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant DB
+
+User->>Frontend: Click logout
+Frontend->>API: POST /api/auth/logout
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: clear auth cookie
+API-->>Frontend: 200 Logged out successfully
+Frontend-->>User: Signed out
+end

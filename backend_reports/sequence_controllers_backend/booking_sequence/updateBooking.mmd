@@ -1,0 +1,126 @@
+sequenceDiagram
+autonumber
+participant User
+participant Frontend
+participant API
+participant Pool
+participant DB
+participant Logger
+
+User->>Frontend: Update booking
+Frontend->>API: PATCH /api/bookings/:bookingId
+API->>API: requireAuth
+alt Not authenticated
+API-->>Frontend: 401 Authentication is required
+Frontend-->>User: Show auth error
+else Authenticated
+API->>API: Validate bookingId and actor employee id
+alt Invalid booking id
+API-->>Frontend: 400 Invalid booking id
+Frontend-->>User: Show validation error
+else Valid booking id
+alt Invalid authenticated user
+API-->>Frontend: 401 Invalid authenticated user
+Frontend-->>User: Show auth error
+else Valid user
+API->>Pool: getConnection + beginTransaction
+API->>DB: Select booking FOR UPDATE
+alt Booking not found
+API->>Pool: rollback
+API-->>Frontend: 404 Booking not found
+Frontend-->>User: Show not found
+else Booking found
+API->>API: Check permission (organizer or admin)
+alt Not allowed
+API->>Pool: rollback
+API-->>Frontend: 403 You do not have permission to edit this booking
+Frontend-->>User: Show forbidden
+else Allowed
+API->>API: Check status (cancelled/vacated)
+alt Cancelled or vacated
+API->>Pool: rollback
+API-->>Frontend: 400 Booking cannot be edited
+Frontend-->>User: Show validation error
+else Status ok
+API->>API: Validate participant list
+alt Invalid participant list
+API->>Pool: rollback
+API-->>Frontend: 400 participant_employee_ids validation error
+Frontend-->>User: Show validation error
+else Participants valid
+API->>API: Validate title/description/start/end
+alt Missing required fields
+API->>Pool: rollback
+API-->>Frontend: 400 title, description, start_time, end_time are required
+Frontend-->>User: Show validation error
+else Fields valid
+alt end_time <= start_time
+API->>Pool: rollback
+API-->>Frontend: 400 end_time must be greater than start_time
+Frontend-->>User: Show validation error
+else Time order valid
+alt Past booking edit
+API->>Pool: rollback
+API-->>Frontend: 400 You can only edit future bookings
+Frontend-->>User: Show validation error
+else Time ok
+API->>DB: Fetch organizer employee
+alt Organizer not found
+API->>Pool: rollback
+API-->>Frontend: 404 Organizer employee was not found
+Frontend-->>User: Show not found
+else Organizer ok
+API->>DB: Fetch participants if provided
+alt Participants invalid or inactive
+API->>Pool: rollback
+API-->>Frontend: 400 One or more participant employees are invalid or inactive
+Frontend-->>User: Show validation error
+else Participants ok
+API->>DB: Lock employees for scheduling
+API->>DB: Select room FOR UPDATE
+alt Room not found
+API->>Pool: rollback
+API-->>Frontend: 404 Room not found
+Frontend-->>User: Show not found
+else Room found
+API->>DB: Check room capacity
+alt Capacity exceeded
+API->>Pool: rollback
+API-->>Frontend: 400 Total attendees cannot exceed room capacity
+Frontend-->>User: Show validation error
+else Capacity ok
+API->>DB: Check room conflict
+alt Room already booked
+API->>Pool: rollback
+API-->>Frontend: 409 Room is already booked for the selected time slot
+Frontend-->>User: Show conflict
+else Room available
+API->>DB: Validate employee scheduling conflicts
+alt Attendee conflicts
+API->>Pool: rollback
+API-->>Frontend: 409 Scheduling conflicts
+Frontend-->>User: Show conflict details
+else No conflicts
+API->>DB: Sync participants (if provided)
+API->>DB: Update booking
+API->>DB: Insert booking audit
+API->>Logger: booking_participants_updated (if applicable)
+API->>Pool: commit
+API-->>Frontend: 200 Booking updated successfully
+Frontend-->>User: Show success
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
+end
