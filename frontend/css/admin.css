@@ -1,0 +1,67 @@
+/* Admin dashboard specific styles */
+.report-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  margin-bottom: 0.9rem;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.35fr;
+  gap: 0.9rem;
+}
+
+.employee-directory-filters {
+  margin-bottom: 0.7rem;
+}
+
+.employee-filter-summary {
+  margin: 0 0 0.85rem;
+}
+
+.employee-admin-modal-card {
+  width: min(78vw, 920px);
+  max-width: 78vw;
+  height: auto;
+}
+
+.employee-admin-modal-head {
+  margin-bottom: 0.8rem;
+}
+
+.employee-admin-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 0.9rem;
+}
+
+.employee-admin-form .form-item-full {
+  grid-column: 1 / -1;
+}
+
+.employee-admin-form .helper-message,
+.employee-admin-form .form-actions {
+  grid-column: 1 / -1;
+}
+
+.employee-admin-form-actions {
+  justify-content: flex-end;
+  gap: 0.7rem;
+}
+
+@media (max-width: 1040px) {
+  .settings-grid,
+  .report-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-admin-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .employee-admin-modal-card {
+    height: auto;
+  }
+}

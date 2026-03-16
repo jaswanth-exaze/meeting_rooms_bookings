@@ -1,0 +1,399 @@
+/* Time picker styles */
+.flatpickr-time {
+  background: #f8fbff;
+  border-top: 1px solid #eff3f8;
+  padding: 0.75rem;
+}
+
+.flatpickr-hour {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.flatpickr-minute,
+.flatpickr-second {
+  color: var(--navy);
+  font-weight: 600;
+}
+
+.flatpickr-time input {
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  padding: 0.45rem 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.flatpickr-time input:focus {
+  border-color: var(--leaf);
+  outline: none;
+}
+
+.numInputWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.numInputWrapper input {
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  background: var(--white);
+  color: var(--navy);
+  font-weight: 600;
+  padding: 0.4rem 0.5rem;
+  min-width: 50px;
+  text-align: center;
+}
+
+.numInputWrapper input:focus {
+  border-color: var(--leaf);
+  outline: none;
+}
+
+.numInputWrapper span {
+  border: 1px solid #dbe3ef;
+  color: var(--steel);
+  transition: all 0.2s ease;
+  height: 28px;
+  width: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.numInputWrapper span:hover {
+  background-color: rgba(66, 158, 56, 0.1);
+  border-color: var(--leaf);
+  color: var(--leaf);
+}
+
+/* Modern Time Picker Component */
+.modern-time-picker-wrapper {
+  position: relative;
+  display: block;
+  width: 100%;
+  z-index: 100;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.modern-time-display {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+.modern-time-input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0.42rem 0.62rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 38px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.modern-time-input:focus {
+  border-color: #7ca6d6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 131, 195, 0.2);
+}
+
+.modern-time-input::placeholder {
+  color: var(--text-muted);
+}
+
+.modern-time-picker-popup {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 0.45rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0.75rem;
+  box-shadow: 0 8px 24px rgba(28, 42, 67, 0.15);
+  min-width: 220px;
+  display: none;
+  z-index: 10000;
+  animation: slideDown 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  will-change: display, transform;
+  pointer-events: auto;
+}
+
+.modern-time-picker-popup.active {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.time-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.time-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.time-controls {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.time-display-value {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--navy);
+  font-family: "Courier New", monospace;
+  letter-spacing: 0.1em;
+  min-width: 60px;
+  text-align: center;
+  padding: 0.36rem 0.3rem;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(66, 158, 56, 0.08) 0%, rgba(66, 158, 56, 0.04) 100%);
+  flex: 0 0 auto;
+}
+
+.time-btn {
+  border: 2px solid #dbe3ef;
+  border-radius: 7px;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: var(--white);
+  color: var(--steel);
+  font-size: 1.02rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.time-btn:hover {
+  border-color: var(--leaf);
+  background: rgba(66, 158, 56, 0.1);
+  color: var(--leaf);
+  transform: scale(1.08);
+}
+
+.time-btn:active {
+  transform: scale(0.95);
+}
+
+.time-confirm-btn {
+  background: linear-gradient(120deg, var(--leaf) 0%, var(--leaf-2) 100%);
+  color: var(--white);
+  border: none;
+  border-radius: 9px;
+  padding: 0.52rem 1rem;
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(66, 158, 56, 0.25);
+  min-height: 34px;
+  margin-top: 0.1rem;
+  width: 100%;
+}
+
+.time-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(66, 158, 56, 0.35);
+}
+
+.time-confirm-btn:active {
+  transform: translateY(0);
+}
+
+.time-period-toggle {
+  border: 2px solid #dbe3ef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--navy);
+  min-width: 82px;
+  height: 34px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.time-period-toggle:hover {
+  border-color: var(--leaf);
+  color: var(--leaf);
+  background: rgba(66, 158, 56, 0.08);
+}
+
+.search-chip input[type="time"],
+.form-item input[type="time"] {
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input[type="time"],
+.input-time {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  border: 1px solid #dbe3ef;
+  border-radius: 9px;
+  padding: 0.42rem 0.62rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  min-height: 38px;
+}
+
+input[type="time"]:focus,
+.input-time:focus {
+  border-color: #7ca6d6;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(79, 131, 195, 0.2);
+}
+
+input[type="time"]::placeholder {
+  color: var(--text-muted);
+}
+
+body.theme-dark .flatpickr-time {
+  background: #14253a;
+  border-top-color: #263f5c;
+}
+
+body.theme-dark .modern-time-picker-popup {
+  background: linear-gradient(180deg, #16293f 0%, #122236 100%);
+  border-color: #2d4a6a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+body.theme-dark .time-label {
+  color: #9eb3cf;
+}
+
+body.theme-dark .time-display-value {
+  color: #e4efff;
+  background: linear-gradient(135deg, rgba(79, 131, 195, 0.25) 0%, rgba(79, 131, 195, 0.12) 100%);
+}
+
+body.theme-dark .time-btn {
+  border-color: #2d4a6a;
+  background: #15263a;
+  color: #a7c2e5;
+}
+
+body.theme-dark .time-btn:hover {
+  border-color: #4f83c3;
+  color: #dce8f8;
+  background: rgba(79, 131, 195, 0.2);
+}
+
+body.theme-dark .time-period-toggle {
+  border-color: #2d4a6a;
+  background: #15263a;
+  color: #dce8f8;
+}
+
+body.theme-dark .time-period-toggle:hover {
+  border-color: #4f83c3;
+  color: #dce8f8;
+  background: rgba(79, 131, 195, 0.18);
+}
+
+body.theme-dark .numInputWrapper input,
+body.theme-dark .flatpickr-time input,
+body.theme-dark .modern-time-input,
+body.theme-dark input[type="time"] {
+  border-color: #2c4665;
+  color: #dce8f8;
+  background: linear-gradient(180deg, #15263a 0%, #111d2d 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+body.theme-dark .numInputWrapper span {
+  border-color: #2d4a6a;
+  color: #a8c2e6;
+  background: #15263a;
+}
+
+body.theme-dark .numInputWrapper span:hover {
+  border-color: #4f83c3;
+  background: rgba(79, 131, 195, 0.2);
+  color: #dce8f8;
+}
+
+body.page-dashboard.theme-dark .flatpickr-time {
+  background: #14253a;
+  border-top-color: #263f5c;
+}
+
+body.page-dashboard.theme-dark .modern-time-picker-popup {
+  background: linear-gradient(180deg, #16293f 0%, #122236 100%);
+  border-color: #2d4a6a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.38);
+}
+
+body.page-dashboard.theme-dark .time-label {
+  color: #9eb3cf;
+}
+
+body.page-dashboard.theme-dark .time-display-value {
+  color: #e4efff;
+  background: linear-gradient(135deg, rgba(79, 131, 195, 0.25) 0%, rgba(79, 131, 195, 0.12) 100%);
+}
+
+body.page-dashboard.theme-dark .time-btn {
+  border-color: #2d4a6a;
+  background: #15263a;
+  color: #a7c2e5;
+}
+
+body.page-dashboard.theme-dark .time-btn:hover {
+  border-color: #4f83c3;
+  color: #dce8f8;
+  background: rgba(79, 131, 195, 0.2);
+}
+
+body.page-dashboard.theme-dark .time-period-toggle {
+  border-color: #2d4a6a;
+  background: #15263a;
+  color: #dce8f8;
+}
+
+body.page-dashboard.theme-dark .time-period-toggle:hover {
+  border-color: #4f83c3;
+  color: #dce8f8;
+  background: rgba(79, 131, 195, 0.18);
+}
