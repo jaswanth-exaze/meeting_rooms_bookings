@@ -1,26 +1,26 @@
 const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/api";
 
 const ROOM_IMAGES_BY_NAME = {
-  "cell pod 1": "assets/cell_pod_1.png",
-  "cell pod 2": "assets/cell_pod_2.png",
-  hubble: "assets/hubble-2-persons.png",
-  fusion: "assets/fussion-6-members.png",
-  nexus: "assets/Nexus-2-persons.png",
-  zenith: "assets/zenith-3-persons.png",
-  synergy: "assets/synergy-4-members.png",
-  tranquil: "assets/tranquil-5-members.png",
-  "think tank": "assets/think_tank.png",
-  "innovation hub": "assets/Innovation_Hub.png",
-  boardroom: "assets/boardroom-15-members.png",
-  pinnacle: "assets/pinnacle-15-members.png",
-  "conference room a": "assets/Conference_Room_A.png",
-  "conference room b": "assets/Conference_Room_B.png",
-  "training room": "assets/training_room.png",
-  karoo: "assets/hubble-2-persons.png",
-  meerkat: "assets/Nexus-2-persons.png",
-  "cape town": "assets/synergy-4-members.png",
-  drakensberg: "assets/fussion-6-members.png",
-  "table mountain": "assets/fussion-6-members.png",
+  "cell pod 1": "assets/images/cell_pod_1.png",
+  "cell pod 2": "assets/images/cell_pod_2.png",
+  hubble: "assets/images/hubble-2-persons.png",
+  fusion: "assets/images/fussion-6-members.png",
+  nexus: "assets/images/Nexus-2-persons.png",
+  zenith: "assets/images/zenith-3-persons.png",
+  synergy: "assets/images/synergy-4-members.png",
+  tranquil: "assets/images/tranquil-5-members.png",
+  "think tank": "assets/images/think_tank.png",
+  "innovation hub": "assets/images/Innovation_Hub.png",
+  boardroom: "assets/images/boardroom-15-members.png",
+  pinnacle: "assets/images/pinnacle-15-members.png",
+  "conference room a": "assets/images/Conference_Room_A.png",
+  "conference room b": "assets/images/Conference_Room_B.png",
+  "training room": "assets/images/training_room.png",
+  karoo: "assets/images/hubble-2-persons.png",
+  meerkat: "assets/images/Nexus-2-persons.png",
+  "cape town": "assets/images/synergy-4-members.png",
+  drakensberg: "assets/images/fussion-6-members.png",
+  "table mountain": "assets/images/fussion-6-members.png",
 };
 
 const ROOM_AMENITY_DEFINITIONS = Object.freeze([
@@ -388,11 +388,11 @@ function getLocationLatLng(locationPoint) {
 
 function getRoomImage(room) {
   if (!room) {
-    return "assets/image(3).png";
+    return "assets/images/image(3).png";
   }
 
   const normalizedRoomName = normalizeRoomName(room.name);
-  return ROOM_IMAGES_BY_NAME[normalizedRoomName] || "assets/image(3).png";
+  return ROOM_IMAGES_BY_NAME[normalizedRoomName] || "assets/images/image(3).png";
 }
 
 function isAmenityEnabled(value) {

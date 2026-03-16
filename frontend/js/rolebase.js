@@ -2,26 +2,26 @@ const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/a
 
 const ROOM_IMAGES_BY_NAME = {
   
-  "cell pod 1": "../assets/cell_pod_1.png",
-  "cell pod 2": "../assets/cell_pod_2.png",
-  hubble:"../assets/hubble-2-persons.png",
-  fusion: "../assets/fussion-6-members.png",
-  synergy: "../assets/synergy-4-members.png",
-  nexus: "../assets/Nexus-2-persons.png",
-  zenith: "../assets/zenith-3-persons.png",
-  "tranquil": "../assets/tranquil-5-members.png",
-  "think tank": "../assets/think_tank.png",
-  "innovation hub": "../assets/Innovation_Hub.png",
-  boardroom: "../assets/boardroom-15-members.png",
-  pinnacle: "../assets/pinnacle-15-members.png",
-  "conference room a": "../assets/Conference_Room_A.png",
-  "conference room b": "../assets/Conference_Room_B.png",
-  "training room": "../assets/training_room.png",
-  karoo: "../assets/hubble-2-persons.png",
-  meerkat: "../assets/Nexus-2-persons.png",
-  "cape town": "../assets/synergy-4-members.png",
-  "drakensberg": "../assets/fussion-6-members.png",
-  "table mountain": "../assets/fussion-6-members.png",
+  "cell pod 1": "../assets/images/cell_pod_1.png",
+  "cell pod 2": "../assets/images/cell_pod_2.png",
+  hubble:"../assets/images/hubble-2-persons.png",
+  fusion: "../assets/images/fussion-6-members.png",
+  synergy: "../assets/images/synergy-4-members.png",
+  nexus: "../assets/images/Nexus-2-persons.png",
+  zenith: "../assets/images/zenith-3-persons.png",
+  "tranquil": "../assets/images/tranquil-5-members.png",
+  "think tank": "../assets/images/think_tank.png",
+  "innovation hub": "../assets/images/Innovation_Hub.png",
+  boardroom: "../assets/images/boardroom-15-members.png",
+  pinnacle: "../assets/images/pinnacle-15-members.png",
+  "conference room a": "../assets/images/Conference_Room_A.png",
+  "conference room b": "../assets/images/Conference_Room_B.png",
+  "training room": "../assets/images/training_room.png",
+  karoo: "../assets/images/hubble-2-persons.png",
+  meerkat: "../assets/images/Nexus-2-persons.png",
+  "cape town": "../assets/images/synergy-4-members.png",
+  "drakensberg": "../assets/images/fussion-6-members.png",
+  "table mountain": "../assets/images/fussion-6-members.png",
 
 };
 
@@ -60,8 +60,8 @@ const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>',
 });
 
-const MALE_PROFILE_IMAGE = "../assets/male_profile.png";
-const FEMALE_PROFILE_IMAGE = "../assets/female_profile.png";
+const MALE_PROFILE_IMAGE = "../assets/images/male_profile.png";
+const FEMALE_PROFILE_IMAGE = "../assets/images/female_profile.png";
 const TIMEZONE_CODE_OVERRIDES = Object.freeze({
   "Asia/Kolkata": "IST",
   "Asia/Calcutta": "IST",
@@ -592,9 +592,9 @@ function normalizeRoomName(roomName) {
 }
 
 function getRoomImage(room) {
-  if (!room) return "../assets/image(3).png";
+  if (!room) return "../assets/images/image(3).png";
   const normalized = normalizeRoomName(room.name);
-  return ROOM_IMAGES_BY_NAME[normalized] || "../assets/image(3).png";
+  return ROOM_IMAGES_BY_NAME[normalized] || "../assets/images/image(3).png";
 }
 
 function isAmenityEnabled(value) {
