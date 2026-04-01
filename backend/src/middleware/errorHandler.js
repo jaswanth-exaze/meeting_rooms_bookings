@@ -1,5 +1,8 @@
+// Provide error handler middleware.
+
 const logger = require("../utils/logger");
 
+// Convert thrown errors into consistent API responses.
 function errorHandler(err, req, res, _next) {
   const explicitStatus = Number(err?.status || err?.statusCode || 0);
   const statusCode =

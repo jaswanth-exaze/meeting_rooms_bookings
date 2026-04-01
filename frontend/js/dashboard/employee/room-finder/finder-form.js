@@ -1,8 +1,12 @@
+// Manage the room finder form inputs and request window.
+
+// Set room finder message.
 function setRoomFinderMessage(message, type = "") {
   const messageElement = document.getElementById("roomFinderMessage");
   setHelperMessage(messageElement, message, type);
 }
 
+// Apply finder date time constraints.
 function applyFinderDateTimeConstraints() {
   const dateInput = document.getElementById("finderDate");
   const timeInput = document.getElementById("finderTime");
@@ -29,6 +33,7 @@ function applyFinderDateTimeConstraints() {
   }
 }
 
+// Build finder window.
 function buildFinderWindow() {
   const dateInput = document.getElementById("finderDate");
   const timeInput = document.getElementById("finderTime");
@@ -36,6 +41,7 @@ function buildFinderWindow() {
   return buildWindowFromLocalInputs(dateInput?.value, timeInput?.value, durationInput?.value);
 }
 
+// Initialize room finder.
 function initializeRoomFinder() {
   const form = document.getElementById("roomFinderForm");
   if (!form) return;
@@ -65,6 +71,7 @@ function initializeRoomFinder() {
   }
 
   applyFinderDateTimeConstraints();
+  // Clear finder message.
   const clearFinderMessage = () => setRoomFinderMessage("", "");
   dateInput?.addEventListener("change", applyFinderDateTimeConstraints);
   timeInput?.addEventListener("focus", applyFinderDateTimeConstraints);

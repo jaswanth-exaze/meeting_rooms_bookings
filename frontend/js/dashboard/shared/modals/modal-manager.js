@@ -1,3 +1,6 @@
+// Provide shared modal open, close, and focus management.
+
+// Define shared constants and configuration used by this module.
 const MODAL_FOCUSABLE_SELECTOR = [
   "a[href]",
   "button:not([disabled])",
@@ -9,18 +12,21 @@ const MODAL_FOCUSABLE_SELECTOR = [
 let activeModalElement = null;
 let lastModalTriggerElement = null;
 
+// Return whether is visible element.
 function isVisibleElement(element) {
   if (!(element instanceof HTMLElement)) return false;
   if (element.hidden) return false;
   return element.getClientRects().length > 0;
 }
 
+// Return modal focusable elements.
 function getModalFocusableElements(modalElement) {
   if (!modalElement) return [];
   return Array.from(modalElement.querySelectorAll(MODAL_FOCUSABLE_SELECTOR))
     .filter(node => isVisibleElement(node) && node.getAttribute("aria-hidden") !== "true");
 }
 
+// Trap active modal focus.
 function trapActiveModalFocus(event) {
   if (event.key !== "Tab" || !activeModalElement || activeModalElement.hidden) return;
 
@@ -45,6 +51,7 @@ function trapActiveModalFocus(event) {
   }
 }
 
+// Open managed modal.
 function openManagedModal(modalElement, triggerElement = null) {
   if (!modalElement) return;
 
@@ -65,6 +72,7 @@ function openManagedModal(modalElement, triggerElement = null) {
   }
 }
 
+// Close managed modal.
 function closeManagedModal(modalElement) {
   if (!modalElement) return;
 

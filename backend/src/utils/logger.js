@@ -1,5 +1,8 @@
+// Emit structured logs with environment-aware log levels.
+
 const { nodeEnv } = require("../config/env");
 
+// Define shared constants used throughout this module.
 const LEVELS = {
   error: 0,
   warn: 1,
@@ -14,10 +17,12 @@ const configuredLevel = Object.prototype.hasOwnProperty.call(LEVELS, configuredL
   ? configuredLevelRaw
   : "info";
 
+// Return whether the configured log level allows this message.
 function shouldLog(level) {
   return LEVELS[level] <= LEVELS[configuredLevel];
 }
 
+// Normalize metadata so it can be logged safely.
 function serializeMeta(meta) {
   if (!meta || typeof meta !== "object" || Array.isArray(meta)) {
     return {};
@@ -25,6 +30,7 @@ function serializeMeta(meta) {
   return meta;
 }
 
+// Write a structured log entry when the level is enabled.
 function write(level, message, meta) {
   if (!shouldLog(level)) return;
 
@@ -43,18 +49,22 @@ function write(level, message, meta) {
   console.log(line);
 }
 
+// Log an error message.
 function error(message, meta) {
   write("error", message, meta);
 }
 
+// Log a warning message.
 function warn(message, meta) {
   write("warn", message, meta);
 }
 
+// Log an informational message.
 function info(message, meta) {
   write("info", message, meta);
 }
 
+// Log a debug message.
 function debug(message, meta) {
   write("debug", message, meta);
 }

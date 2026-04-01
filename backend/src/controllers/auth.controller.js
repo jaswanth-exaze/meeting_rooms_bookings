@@ -1,3 +1,5 @@
+// Handle auth API helpers and route actions.
+
 const asyncHandler = require("../middleware/asyncHandler");
 const { query } = require("../config/db");
 const jwt = require("jsonwebtoken");
@@ -11,16 +13,19 @@ const {
 } = require("../config/env");
 const { getPasswordValidationError, hashPassword, verifyPassword } = require("../utils/password");
 
+// Normalize loosely typed truthy values into a boolean.
 function toBoolean(value) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
+// Parse a positive integer from the provided value.
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
 }
 
+// Shape an employee row into the API payload returned to clients.
 function buildEmployeePayload(employeeRow) {
   return {
     employee_id: employeeRow.employee_id,
@@ -42,6 +47,7 @@ function buildEmployeePayload(employeeRow) {
   };
 }
 
+// Create a signed JWT for the authenticated employee.
 function signAuthToken(employee) {
   return jwt.sign(
     {
@@ -58,6 +64,7 @@ function signAuthToken(employee) {
   );
 }
 
+// Build the cookie settings used for authentication cookies.
 function buildCookieOptions() {
   return {
     httpOnly: true,
@@ -68,10 +75,12 @@ function buildCookieOptions() {
   };
 }
 
+// Attach the signed authentication cookie to the response.
 function setAuthCookie(res, token) {
   res.cookie(authCookieName, token, buildCookieOptions());
 }
 
+// Clear the authentication cookie from the response.
 function clearAuthCookie(res) {
   res.clearCookie(authCookieName, {
     httpOnly: true,
@@ -81,6 +90,7 @@ function clearAuthCookie(res) {
   });
 }
 
+// Authenticate the supplied credentials and start a session.
 const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body || {};
 
@@ -192,11 +202,13 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
+// End the current authenticated session.
 const logout = asyncHandler(async (_req, res) => {
   clearAuthCookie(res);
   return res.json({ message: "Logged out successfully." });
 });
 
+// Return the authenticated employee profile.
 const me = asyncHandler(async (req, res) => {
   const employeeId = parsePositiveInt(req.user?.employee_id);
   if (!employeeId) {
@@ -262,6 +274,7 @@ const me = asyncHandler(async (req, res) => {
   return res.json({ employee: buildEmployeePayload(rows[0]) });
 });
 
+// Validate and update the authenticated employee password.
 const changePassword = asyncHandler(async (req, res) => {
   const employeeId = parsePositiveInt(req.user?.employee_id);
   if (!employeeId) {

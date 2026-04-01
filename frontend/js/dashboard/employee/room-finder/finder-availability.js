@@ -1,3 +1,6 @@
+// Load room availability data for the finder view.
+
+// Render availability list.
 function renderAvailabilityList(rooms) {
   const list = document.getElementById("overviewAvailabilityList");
   if (!list) return;
@@ -37,6 +40,7 @@ function renderAvailabilityList(rooms) {
     .join("");
 }
 
+// Render availability error state.
 function renderAvailabilityErrorState() {
   const list = document.getElementById("overviewAvailabilityList");
   if (!list) return;
@@ -51,6 +55,7 @@ function renderAvailabilityErrorState() {
   `;
 }
 
+// Load finder locations.
 async function loadFinderLocations() {
   const locationSelect = document.getElementById("finderLocation");
   if (!locationSelect) return;
@@ -73,6 +78,7 @@ async function loadFinderLocations() {
   }
 }
 
+// Search rooms.
 async function searchRooms(event) {
   if (event) event.preventDefault();
 
@@ -121,6 +127,7 @@ async function searchRooms(event) {
   }
 }
 
+// Load overview availability.
 async function loadOverviewAvailability() {
   const start = new Date();
   const end = new Date(start.getTime() + 60 * 1000);

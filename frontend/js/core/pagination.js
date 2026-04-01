@@ -1,11 +1,16 @@
+// Store client-side pagination state and render controls.
+
+// Clamp a numeric value to the provided range.
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
+// Return pagination config.
 function getPaginationConfig(key) {
   return paginationState[key] || null;
 }
 
+// Set pagination rows.
 function setPaginationRows(key, rows) {
   const config = getPaginationConfig(key);
   if (!config) return;
@@ -13,12 +18,14 @@ function setPaginationRows(key, rows) {
   config.page = 1;
 }
 
+// Return pagination total pages.
 function getPaginationTotalPages(key) {
   const config = getPaginationConfig(key);
   if (!config) return 1;
   return Math.max(1, Math.ceil(config.rows.length / config.pageSize));
 }
 
+// Return pagination slice.
 function getPaginationSlice(key) {
   const config = getPaginationConfig(key);
   if (!config) return [];
@@ -31,6 +38,7 @@ function getPaginationSlice(key) {
   return config.rows.slice(start, end);
 }
 
+// Render pagination controls.
 function renderPaginationControls(containerId, key) {
   const container = document.getElementById(containerId);
   const config = getPaginationConfig(key);

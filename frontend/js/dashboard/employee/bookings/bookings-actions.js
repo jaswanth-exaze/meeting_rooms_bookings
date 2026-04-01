@@ -1,8 +1,12 @@
+// Determine which booking actions are available to the current user.
+
+// Return whether the current user can manage the booking.
 function userCanManageBooking(booking) {
   if (!booking) return false;
   return isAdmin || booking.is_organizer === true;
 }
 
+// Return whether the booking can still be changed before it starts.
 function canManageFutureBooking(booking) {
   const normalizedStatus = String(booking?.status || "").toLowerCase();
   if (normalizedStatus === "cancelled" || normalizedStatus === "vacated") return false;
@@ -13,6 +17,7 @@ function canManageFutureBooking(booking) {
   return start.getTime() > Date.now();
 }
 
+// Return whether the booking can be vacated right now.
 function canVacateOngoingBooking(booking) {
   const normalizedStatus = String(booking?.status || "").toLowerCase();
   if (normalizedStatus === "cancelled" || normalizedStatus === "vacated") return false;
@@ -26,6 +31,7 @@ function canVacateOngoingBooking(booking) {
   return start.getTime() <= now && end.getTime() > now;
 }
 
+// Return booking action state.
 function getBookingActionState(booking) {
   const bookingId = Number(booking?.booking_id);
   if (!bookingId) {
@@ -56,6 +62,7 @@ function getBookingActionState(booking) {
   return { type: "view", reason: "Booking details are view-only for invited attendees." };
 }
 
+// Build booking actions cell.
 function buildBookingActionsCell(booking) {
   const bookingId = Number(booking?.booking_id);
   const actionState = getBookingActionState(booking);
@@ -121,14 +128,17 @@ function buildBookingActionsCell(booking) {
   return `<span class="action-muted" title="${actionReason}">Locked</span>`;
 }
 
+// Return booking role label.
 function getBookingRoleLabel(booking) {
   return booking?.is_organizer === true ? "Organizer" : "Invited";
 }
 
+// Return booking role class name.
 function getBookingRoleClassName(booking) {
   return booking?.is_organizer === true ? "organizer" : "invited";
 }
 
+// Return booking organizer display name.
 function getBookingOrganizerDisplayName(booking) {
   if (booking?.is_organizer === true) {
     return "You";

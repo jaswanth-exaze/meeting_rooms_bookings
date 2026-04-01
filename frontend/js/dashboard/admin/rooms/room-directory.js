@@ -1,3 +1,6 @@
+// Load, filter, and render the admin room directory.
+
+// Populate admin room location options.
 function populateAdminRoomLocationOptions() {
   const locationSelect = document.getElementById("newRoomLocation");
   if (!locationSelect) return;
@@ -17,6 +20,7 @@ function populateAdminRoomLocationOptions() {
   }
 }
 
+// Populate admin room filters.
 function populateAdminRoomFilters() {
   const locationFilter = document.getElementById("roomDirectoryLocationFilter");
   if (!locationFilter) return;
@@ -36,6 +40,7 @@ function populateAdminRoomFilters() {
   }
 }
 
+// Return admin room filter elements.
 function getAdminRoomFilterElements() {
   return {
     search: document.getElementById("roomDirectorySearch"),
@@ -44,6 +49,7 @@ function getAdminRoomFilterElements() {
   };
 }
 
+// Return admin room filter values.
 function getAdminRoomFilterValues() {
   const filters = getAdminRoomFilterElements();
   return {
@@ -52,10 +58,12 @@ function getAdminRoomFilterValues() {
   };
 }
 
+// Return whether has active admin room filters.
 function hasActiveAdminRoomFilters() {
   return Object.values(getAdminRoomFilterValues()).some(Boolean);
 }
 
+// Set admin room filter summary.
 function setAdminRoomFilterSummary(filteredCount, totalCount) {
   const summaryElement = getAdminRoomFilterElements().summary;
   if (!summaryElement) return;
@@ -73,6 +81,7 @@ function setAdminRoomFilterSummary(filteredCount, totalCount) {
   summaryElement.textContent = `Showing ${filteredCount} of ${totalCount} rooms.`;
 }
 
+// Apply admin room filters.
 function applyAdminRoomFilters() {
   const filters = getAdminRoomFilterValues();
   const filteredRows = adminRoomDirectory.filter(row => {
@@ -97,12 +106,14 @@ function applyAdminRoomFilters() {
   renderRoomPage();
 }
 
+// Return room size label.
 function getRoomSizeLabel(sizeSqft) {
   const parsed = Number(sizeSqft);
   if (!Number.isFinite(parsed) || parsed <= 0) return "-";
   return `${Math.round(parsed)} sq ft`;
 }
 
+// Render room page.
 function renderRoomPage() {
   const table = document.getElementById("roomAdminTable");
   if (!table) return;
@@ -137,6 +148,7 @@ function renderRoomPage() {
   renderPaginationControls("roomPagination", "rooms");
 }
 
+// Render room table.
 function renderRoomTable(rows) {
   const table = document.getElementById("roomAdminTable");
   if (!table) return;
@@ -146,6 +158,7 @@ function renderRoomTable(rows) {
   applyAdminRoomFilters();
 }
 
+// Load rooms.
 async function loadRooms() {
   if (currentRole !== "admin") return;
 

@@ -1,17 +1,22 @@
+// Handle admin API helpers and route actions.
+
 const asyncHandler = require("../middleware/asyncHandler");
 const { query } = require("../config/db");
 const { getPasswordValidationError, hashPassword } = require("../utils/password");
 
+// Parse a positive integer from the provided value.
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return null;
   return parsed;
 }
 
+// Normalize loosely typed truthy values into a boolean.
 function toBoolean(value) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
+// Normalize gender.
 function normalizeGender(value) {
   const normalized = String(value || "")
     .trim()
@@ -21,11 +26,13 @@ function normalizeGender(value) {
   return null;
 }
 
+// Normalize optional text.
 function normalizeOptionalText(value) {
   const normalized = String(value || "").trim();
   return normalized || null;
 }
 
+// Normalize optional number.
 function normalizeOptionalNumber(value) {
   if (value === null || value === undefined) return null;
   const raw = String(value).trim();
@@ -35,6 +42,7 @@ function normalizeOptionalNumber(value) {
   return parsed;
 }
 
+// Normalize date.
 function normalizeDate(value) {
   if (value === null || value === undefined) return null;
 
@@ -51,6 +59,7 @@ function normalizeDate(value) {
   return raw;
 }
 
+// Shape an employee row into the API payload returned to clients.
 function buildEmployeePayload(row) {
   return {
     employee_id: Number(row.employee_id || 0),
@@ -73,6 +82,7 @@ function buildEmployeePayload(row) {
   };
 }
 
+// Shape a room row into the API payload returned to clients.
 function buildRoomPayload(row) {
   return {
     room_id: Number(row.room_id || 0),
@@ -95,6 +105,7 @@ function buildRoomPayload(row) {
   };
 }
 
+// Return the employee list for the admin screen.
 const listEmployees = asyncHandler(async (_req, res) => {
   let rows;
 
@@ -142,6 +153,7 @@ const listEmployees = asyncHandler(async (_req, res) => {
   res.json(rows.map(buildEmployeePayload));
 });
 
+// Create a new employee record with validation and defaults.
 const createEmployee = asyncHandler(async (req, res) => {
   const rawName = req.body?.name;
   const rawEmail = req.body?.email;
@@ -316,6 +328,7 @@ const createEmployee = asyncHandler(async (req, res) => {
   });
 });
 
+// Return the room list for the admin screen.
 const listRooms = asyncHandler(async (_req, res) => {
   const rows = await query(
     `
@@ -346,6 +359,7 @@ const listRooms = asyncHandler(async (_req, res) => {
   res.json(rows.map(buildRoomPayload));
 });
 
+// Create a new room record with validation and defaults.
 const createRoom = asyncHandler(async (req, res) => {
   const rawName = req.body?.name;
   const rawLocationId = req.body?.location_id;
@@ -461,6 +475,7 @@ const createRoom = asyncHandler(async (req, res) => {
   });
 });
 
+// Delete an employee record after safety checks.
 const deleteEmployee = asyncHandler(async (req, res) => {
   const employeeId = parsePositiveInt(req.params.employeeId);
   const currentUserId = parsePositiveInt(req.user?.employee_id);

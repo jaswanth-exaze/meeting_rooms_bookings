@@ -1,6 +1,9 @@
+// Manage the home page hero section behavior.
+
 let slideshowTimerId = null;
 let isSlideshowInitialized = false;
 
+// Initialize slideshow.
 function initializeSlideshow() {
   if (isSlideshowInitialized) {
     return;
@@ -21,6 +24,7 @@ function initializeSlideshow() {
       return;
     }
 
+    // Sync duration.
     const syncDuration = () => {
       if (!Number.isFinite(slide.duration) || slide.duration <= 0) {
         return;
@@ -57,6 +61,7 @@ function initializeSlideshow() {
     });
   };
 
+  // Show slide.
   function showSlide(index) {
     currentSlideIndex = (index + heroSlides.length) % heroSlides.length;
     heroSlides.forEach(slide => slide.classList.remove("active"));
@@ -64,6 +69,7 @@ function initializeSlideshow() {
     syncSlidePlayback(currentSlideIndex);
   }
 
+  // Stop auto play.
   function stopAutoPlay() {
     if (slideshowTimerId) {
       window.clearInterval(slideshowTimerId);
@@ -71,6 +77,7 @@ function initializeSlideshow() {
     }
   }
 
+  // Start auto play.
   function startAutoPlay() {
     if (prefersReducedMotion) return;
     stopAutoPlay();

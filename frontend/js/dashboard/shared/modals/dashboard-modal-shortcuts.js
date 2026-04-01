@@ -1,5 +1,8 @@
+// Register dashboard-wide modal keyboard shortcuts.
+
 let dashboardModalShortcutsInitialized = false;
 
+// Register keyboard shortcuts that close active dashboard modals.
 function initializeDashboardModalShortcuts() {
   if (dashboardModalShortcutsInitialized) {
     return;

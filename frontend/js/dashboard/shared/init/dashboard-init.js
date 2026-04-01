@@ -1,3 +1,6 @@
+// Initialize dashboard views, data loads, and shared actions.
+
+// Render paginated section.
 function renderPaginatedSection(key) {
   if (key === "bookings") {
     renderBookingsPage();
@@ -24,6 +27,7 @@ function renderPaginatedSection(key) {
   }
 }
 
+// Wire shared dashboard actions based on the current page.
 function initializePageActions() {
   const refreshBookingsBtn = document.getElementById("refreshBookingsBtn");
   if (refreshBookingsBtn) {
@@ -101,6 +105,7 @@ function initializePageActions() {
   });
 }
 
+// Initialize dashboard.
 async function initializeDashboard() {
   const isAuthenticated = await ensureAuthenticatedSession();
   if (!isAuthenticated) return;

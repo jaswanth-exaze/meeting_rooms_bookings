@@ -1,6 +1,9 @@
+// Handle location API helpers and route actions.
+
 const asyncHandler = require("../middleware/asyncHandler");
 const { query } = require("../config/db");
 
+// Return the list of available locations.
 const getLocations = asyncHandler(async (_req, res) => {
   const rows = await query(
     `

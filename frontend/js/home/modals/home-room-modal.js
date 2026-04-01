@@ -1,5 +1,8 @@
+// Manage the home page room detail modal.
+
 let lastRoomModalTrigger = null;
 
+// Open room modal.
 function openRoomModal(room, triggerElement = null) {
   if (!roomDetailModal || !room) return;
 
@@ -20,6 +23,7 @@ function openRoomModal(room, triggerElement = null) {
   focusFirstElementInModal(roomDetailModal);
 }
 
+// Close room modal.
 function closeRoomModal() {
   if (!roomDetailModal) return;
 
@@ -32,6 +36,7 @@ function closeRoomModal() {
   lastRoomModalTrigger = null;
 }
 
+// Return top open modal.
 function getTopOpenModal() {
   const openModals = [locationMapModal, roomDetailModal].filter(modal => modal && !modal.hidden);
   return openModals.length > 0 ? openModals[openModals.length - 1] : null;

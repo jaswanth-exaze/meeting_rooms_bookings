@@ -1,6 +1,9 @@
+// Provide request logger middleware.
+
 const crypto = require("crypto");
 const logger = require("../utils/logger");
 
+// Log each request with a correlation id and response timing.
 function requestLogger(req, res, next) {
   const start = process.hrtime.bigint();
   const headerRequestId = String(req.headers["x-request-id"] || "").trim();

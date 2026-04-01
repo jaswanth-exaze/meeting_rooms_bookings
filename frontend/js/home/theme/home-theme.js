@@ -1,16 +1,22 @@
+// Manage home page theme detection, persistence, and toggling.
+
+// Read the saved home page theme preference.
 function getStoredTheme() {
   const stored = localStorage.getItem(THEME_STORAGE_KEY);
   return stored === THEME_DARK || stored === THEME_LIGHT ? stored : null;
 }
 
+// Detect the system color-scheme preference.
 function getSystemTheme() {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? THEME_DARK : THEME_LIGHT;
 }
 
+// Return the active home page theme.
 function getActiveTheme() {
   return document.body.classList.contains("theme-dark") ? THEME_DARK : THEME_LIGHT;
 }
 
+// Set theme toggle button state.
 function setThemeToggleButtonState(theme) {
   if (!themeToggleBtn) return;
   const isDark = theme === THEME_DARK;
@@ -19,6 +25,7 @@ function setThemeToggleButtonState(theme) {
   themeToggleBtn.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
 }
 
+// Apply the selected home page theme and optionally persist it.
 function applyTheme(theme, { persist = true } = {}) {
   const resolvedTheme = theme === THEME_DARK ? THEME_DARK : THEME_LIGHT;
   const isDark = resolvedTheme === THEME_DARK;
@@ -33,6 +40,7 @@ function applyTheme(theme, { persist = true } = {}) {
   }
 }
 
+// Initialize theme toggle.
 function initializeThemeToggle() {
   const initialTheme = getStoredTheme() || getSystemTheme();
   applyTheme(initialTheme, { persist: false });

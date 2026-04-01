@@ -1,5 +1,8 @@
+// Provide security headers middleware.
+
 const { isProduction } = require("../config/env");
 
+// Apply custom HTTP security headers to each response.
 function securityHeaders(_req, res, next) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");

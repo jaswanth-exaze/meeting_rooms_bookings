@@ -1,7 +1,10 @@
+// Handle booking API helpers and route actions.
+
 const asyncHandler = require("../middleware/asyncHandler");
 const { query, pool } = require("../config/db");
 const logger = require("../utils/logger");
 
+// Parse a positive integer from the provided value.
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -10,12 +13,14 @@ function parsePositiveInt(value) {
   return parsed;
 }
 
+// Clamp limit values to the supported range.
 function normalizeLimit(value, fallback, max) {
   const parsed = parsePositiveInt(value);
   if (!parsed) return fallback;
   return Math.min(parsed, max);
 }
 
+// Normalize date-time input into a MySQL-friendly UTC string.
 function normalizeDateTimeForMySql(value) {
   if (value === null || value === undefined) return null;
 
@@ -36,6 +41,7 @@ function normalizeDateTimeForMySql(value) {
   return parsed.toISOString().slice(0, 19).replace("T", " ");
 }
 
+// Convert a MySQL UTC date value into a JavaScript Date.
 function parseMySqlUtcToDate(value) {
   if (!value) return null;
   const parsed = new Date(String(value).replace(" ", "T") + "Z");
@@ -43,12 +49,15 @@ function parseMySqlUtcToDate(value) {
   return parsed;
 }
 
+// Normalize loosely typed truthy values into a boolean.
 function toBoolean(value) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
+// Define shared constants used throughout this module.
 const BOOKING_PAST_GRACE_MS = 60 * 1000;
 
+// Return whether is past beyond grace.
 function isPastBeyondGrace(dateValue, graceMs = BOOKING_PAST_GRACE_MS) {
   if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) {
     return true;
@@ -57,6 +66,7 @@ function isPastBeyondGrace(dateValue, graceMs = BOOKING_PAST_GRACE_MS) {
   return dateValue.getTime() < Date.now() - graceMs;
 }
 
+// Return employee scope.
 function getEmployeeScope(req, requestedEmployeeIdRaw) {
   const authEmployeeId = parsePositiveInt(req.user?.employee_id);
   const requestedEmployeeId = parsePositiveInt(requestedEmployeeIdRaw);
@@ -77,6 +87,7 @@ function getEmployeeScope(req, requestedEmployeeIdRaw) {
   return { employeeId: authEmployeeId, includeAll: false };
 }
 
+// Return whether can manage booking.
 function canManageBooking(req, bookingEmployeeId) {
   const authEmployeeId = parsePositiveInt(req.user?.employee_id);
   const targetEmployeeId = parsePositiveInt(bookingEmployeeId);
@@ -87,6 +98,7 @@ function canManageBooking(req, bookingEmployeeId) {
   return authEmployeeId === targetEmployeeId;
 }
 
+// Build booking visibility condition.
 function buildBookingVisibilityCondition(params, employeeId) {
   params.push(employeeId, employeeId);
   return `
@@ -102,6 +114,7 @@ function buildBookingVisibilityCondition(params, employeeId) {
   `;
 }
 
+// Shape a booking row into the API payload returned to clients.
 function serializeBookingRow(row) {
   if (!row || typeof row !== "object") return row;
 
@@ -117,6 +130,7 @@ function serializeBookingRow(row) {
   };
 }
 
+// Normalize participant employee ids before persistence checks.
 function normalizeParticipantEmployeeIds(rawParticipantEmployeeIds, organizerEmployeeId) {
   if (rawParticipantEmployeeIds === undefined) {
     return {
@@ -168,10 +182,12 @@ function normalizeParticipantEmployeeIds(rawParticipantEmployeeIds, organizerEmp
   };
 }
 
+// Build SQL placeholder markup for the provided values.
 function buildSqlPlaceholders(values) {
   return values.map(() => "?").join(", ");
 }
 
+// Return unique positive integers from the provided values.
 function getUniquePositiveIntValues(values) {
   return Array.from(
     new Set(
@@ -182,6 +198,7 @@ function getUniquePositiveIntValues(values) {
   ).sort((left, right) => left - right);
 }
 
+// Fetch employees by IDs.
 async function fetchEmployeesByIds(connection, employeeIds, { onlyActive = false } = {}) {
   const normalizedEmployeeIds = getUniquePositiveIntValues(employeeIds);
   if (!normalizedEmployeeIds.length) {
@@ -213,10 +230,12 @@ async function fetchEmployeesByIds(connection, employeeIds, { onlyActive = false
   }));
 }
 
+// Fetch active employees by IDs.
 async function fetchActiveEmployeesByIds(connection, employeeIds) {
   return fetchEmployeesByIds(connection, employeeIds, { onlyActive: true });
 }
 
+// Lock employees for scheduling.
 async function lockEmployeesForScheduling(connection, employeeIds) {
   const normalizedEmployeeIds = getUniquePositiveIntValues(employeeIds);
   if (!normalizedEmployeeIds.length) {
@@ -236,6 +255,7 @@ async function lockEmployeesForScheduling(connection, employeeIds) {
   );
 }
 
+// Find employee scheduling conflicts.
 async function findEmployeeSchedulingConflicts(connection, employeeIds, startTimeSql, endTimeSql, options = {}) {
   const normalizedEmployeeIds = getUniquePositiveIntValues(employeeIds);
   if (!normalizedEmployeeIds.length || !startTimeSql || !endTimeSql) {
@@ -339,6 +359,7 @@ async function findEmployeeSchedulingConflicts(connection, employeeIds, startTim
   }));
 }
 
+// Build a readable message describing booking conflicts.
 function buildSchedulingConflictMessage(conflicts, organizerEmployeeId) {
   if (!Array.isArray(conflicts) || !conflicts.length) {
     return "One or more attendees are not available during this time.";
@@ -366,6 +387,7 @@ function buildSchedulingConflictMessage(conflicts, organizerEmployeeId) {
   return `Some selected employees are not available during this time: ${previewNames}.`;
 }
 
+// Validate employee scheduling availability.
 async function validateEmployeeSchedulingAvailability(connection, employeeRows, startTimeSql, endTimeSql, options = {}) {
   const attendees = Array.isArray(employeeRows)
     ? employeeRows.filter(
@@ -414,6 +436,7 @@ async function validateEmployeeSchedulingAvailability(connection, employeeRows, 
   };
 }
 
+// Fetch booking participants.
 async function fetchBookingParticipants(connection, bookingId) {
   const [rows] = await connection.execute(
     `
@@ -449,6 +472,7 @@ async function fetchBookingParticipants(connection, bookingId) {
   }));
 }
 
+// Insert booking participants.
 async function insertBookingParticipants(connection, bookingId, participantIds, actorEmployeeId) {
   if (!Array.isArray(participantIds) || participantIds.length === 0) {
     return;
@@ -465,6 +489,7 @@ async function insertBookingParticipants(connection, bookingId, participantIds, 
   }
 }
 
+// Sync booking participants.
 async function syncBookingParticipants(connection, bookingId, nextParticipantIds, actorEmployeeId) {
   const existingParticipants = await fetchBookingParticipants(connection, bookingId);
   const existingParticipantIds = existingParticipants.map(participant => Number(participant.employee_id));
@@ -495,12 +520,14 @@ async function syncBookingParticipants(connection, bookingId, nextParticipantIds
   };
 }
 
+// Normalize booking status values to the supported set.
 function normalizeStatus(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
 }
 
+// Insert booking audit.
 async function insertBookingAudit(connection, details) {
   const bookingId = parsePositiveInt(details.booking_id);
   const actorEmployeeId = parsePositiveInt(details.actor_employee_id);
@@ -556,6 +583,7 @@ async function insertBookingAudit(connection, details) {
   }
 }
 
+// Return upcoming bookings visible to the current user.
 const getUpcomingBookings = asyncHandler(async (req, res) => {
   const scope = getEmployeeScope(req, req.query.employee_id);
   if (scope.error) {
@@ -620,6 +648,7 @@ const getUpcomingBookings = asyncHandler(async (req, res) => {
   res.json(rows.map(serializeBookingRow));
 });
 
+// Return booking summary metrics for the dashboard.
 const getBookingSummary = asyncHandler(async (req, res) => {
   const scope = getEmployeeScope(req, req.query.employee_id);
   if (scope.error) {
@@ -687,6 +716,7 @@ const getBookingSummary = asyncHandler(async (req, res) => {
   });
 });
 
+// Return the details for a single booking.
 const getBookingById = asyncHandler(async (req, res) => {
   const bookingId = parsePositiveInt(req.params.bookingId);
   const authEmployeeId = parsePositiveInt(req.user?.employee_id);
@@ -755,6 +785,7 @@ const getBookingById = asyncHandler(async (req, res) => {
   });
 });
 
+// Return aggregated booking reports for the admin dashboard.
 const getBookingReports = asyncHandler(async (req, res) => {
   if (req.user?.is_admin !== true) {
     return res.status(403).json({ message: "Admin access is required." });
@@ -826,6 +857,7 @@ const getBookingReports = asyncHandler(async (req, res) => {
   });
 });
 
+// Create a booking after validating participants and conflicts.
 const createBooking = asyncHandler(async (req, res) => {
   const { room_id, employee_id, title, description, start_time, end_time } = req.body || {};
   const status = req.body?.status || "confirmed";
@@ -1013,6 +1045,7 @@ const createBooking = asyncHandler(async (req, res) => {
   }
 });
 
+// Update an existing booking after validating the new details.
 const updateBooking = asyncHandler(async (req, res) => {
   const bookingId = parsePositiveInt(req.params.bookingId);
   const actorEmployeeId = parsePositiveInt(req.user?.employee_id);
@@ -1276,6 +1309,7 @@ const updateBooking = asyncHandler(async (req, res) => {
   }
 });
 
+// Cancel a future booking if the user is allowed to manage it.
 const cancelBooking = asyncHandler(async (req, res) => {
   const bookingId = parsePositiveInt(req.params.bookingId);
   const actorEmployeeId = parsePositiveInt(req.user?.employee_id);
@@ -1363,6 +1397,7 @@ const cancelBooking = asyncHandler(async (req, res) => {
   }
 });
 
+// Mark an active booking as vacated when the room is freed early.
 const vacateBooking = asyncHandler(async (req, res) => {
   const bookingId = parsePositiveInt(req.params.bookingId);
   const actorEmployeeId = parsePositiveInt(req.user?.employee_id);

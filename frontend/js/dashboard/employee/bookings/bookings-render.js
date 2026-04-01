@@ -1,3 +1,6 @@
+// Render employee booking tables and empty states.
+
+// Render bookings page.
 function renderBookingsPage() {
   const table = document.getElementById("bookingsTable");
   if (!table) return;
@@ -39,6 +42,7 @@ function renderBookingsPage() {
   renderPaginationControls("bookingsPagination", "bookings");
 }
 
+// Render bookings table.
 function renderBookingsTable(rows) {
   bookingsById = new Map();
   (rows || []).forEach(row => {

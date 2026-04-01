@@ -1,3 +1,5 @@
+// Configure the Express application, middleware stack, and API routes.
+
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
@@ -14,6 +16,7 @@ const notFound = require("./middleware/notFound");
 const errorHandler = require("./middleware/errorHandler");
 const logger = require("./utils/logger");
 
+// Create the shared Express application instance.
 const app = express();
 
 app.use(requestLogger);

@@ -1,3 +1,5 @@
+// Create the shared MySQL connection pool and query helper.
+
 const mysql = require("mysql2/promise");
 const { db } = require("./env");
 
@@ -13,6 +15,7 @@ const pool = mysql.createPool({
   timezone: "Z"
 });
 
+// Execute a parameterized SQL query using the shared connection pool.
 async function query(sql, params = []) {
   const [rows] = await pool.execute(sql, params);
   return rows;

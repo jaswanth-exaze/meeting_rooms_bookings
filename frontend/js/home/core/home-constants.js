@@ -1,3 +1,6 @@
+// Define shared constants, assets, and theme keys for the home page.
+
+// Define shared constants and configuration used by this module.
 const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/api";
 
 const ROOM_IMAGES_BY_NAME = {
@@ -23,6 +26,7 @@ const ROOM_IMAGES_BY_NAME = {
   "table mountain": "assets/images/fussion-6-members.png"
 };
 
+// Define shared constants and configuration used by this module.
 const ROOM_AMENITY_DEFINITIONS = Object.freeze([
   { key: "has_projector", label: "Projector", icon: "projector" },
   { key: "has_screen", label: "Display Screen", icon: "screen" },
@@ -35,6 +39,7 @@ const ROOM_AMENITY_DEFINITIONS = Object.freeze([
   { key: "has_power_backup", label: "Power Backup", icon: "battery" }
 ]);
 
+// Define shared constants and configuration used by this module.
 const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
   projector:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7 3 5"></path><path d="M9 6V3"></path><path d="m13 7 2-2"></path><circle cx="9" cy="13" r="3"></circle><path d="M11.83 12H20a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2.17"></path><path d="M16 16h2"></path></svg>',
@@ -58,6 +63,7 @@ const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>'
 });
 
+// Define shared constants and configuration used by this module.
 const ROOM_DETAIL_META_ICON_MARKUP = Object.freeze({
   location:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-4.35-6-10a6 6 0 1 1 12 0c0 5.65-6 10-6 10Z"></path><circle cx="12" cy="11" r="2.4"></circle></svg>',
@@ -67,6 +73,7 @@ const ROOM_DETAIL_META_ICON_MARKUP = Object.freeze({
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle></svg>'
 });
 
+// Define shared constants and configuration used by this module.
 const FEATURED_ROOM_LIMIT = 9;
 const HERO_SLIDE_DURATION_MS = 5000;
 const LOCATION_MAP_PRESETS = {
@@ -78,6 +85,7 @@ const LOCATION_MAP_PRESETS = {
   "delivery centre - bhopal": { lat: 23.2494, lng: 77.4372, zoom: 13, shortLabel: "BHO" }
 };
 
+// Define shared constants and configuration used by this module.
 const THEME_STORAGE_KEY = "dashboard_theme_preference";
 const THEME_LIGHT = "light";
 const THEME_DARK = "dark";

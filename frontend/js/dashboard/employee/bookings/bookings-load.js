@@ -1,3 +1,6 @@
+// Load employee bookings into shared state.
+
+// Load bookings.
 async function loadBookings() {
   const overviewTable = document.getElementById("overviewBookingsTable");
   const bookingsTable = document.getElementById("bookingsTable");
@@ -37,6 +40,7 @@ async function loadBookings() {
   }
 }
 
+// Refresh booking views.
 async function refreshBookingViews() {
   const tasks = [loadSummary(), loadBookings(), loadOverviewAvailability(), searchRooms()];
   if (currentRole === "admin") {

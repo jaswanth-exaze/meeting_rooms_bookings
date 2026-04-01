@@ -1,6 +1,9 @@
+// Handle employee API helpers and route actions.
+
 const asyncHandler = require("../middleware/asyncHandler");
 const { query } = require("../config/db");
 
+// Parse a positive integer from the provided value.
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -9,17 +12,20 @@ function parsePositiveInt(value) {
   return parsed;
 }
 
+// Clamp limit values to the supported range.
 function normalizeLimit(value, fallback, max) {
   const parsed = parsePositiveInt(value);
   if (!parsed) return fallback;
   return Math.min(parsed, max);
 }
 
+// Normalize text filter.
 function normalizeTextFilter(value) {
   const normalized = String(value || "").trim();
   return normalized || "";
 }
 
+// Normalize date-time input into a MySQL-friendly UTC string.
 function normalizeDateTimeForMySql(value) {
   if (value === null || value === undefined) return null;
 
@@ -40,10 +46,12 @@ function normalizeDateTimeForMySql(value) {
   return parsed.toISOString().slice(0, 19).replace("T", " ");
 }
 
+// Escape like value.
 function escapeLikeValue(value) {
   return String(value || "").replace(/[\\%_]/g, match => `\\${match}`);
 }
 
+// Search employees for participant pickers and admin screens.
 const searchEmployees = asyncHandler(async (req, res) => {
   const limit = normalizeLimit(req.query.limit, 20, 500);
   const searchTerm = normalizeTextFilter(req.query.q);

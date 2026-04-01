@@ -1,3 +1,5 @@
+// Initialize enhanced date, time, and select inputs.
+
 /**
  * Modern Date/Time Picker Initialization
  * Uses Flatpickr for a modern, accessible date/time picker experience
@@ -8,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initializeModernPickers();
 });
 
+// Initialize the enhanced picker widgets used across forms.
 function initializeModernPickers() {
   // Set default date and time
   setDefaultDateAndTime();
@@ -86,6 +89,7 @@ function setDefaultDateAndTime() {
 function enhanceSelectDropdowns() {
   const selects = document.querySelectorAll('select');
 
+  // Clear open state.
   function clearOpenState(exceptElement = null) {
     selects.forEach(select => {
       if (select !== exceptElement) {
@@ -172,11 +176,13 @@ function parseISO8601(dateString) {
   return isNaN(date.getTime()) ? null : date;
 }
 
+// Return today's date at local midnight.
 function getTodayAtLocalMidnight() {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), now.getDate());
 }
 
+// Force manual date input to stay in picker-compatible format.
 function enforcePickerOnlyDateInput(dateInput) {
   if (!dateInput) return;
 
@@ -196,6 +202,7 @@ function enforcePickerOnlyDateInput(dateInput) {
   dateInput.addEventListener('drop', event => event.preventDefault());
 }
 
+// Normalize flexible time input into a 24-hour value.
 function normalizeTimeTo24Hour(value) {
   const raw = String(value || '').trim();
   if (!raw) return null;
@@ -220,6 +227,7 @@ function normalizeTimeTo24Hour(value) {
   return `${String(hours).padStart(2, '0')}:${minutes}`;
 }
 
+// Split a 24-hour time value into 12-hour picker parts.
 function get12HourTimeParts(time24) {
   const normalized = normalizeTimeTo24Hour(time24) || '00:00';
   const [hourRaw, minuteRaw] = normalized.split(':');
@@ -236,6 +244,7 @@ function get12HourTimeParts(time24) {
   };
 }
 
+// Convert 12-hour picker parts back into a 24-hour time string.
 function to24HourString(hour12Value, minuteValue, periodValue) {
   const hour12 = Number.parseInt(String(hour12Value), 10);
   const minute = Number.parseInt(String(minuteValue), 10);
@@ -426,6 +435,7 @@ function createModernTimePicker(timeInput) {
   wrapper.periodToggle = periodToggle;
   wrapper.confirmBtn = confirmBtn;
 
+  // Sync display from input.
   function syncDisplayFromInput() {
     const normalized = normalizeTimeTo24Hour(timeInput.getAttribute('data-time24') || timeInput.value);
     if (!normalized) return;
@@ -438,6 +448,7 @@ function createModernTimePicker(timeInput) {
     timeInput.value = parts.display;
   }
 
+  // Position popup.
   function positionPopup() {
     const rect = timeInput.getBoundingClientRect();
     pickerPopup.style.position = 'fixed';
@@ -533,6 +544,7 @@ function updateTimeValue(displayElement, delta, max) {
   displayElement.textContent = String(value).padStart(2, '0');
 }
 
+// Adjust the hour portion of the custom time picker.
 function updateHourValue(displayElement, delta) {
   let value = Number.parseInt(displayElement.textContent, 10);
   if (!Number.isFinite(value) || value < 1 || value > 12) {

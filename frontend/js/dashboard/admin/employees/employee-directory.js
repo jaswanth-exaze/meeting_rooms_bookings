@@ -1,3 +1,6 @@
+// Load, filter, and render the admin employee directory.
+
+// Populate admin location options.
 function populateAdminLocationOptions() {
   const locationSelect = document.getElementById("newEmployeeWorkLocation");
   if (!locationSelect) return;
@@ -17,6 +20,7 @@ function populateAdminLocationOptions() {
   }
 }
 
+// Populate admin manager options.
 function populateAdminManagerOptions() {
   const managerSelect = document.getElementById("newEmployeeManager");
   if (!managerSelect) return;
@@ -40,6 +44,7 @@ function populateAdminManagerOptions() {
   }
 }
 
+// Load admin locations.
 async function loadAdminLocations() {
   if (currentRole !== "admin") return;
 
@@ -54,6 +59,7 @@ async function loadAdminLocations() {
   }
 }
 
+// Return admin employee filter elements.
 function getAdminEmployeeFilterElements() {
   return {
     search: document.getElementById("employeeDirectorySearch"),
@@ -66,6 +72,7 @@ function getAdminEmployeeFilterElements() {
   };
 }
 
+// Return admin employee filter values.
 function getAdminEmployeeFilterValues() {
   const filters = getAdminEmployeeFilterElements();
   return {
@@ -78,10 +85,12 @@ function getAdminEmployeeFilterValues() {
   };
 }
 
+// Return whether has active admin employee filters.
 function hasActiveAdminEmployeeFilters() {
   return Object.values(getAdminEmployeeFilterValues()).some(Boolean);
 }
 
+// Populate admin employee filters.
 function populateAdminEmployeeFilters() {
   const filters = getAdminEmployeeFilterElements();
   const dynamicSelects = [
@@ -119,6 +128,7 @@ function populateAdminEmployeeFilters() {
   });
 }
 
+// Set admin employee filter summary.
 function setAdminEmployeeFilterSummary(filteredCount, totalCount) {
   const summaryElement = getAdminEmployeeFilterElements().summary;
   if (!summaryElement) return;
@@ -136,6 +146,7 @@ function setAdminEmployeeFilterSummary(filteredCount, totalCount) {
   summaryElement.textContent = `Showing ${filteredCount} of ${totalCount} employees.`;
 }
 
+// Apply admin employee filters.
 function applyAdminEmployeeFilters() {
   const filters = getAdminEmployeeFilterValues();
   const filteredRows = adminEmployeeDirectory.filter(row => {
@@ -196,6 +207,7 @@ function applyAdminEmployeeFilters() {
   renderEmployeePage();
 }
 
+// Render employee table.
 function renderEmployeeTable(rows) {
   const table = document.getElementById("employeeAdminTable");
   if (!table) return;
@@ -206,24 +218,28 @@ function renderEmployeeTable(rows) {
   applyAdminEmployeeFilters();
 }
 
+// Return admin employee manager label.
 function getAdminEmployeeManagerLabel(row) {
   const managerId = Number(row?.manager_id || 0);
   if (row?.manager_name) return row.manager_name;
   return managerId > 0 ? `Employee #${managerId}` : "-";
 }
 
+// Return admin employee hire date label.
 function getAdminEmployeeHireDateLabel(value) {
   const parsed = parseDateValue(value);
   if (!parsed) return "-";
   return parsed.toLocaleDateString(undefined, { month: "short", day: "2-digit", year: "numeric" });
 }
 
+// Return admin employee status label.
 function getAdminEmployeeStatusLabel(row) {
   const labels = [row?.is_active === false ? "Inactive" : "Active"];
   labels.push(row?.password_reset_required === true ? "Reset Required" : "Password Set");
   return labels.join(" | ");
 }
 
+// Render employee page.
 function renderEmployeePage() {
   const table = document.getElementById("employeeAdminTable");
   if (!table) return;
@@ -276,6 +292,7 @@ function renderEmployeePage() {
   renderPaginationControls("employeePagination", "employees");
 }
 
+// Load employees.
 async function loadEmployees() {
   if (currentRole !== "admin") return;
 
@@ -303,6 +320,7 @@ async function loadEmployees() {
   }
 }
 
+// Initialize admin settings.
 function initializeAdminSettings() {
   if (currentRole !== "admin") return;
 

@@ -1,11 +1,16 @@
+// Manage dashboard sidebar drawer behavior.
+
+// Cache the DOM nodes reused throughout this module.
 const dashboardSidebar = document.getElementById("dashboardSidebar");
 const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
 const sidebarDrawerBackdrop = document.getElementById("sidebarDrawerBackdrop");
 
+// Return whether is mobile drawer viewport.
 function isMobileDrawerViewport() {
   return window.matchMedia("(max-width: 1040px)").matches;
 }
 
+// Set sidebar drawer state.
 function setSidebarDrawerState(isOpen) {
   if (!dashboardSidebar) return;
 
@@ -23,10 +28,12 @@ function setSidebarDrawerState(isOpen) {
   }
 }
 
+// Close sidebar drawer.
 function closeSidebarDrawer() {
   setSidebarDrawerState(false);
 }
 
+// Initialize sidebar drawer.
 function initializeSidebarDrawer() {
   if (!dashboardSidebar || !sidebarToggleBtn || !sidebarDrawerBackdrop) return;
 

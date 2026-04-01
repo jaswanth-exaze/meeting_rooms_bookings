@@ -1,3 +1,6 @@
+// Manage the room schedule modal and slot selection flow.
+
+// Return room schedule duration minutes.
 function getRoomScheduleDurationMinutes() {
   const finderDuration = document.getElementById("finderDuration")?.value || "";
   const fallbackDuration = getMinutesBetween(selectedBookingWindow?.start, selectedBookingWindow?.end, 60);
@@ -5,6 +8,7 @@ function getRoomScheduleDurationMinutes() {
   return Math.max(30, preferredDuration);
 }
 
+// Return room schedule date range.
 function getRoomScheduleDateRange() {
   const startDate = new Date();
   startDate.setHours(0, 0, 0, 0);
@@ -15,6 +19,7 @@ function getRoomScheduleDateRange() {
   return { startDate, endDate };
 }
 
+// Build room schedule request.
 function buildRoomScheduleRequest(roomId) {
   const range = getRoomScheduleDateRange();
   const params = new URLSearchParams({
@@ -34,6 +39,7 @@ function buildRoomScheduleRequest(roomId) {
   };
 }
 
+// Normalize room schedule booking.
 function normalizeRoomScheduleBooking(booking) {
   if (!booking || typeof booking !== "object") return null;
 
@@ -58,6 +64,7 @@ function normalizeRoomScheduleBooking(booking) {
   };
 }
 
+// Normalize room schedule payload.
 function normalizeRoomSchedulePayload(payload) {
   return {
     room: payload?.room || selectedRoom || null,
@@ -66,6 +73,7 @@ function normalizeRoomSchedulePayload(payload) {
   };
 }
 
+// Return room schedule working window.
 function getRoomScheduleWorkingWindow() {
   const startMinutes = getTimeValueMinutes(ROOM_SCHEDULE_DEFAULT_WORKDAY_START);
   const endMinutes = getTimeValueMinutes(ROOM_SCHEDULE_DEFAULT_WORKDAY_END);
@@ -76,6 +84,7 @@ function getRoomScheduleWorkingWindow() {
   };
 }
 
+// Return room schedule day meta.
 function getRoomScheduleDayMeta(dayDate) {
   const weekday = dayDate.getDay();
   if (weekday === 0 || weekday === 6) {
@@ -98,6 +107,7 @@ function getRoomScheduleDayMeta(dayDate) {
   };
 }
 
+// Return room schedule meta text.
 function getRoomScheduleMetaText(payload) {
   const { startMinutes, endMinutes } = getRoomScheduleWorkingWindow(payload);
   const workdayStart = format24HourAs12Hour(
@@ -109,6 +119,7 @@ function getRoomScheduleMetaText(payload) {
   return `Weekly overview | ${workdayStart} - ${workdayEnd} | 18 half-hour slots`;
 }
 
+// Build room schedule loading markup.
 function buildRoomScheduleLoadingMarkup(dayCount = ROOM_SCHEDULE_DAYS) {
   return Array.from({ length: dayCount })
     .map(
@@ -129,6 +140,7 @@ function buildRoomScheduleLoadingMarkup(dayCount = ROOM_SCHEDULE_DAYS) {
     .join("");
 }
 
+// Return whether is room schedule slot selected.
 function isRoomScheduleSlotSelected(slot) {
   return Boolean(
     slot?.start &&
@@ -138,6 +150,7 @@ function isRoomScheduleSlotSelected(slot) {
   );
 }
 
+// Build room schedule day dates.
 function buildRoomScheduleDayDates() {
   const { startDate } = getRoomScheduleDateRange();
   return Array.from({ length: ROOM_SCHEDULE_DAYS }).map((_, index) => {
@@ -147,10 +160,12 @@ function buildRoomScheduleDayDates() {
   });
 }
 
+// Return room schedule conflict booking.
 function getRoomScheduleConflictBooking(bookings, slotStartMs, slotEndMs) {
   return bookings.find(booking => booking.start_ms < slotEndMs && booking.end_ms > slotStartMs) || null;
 }
 
+// Build room schedule slots for day.
 function buildRoomScheduleSlotsForDay(dayDate, payload) {
   const durationMinutes = ROOM_SCHEDULE_STEP_MINUTES;
   const { startMinutes, endMinutes } = getRoomScheduleWorkingWindow(payload);
@@ -187,6 +202,7 @@ function buildRoomScheduleSlotsForDay(dayDate, payload) {
   return slots;
 }
 
+// Build room schedule slot markup.
 function buildRoomScheduleSlotMarkup(slot) {
   const startLabel = formatTime(slot.start, ROOM_SCHEDULE_TIMEZONE, { includeTimeZone: false });
   const endLabel = formatTime(slot.end, ROOM_SCHEDULE_TIMEZONE, { includeTimeZone: false });
@@ -228,6 +244,7 @@ function buildRoomScheduleSlotMarkup(slot) {
   `;
 }
 
+// Build room schedule day markup.
 function buildRoomScheduleDayMarkup(dayDate, payload) {
   const slots = buildRoomScheduleSlotsForDay(dayDate, payload);
   const dayMeta = getRoomScheduleDayMeta(dayDate);
@@ -255,6 +272,7 @@ function buildRoomScheduleDayMarkup(dayDate, payload) {
   `;
 }
 
+// Render room schedule.
 function renderRoomSchedule() {
   if (!roomScheduleGrid || !roomScheduleMeta) return;
 
@@ -275,6 +293,7 @@ function renderRoomSchedule() {
   roomScheduleGrid.innerHTML = dayDates.map(dayDate => buildRoomScheduleDayMarkup(dayDate, roomScheduleState.payload)).join("");
 }
 
+// Load room schedule.
 async function loadRoomSchedule({ force = false } = {}) {
   if (!selectedRoom?.room_id) {
     throw new Error("Select a room to view its schedule.");
@@ -301,6 +320,7 @@ async function loadRoomSchedule({ force = false } = {}) {
   }
 }
 
+// Set room schedule open.
 function setRoomScheduleOpen(isOpen) {
   roomScheduleState.isOpen = Boolean(isOpen);
 
@@ -338,6 +358,7 @@ function setRoomScheduleOpen(isOpen) {
   });
 }
 
+// Reset room schedule state.
 function resetRoomScheduleState() {
   roomScheduleState.isOpen = false;
   roomScheduleState.loading = false;
@@ -368,6 +389,7 @@ function resetRoomScheduleState() {
   setRoomScheduleMessage("", "");
 }
 
+// Apply room schedule selection.
 async function applyRoomScheduleSelection(startTime, endTime) {
   const slotStart = parseDateValue(startTime);
   const slotEnd = parseDateValue(endTime);
@@ -420,6 +442,7 @@ async function applyRoomScheduleSelection(startTime, endTime) {
   });
 }
 
+// Initialize room schedule modal handlers.
 function initializeRoomScheduleModalHandlers() {
   if (!roomScheduleModal) return;
 

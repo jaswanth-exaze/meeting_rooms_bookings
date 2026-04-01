@@ -1,8 +1,11 @@
+// Load, filter, and render home page room collections.
+
 let currentRooms = [];
 let allRooms = [];
 let roomLookup = new Map();
 let selectedMapLocationId = null;
 
+// Render room state.
 function renderRoomState(container, titleText, metaText = "") {
   if (!container) return;
 
@@ -29,6 +32,7 @@ function renderRoomState(container, titleText, metaText = "") {
   container.appendChild(card);
 }
 
+// Create room card.
 function createRoomCard(room) {
   const card = document.createElement("article");
   card.className = "room-card";
@@ -72,6 +76,7 @@ function createRoomCard(room) {
   return card;
 }
 
+// Render room collection.
 function renderRoomCollection(container, rooms, { emptyTitle, emptyMeta = "" } = {}) {
   if (!container) return;
 
@@ -88,6 +93,7 @@ function renderRoomCollection(container, rooms, { emptyTitle, emptyMeta = "" } =
   });
 }
 
+// Fill location options.
 function fillLocationOptions(selectElement, locations) {
   if (!selectElement) return;
 
@@ -106,6 +112,7 @@ function fillLocationOptions(selectElement, locations) {
   }
 }
 
+// Sync room lookup.
 function syncRoomLookup(rooms) {
   roomLookup = new Map();
   (Array.isArray(rooms) ? rooms : []).forEach(room => {
@@ -113,6 +120,7 @@ function syncRoomLookup(rooms) {
   });
 }
 
+// Return filtered featured rooms.
 function getFilteredFeaturedRooms() {
   const selectedLocationId = featuredLocationFilter?.value ? Number(featuredLocationFilter.value) : null;
   const sourceRooms = selectedLocationId
@@ -122,6 +130,7 @@ function getFilteredFeaturedRooms() {
   return sourceRooms.slice(0, FEATURED_ROOM_LIMIT);
 }
 
+// Render featured rooms.
 function renderFeaturedRooms() {
   if (!featuredRoomsGrid) return;
 
@@ -132,6 +141,7 @@ function renderFeaturedRooms() {
   });
 }
 
+// Render default location room state.
 function renderDefaultLocationRoomState() {
   if (locationRoomPanelTitle) {
     locationRoomPanelTitle.textContent = "Choose a location marker";
@@ -147,10 +157,12 @@ function renderDefaultLocationRoomState() {
   );
 }
 
+// Return location rooms.
 function getLocationRooms(locationId) {
   return allRooms.filter(room => Number(room.location_id) === Number(locationId));
 }
 
+// Handle room card click.
 function handleRoomCardClick(event) {
   const button = event.target.closest("button[data-room-id]");
   if (!button) return;
@@ -166,6 +178,7 @@ function handleRoomCardClick(event) {
   openRoomModal(room, button);
 }
 
+// Load all rooms.
 function loadAllRooms() {
   if (featuredRoomsGrid) {
     setBookingMessage("");

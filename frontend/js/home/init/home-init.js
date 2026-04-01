@@ -1,3 +1,6 @@
+// Initialize the home page modules and event handlers.
+
+// Load home data.
 function loadHomeData() {
   renderDefaultLocationRoomState();
 
@@ -8,6 +11,7 @@ function loadHomeData() {
   return Promise.all([loadLocations(), loadAllRooms()]);
 }
 
+// Initialize the home page feature modules.
 function initializeHome() {
   initializeThemeToggle();
   initializeSignInIllustrationVideo();

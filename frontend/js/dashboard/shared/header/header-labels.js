@@ -1,3 +1,6 @@
+// Populate dynamic header labels on dashboard pages.
+
+// Populate the current date label in the dashboard header.
 function setTodayLabel() {
   const label = document.getElementById("todayLabel");
   if (!label) return;
@@ -10,6 +13,7 @@ function setTodayLabel() {
   })}`;
 }
 
+// Fill the dashboard header with the current user and date details.
 function setHeaderContent() {
   const headerName = document.getElementById("headerName");
   const welcomeHeading = document.getElementById("welcomeHeading");

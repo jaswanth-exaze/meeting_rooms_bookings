@@ -1,3 +1,5 @@
+// Verify backend password helpers and validation rules.
+
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
@@ -7,6 +9,7 @@ const {
   verifyPassword
 } = require("../src/utils/password");
 
+// Cover the primary success and failure cases for this module.
 test("hashPassword creates a bcrypt hash and verifyPassword validates it", async () => {
   const plain = "TempPass@123";
   const hashed = await hashPassword(plain);

@@ -1,4 +1,8 @@
+// Handle login form submission and redirect flow.
+
+// Define shared constants and configuration used by this module.
 const LOGIN_API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/api";
+// Cache the DOM nodes reused throughout this module.
 const loginForm = document.getElementById('login-form');
 const authMessage = document.getElementById('auth-message');
 

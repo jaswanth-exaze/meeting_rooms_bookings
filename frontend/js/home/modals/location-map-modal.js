@@ -1,3 +1,5 @@
+// Manage the location map modal and map state.
+
 let allLocations = [];
 let locationMapPoints = [];
 let previewMap = null;
@@ -6,6 +8,7 @@ let previewMarkers = [];
 let modalMarkers = new Map();
 let lastLocationMapTrigger = null;
 
+// Build location map points.
 function buildLocationMapPoints(locations) {
   return (Array.isArray(locations) ? locations : []).map(location => {
     const normalizedName = normalizeLocationName(location.name);
@@ -21,22 +24,27 @@ function buildLocationMapPoints(locations) {
   });
 }
 
+// Return location map point.
 function getLocationMapPoint(locationId) {
   return locationMapPoints.find(location => Number(location.location_id) === Number(locationId)) || null;
 }
 
+// Return whether has map coordinates.
 function hasMapCoordinates(locationPoint) {
   return Number.isFinite(Number(locationPoint?.lat)) && Number.isFinite(Number(locationPoint?.lng));
 }
 
+// Return location lat lng.
 function getLocationLatLng(locationPoint) {
   return [Number(locationPoint.lat), Number(locationPoint.lng)];
 }
 
+// Ensure leaflet loaded.
 function ensureLeafletLoaded() {
   return typeof window.L !== "undefined";
 }
 
+// Create location marker icon.
 function createLocationMarkerIcon(locationPoint, isActive = false, { compact = false } = {}) {
   if (!ensureLeafletLoaded()) return null;
 
@@ -59,6 +67,7 @@ function createLocationMarkerIcon(locationPoint, isActive = false, { compact = f
   });
 }
 
+// Create location popup content.
 function createLocationPopupContent(locationPoint) {
   const rooms = getLocationRooms(locationPoint.location_id);
   return (
@@ -69,16 +78,19 @@ function createLocationPopupContent(locationPoint) {
   );
 }
 
+// Clear preview markers.
 function clearPreviewMarkers() {
   previewMarkers.forEach(marker => marker.remove());
   previewMarkers = [];
 }
 
+// Clear modal markers.
 function clearModalMarkers() {
   modalMarkers.forEach(marker => marker.remove());
   modalMarkers.clear();
 }
 
+// Fit map to location points.
 function fitMapToLocationPoints(
   mapInstance,
   {
@@ -102,6 +114,7 @@ function fitMapToLocationPoints(
   });
 }
 
+// Focus map location.
 function focusMapLocation(mapInstance, locationPoint, { animate = true } = {}) {
   if (!mapInstance || !locationPoint || !hasMapCoordinates(locationPoint)) return;
 
@@ -115,6 +128,7 @@ function focusMapLocation(mapInstance, locationPoint, { animate = true } = {}) {
   }
 }
 
+// Refresh preview markers.
 function refreshPreviewMarkers() {
   if (!previewMap || !ensureLeafletLoaded()) return;
 
@@ -141,6 +155,7 @@ function refreshPreviewMarkers() {
     });
 }
 
+// Refresh modal markers.
 function refreshModalMarkers() {
   if (!modalMap || !ensureLeafletLoaded()) return;
 
@@ -172,6 +187,7 @@ function refreshModalMarkers() {
     });
 }
 
+// Initialize preview map.
 function initializePreviewMap() {
   if (!officeMapPreview || previewMap || !ensureLeafletLoaded()) return;
 
@@ -203,6 +219,7 @@ function initializePreviewMap() {
   });
 }
 
+// Initialize modal map.
 function initializeModalMap() {
   if (!locationMapCanvas || modalMap || !ensureLeafletLoaded()) return;
 
@@ -218,11 +235,13 @@ function initializeModalMap() {
   fitMapToLocationPoints(modalMap, { maxZoom: 4 });
 }
 
+// Refresh all map markers.
 function refreshAllMapMarkers() {
   refreshPreviewMarkers();
   refreshModalMarkers();
 }
 
+// Update location focus card.
 function updateLocationFocusCard(locationPoint, roomCount = 0) {
   if (!locationMapFocusCard) return;
 
@@ -237,6 +256,7 @@ function updateLocationFocusCard(locationPoint, roomCount = 0) {
   locationMapFocusCard.hidden = false;
 }
 
+// Render location room cards.
 function renderLocationRoomCards(locationPoint) {
   if (!locationPoint) {
     renderDefaultLocationRoomState();
@@ -264,6 +284,7 @@ function renderLocationRoomCards(locationPoint) {
   }
 }
 
+// Reset location map selection.
 function resetLocationMapSelection({ preserveFeaturedFilter = true } = {}) {
   selectedMapLocationId = null;
   updateLocationFocusCard(null);
@@ -284,6 +305,7 @@ function resetLocationMapSelection({ preserveFeaturedFilter = true } = {}) {
   }
 }
 
+// Select map location.
 function selectMapLocation(
   locationId,
   { syncFeaturedFilter = true, focusMap = true, openPopup = false } = {}
@@ -312,6 +334,7 @@ function selectMapLocation(
   }
 }
 
+// Open location map modal.
 function openLocationMapModal(triggerElement = null) {
   if (!locationMapModal) return;
 
@@ -354,6 +377,7 @@ function openLocationMapModal(triggerElement = null) {
   });
 }
 
+// Close location map modal.
 function closeLocationMapModal() {
   if (!locationMapModal) return;
 
@@ -366,6 +390,7 @@ function closeLocationMapModal() {
   lastLocationMapTrigger = null;
 }
 
+// Load locations.
 function loadLocations() {
   return fetchJson(`${API_BASE_URL}/locations`, "Unable to load locations.")
     .then(locations => {

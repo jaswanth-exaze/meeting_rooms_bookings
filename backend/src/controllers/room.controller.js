@@ -1,11 +1,15 @@
+// Handle room API helpers and route actions.
+
 const asyncHandler = require("../middleware/asyncHandler");
 const { query } = require("../config/db");
 
+// Define shared constants used throughout this module.
 const DEFAULT_SCHEDULE_DAYS = 7;
 const MAX_SCHEDULE_DAYS = 14;
 const WORKDAY_START_TIME = "10:00";
 const WORKDAY_END_TIME = "19:00";
 
+// Parse a positive integer from the provided value.
 function parsePositiveInt(value) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
@@ -14,12 +18,14 @@ function parsePositiveInt(value) {
   return parsed;
 }
 
+// Clamp limit values to the supported range.
 function normalizeLimit(value, fallback, max) {
   const parsed = parsePositiveInt(value);
   if (!parsed) return fallback;
   return Math.min(parsed, max);
 }
 
+// Normalize date-time input into a MySQL-friendly UTC string.
 function normalizeDateTimeForMySql(value) {
   if (value === null || value === undefined) return null;
 
@@ -40,15 +46,18 @@ function normalizeDateTimeForMySql(value) {
   return parsed.toISOString().slice(0, 19).replace("T", " ");
 }
 
+// Normalize loosely typed truthy values into a boolean.
 function toBoolean(value) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
+// Return the start of the current UTC day.
 function getStartOfCurrentUtcDay() {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
 }
 
+// Return rooms filtered by the current search criteria.
 const getRooms = asyncHandler(async (req, res) => {
   const locationId = parsePositiveInt(req.query.location_id);
   const minCapacity = parsePositiveInt(req.query.capacity);
@@ -182,6 +191,7 @@ const getRooms = asyncHandler(async (req, res) => {
   res.json(rows);
 });
 
+// Return the details for a single room.
 const getRoomById = asyncHandler(async (req, res) => {
   const roomId = parsePositiveInt(req.params.roomId);
   if (!roomId) {
@@ -223,6 +233,7 @@ const getRoomById = asyncHandler(async (req, res) => {
   res.json(rows[0]);
 });
 
+// Return the schedule view for a single room.
 const getRoomSchedule = asyncHandler(async (req, res) => {
   const roomId = parsePositiveInt(req.params.roomId);
   const days = normalizeLimit(req.query.days, DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS);

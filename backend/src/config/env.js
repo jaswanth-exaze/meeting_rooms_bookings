@@ -1,13 +1,17 @@
+// Load and validate environment configuration used by the backend.
+
 const path = require("path");
 const dotenv = require("dotenv");
 
 dotenv.config({ path: path.join(__dirname, "..", "..", ".env") });
 
+// Parse a numeric environment value with a safe fallback.
 function toNumber(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+// Normalize loosely typed truthy values into a boolean.
 function toBoolean(value, fallback = false) {
   if (value === undefined || value === null || value === "") {
     return fallback;
@@ -18,6 +22,7 @@ function toBoolean(value, fallback = false) {
   return fallback;
 }
 
+// Parse a comma-separated string into a trimmed value list.
 function parseCsv(value) {
   return String(value || "")
     .split(",")
@@ -25,6 +30,7 @@ function parseCsv(value) {
     .filter(Boolean);
 }
 
+// Parse a human-friendly duration into milliseconds.
 function parseDurationMs(value, fallback) {
   const raw = String(value || "").trim();
   if (!raw) return fallback;

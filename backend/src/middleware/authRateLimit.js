@@ -1,9 +1,13 @@
+// Provide auth rate limit middleware.
+
+// Define shared constants and configuration used by this module.
 const WINDOW_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 10;
 const STORE_MAX_SIZE = 10000;
 
 const store = new Map();
 
+// Remove expired rate-limit entries from the in-memory store.
 function cleanup(now) {
   if (store.size < STORE_MAX_SIZE) return;
   for (const [key, value] of store.entries()) {
@@ -13,6 +17,7 @@ function cleanup(now) {
   }
 }
 
+// Build the rate-limit key for the current request.
 function buildKey(req) {
   const ip = String(req.ip || req.connection?.remoteAddress || "unknown");
   const email = String(req.body?.email || "")
@@ -21,6 +26,7 @@ function buildKey(req) {
   return email ? `${ip}:${email}` : ip;
 }
 
+// Throttle repeated authentication attempts per client.
 function authRateLimit(req, res, next) {
   const now = Date.now();
   cleanup(now);

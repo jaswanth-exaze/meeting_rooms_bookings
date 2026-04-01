@@ -1,3 +1,6 @@
+// Store shared frontend session, role, and UI state.
+
+// Read the stored employee session from local storage.
 function getStoredEmployee() {
   const raw = localStorage.getItem("auth_employee");
   if (!raw) return null;
@@ -11,10 +14,12 @@ function getStoredEmployee() {
 
 let currentEmployee = getStoredEmployee();
 let currentEmployeeId = Number(currentEmployee?.employee_id || 0);
+// Read the current page role from the document dataset.
 const currentRole = document.body.dataset.role || "employee";
 let isAdmin = currentEmployee?.is_admin === true;
 let forcePasswordChange = new URLSearchParams(window.location.search).get("force_password_change") === "1";
 
+// Persist the current employee and expose it in shared state.
 function setCurrentEmployee(employee) {
   if (employee && typeof employee === "object") {
     currentEmployee = employee;
@@ -28,11 +33,13 @@ function setCurrentEmployee(employee) {
   selectedCreateOrganizerId = Number(currentEmployeeId || 0);
 }
 
+// Clear stored authentication data from the browser.
 function clearStoredAuth() {
   localStorage.removeItem("auth_token");
   localStorage.removeItem("auth_employee");
 }
 
+// Redirect users who should not access the current dashboard page.
 function enforceRoleAccess() {
   if (currentRole === "admin" && !isAdmin) {
     window.location.href = "./employee-dashboard.html";
@@ -55,16 +62,19 @@ let selectedBookingWindow = null;
 let availabilityWindow = null;
 let selectedBooking = null;
 let selectedCreateOrganizerId = Number(currentEmployeeId || 0);
+// Track mutable state shared across related interactions.
 const roomScheduleState = {
   isOpen: false,
   loading: false,
   requestKey: "",
   payload: null
 };
+// Track mutable state shared across related interactions.
 const participantPickerState = {
   create: { selected: [], suggestions: [], directory: [], directoryKey: "" },
   edit: { selected: [], suggestions: [], directory: [], directoryKey: "" }
 };
+// Track mutable state shared across related interactions.
 const paginationState = {
   bookings: { rows: [], page: 1, pageSize: 8 },
   roomFinder: { rows: [], page: 1, pageSize: 8 },

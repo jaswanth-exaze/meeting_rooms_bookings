@@ -1,3 +1,5 @@
+// Verify backend environment configuration validation rules.
+
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const path = require("path");
@@ -5,6 +7,7 @@ const { spawnSync } = require("node:child_process");
 
 const projectRoot = path.join(__dirname, "..");
 
+// Spawn a child process that attempts to load the env module with overrides.
 function runEnvProbe(extraEnv) {
   return spawnSync(process.execPath, ["-e", "require('./src/config/env')"], {
     cwd: projectRoot,
@@ -22,6 +25,7 @@ function runEnvProbe(extraEnv) {
   });
 }
 
+// Cover the primary success and failure cases for this module.
 test("env config loads with explicit secure JWT and CORS origins", () => {
   const result = runEnvProbe({
     CORS_ORIGIN: "http://localhost:5500",

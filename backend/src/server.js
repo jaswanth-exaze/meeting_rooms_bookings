@@ -1,8 +1,11 @@
+// Start the backend server and coordinate process-level lifecycle hooks.
+
 const app = require("./app");
 const { port } = require("./config/env");
 const { pool, query } = require("./config/db");
 const logger = require("./utils/logger");
 
+// Verify dependencies and start the HTTP server.
 async function startServer() {
   try {
     await query("SELECT 1");

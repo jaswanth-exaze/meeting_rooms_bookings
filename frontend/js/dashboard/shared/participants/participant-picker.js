@@ -1,8 +1,12 @@
+// Manage participant search, filtering, selection, and availability state.
+
+// Return create booking organizer employee ID.
 function getCreateBookingOrganizerEmployeeId() {
   const organizerEmployeeId = Number(selectedCreateOrganizerId || currentEmployeeId || 0);
   return organizerEmployeeId > 0 ? organizerEmployeeId : 0;
 }
 
+// Return create booking organizer option.
 function getCreateBookingOrganizerOption() {
   const organizerEmployeeId = getCreateBookingOrganizerEmployeeId();
   return (
@@ -11,6 +15,7 @@ function getCreateBookingOrganizerOption() {
   );
 }
 
+// Return create booking organizer display name.
 function getCreateBookingOrganizerDisplayName() {
   const organizerEmployeeId = getCreateBookingOrganizerEmployeeId();
   if (!organizerEmployeeId) {
@@ -24,6 +29,7 @@ function getCreateBookingOrganizerDisplayName() {
   return getCreateBookingOrganizerOption()?.name || `Employee #${organizerEmployeeId}`;
 }
 
+// Return participant picker config.
 function getParticipantPickerConfig(mode) {
   if (mode === "edit") {
     return {
@@ -62,6 +68,7 @@ function getParticipantPickerConfig(mode) {
   };
 }
 
+// Define shared constants and configuration used by this module.
 const PARTICIPANT_FILTER_FIELDS = [
   { key: "department", label: "All Departments" },
   { key: "project", label: "All Projects" },
@@ -69,6 +76,7 @@ const PARTICIPANT_FILTER_FIELDS = [
   { key: "work_location_name", label: "All Locations" }
 ];
 
+// Normalize employee option.
 function normalizeEmployeeOption(employee) {
   if (!employee || typeof employee !== "object") return null;
 
@@ -95,14 +103,17 @@ function normalizeEmployeeOption(employee) {
   };
 }
 
+// Return participant picker.
 function getParticipantPicker(mode) {
   return participantPickerState[mode] || participantPickerState.create;
 }
 
+// Return participant employee directory.
 function getParticipantEmployeeDirectory(mode) {
   return getParticipantPicker(mode).directory || [];
 }
 
+// Return participant picker availability window.
 function getParticipantPickerAvailabilityWindow(mode) {
   if (mode === "edit") {
     const draftWindow = getBookingEditWindow();
@@ -137,6 +148,7 @@ function getParticipantPickerAvailabilityWindow(mode) {
   };
 }
 
+// Build participant directory request.
 function buildParticipantDirectoryRequest(mode) {
   const availabilityWindow = getParticipantPickerAvailabilityWindow(mode);
   const params = new URLSearchParams();
@@ -162,6 +174,7 @@ function buildParticipantDirectoryRequest(mode) {
   };
 }
 
+// Build participant conflict hint.
 function buildParticipantConflictHint(employee) {
   if (!employee || employee.is_available !== false) {
     return "";
@@ -172,6 +185,7 @@ function buildParticipantConflictHint(employee) {
   return `Unavailable due to another meeting${title}${organizerName}.`;
 }
 
+// Build participant availability message.
 function buildParticipantAvailabilityMessage(mode, issues) {
   if (!Array.isArray(issues) || !issues.length) {
     return "";
@@ -206,6 +220,7 @@ function buildParticipantAvailabilityMessage(mode, issues) {
   return `Some selected attendees are not available during this time: ${names}.`;
 }
 
+// Load employee directory.
 async function loadEmployeeDirectory(mode, { force = false } = {}) {
   const picker = getParticipantPicker(mode);
   const request = buildParticipantDirectoryRequest(mode);
@@ -224,15 +239,18 @@ async function loadEmployeeDirectory(mode, { force = false } = {}) {
   return picker.directory;
 }
 
+// Set participant picker message.
 function setParticipantPickerMessage(mode, message, type = "") {
   const pickerConfig = getParticipantPickerConfig(mode);
   setHelperMessage(pickerConfig?.messageElement, message, type);
 }
 
+// Return participant picker selected IDs.
 function getParticipantPickerSelectedIds(mode) {
   return getParticipantPicker(mode).selected.map(employee => Number(employee.employee_id));
 }
 
+// Return participant picker capacity.
 function getParticipantPickerCapacity(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const rawCapacity = pickerConfig?.getCapacity?.();
@@ -240,12 +258,14 @@ function getParticipantPickerCapacity(mode) {
   return capacity > 0 ? capacity : 0;
 }
 
+// Return participant picker organizer ID.
 function getParticipantPickerOrganizerId(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const organizerEmployeeId = Number(pickerConfig?.getOrganizerEmployeeId?.() || currentEmployeeId || 0);
   return organizerEmployeeId > 0 ? organizerEmployeeId : 0;
 }
 
+// Return participant picker organizer display name.
 function getParticipantPickerOrganizerDisplayName(mode) {
   const organizerEmployeeId = getParticipantPickerOrganizerId(mode);
   if (!organizerEmployeeId) {
@@ -263,6 +283,7 @@ function getParticipantPickerOrganizerDisplayName(mode) {
   return getCreateBookingOrganizerOption()?.name || `Employee #${organizerEmployeeId}`;
 }
 
+// Return participant picker filter values.
 function getParticipantPickerFilterValues(mode) {
   const filterElements = getParticipantPickerConfig(mode)?.filterElements || {};
   return {
@@ -273,10 +294,12 @@ function getParticipantPickerFilterValues(mode) {
   };
 }
 
+// Return whether has active participant filters.
 function hasActiveParticipantFilters(mode) {
   return Object.values(getParticipantPickerFilterValues(mode)).some(Boolean);
 }
 
+// Populate participant filters.
 function populateParticipantFilters(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const filterElements = pickerConfig?.filterElements || {};
@@ -313,6 +336,7 @@ function populateParticipantFilters(mode) {
   });
 }
 
+// Reset participant filters.
 function resetParticipantFilters(mode) {
   const filterElements = getParticipantPickerConfig(mode)?.filterElements || {};
   Object.values(filterElements).forEach(selectElement => {
@@ -321,6 +345,7 @@ function resetParticipantFilters(mode) {
   });
 }
 
+// Hide participant suggestions.
 function hideParticipantSuggestions(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const suggestionContainer = pickerConfig?.suggestionsElement;
@@ -331,6 +356,7 @@ function hideParticipantSuggestions(mode) {
   getParticipantPicker(mode).suggestions = [];
 }
 
+// Update participant attendee summary.
 function updateParticipantAttendeeSummary(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const summaryElement = pickerConfig?.summaryElement;
@@ -343,6 +369,7 @@ function updateParticipantAttendeeSummary(mode) {
   summaryElement.textContent = `Total attendees: ${totalAttendees} of ${capacityLabel} seats (1 organizer + ${selectedCount} added)`;
 }
 
+// Render participant chips.
 function renderParticipantChips(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const chipContainer = pickerConfig?.chipsElement;
@@ -384,6 +411,7 @@ function renderParticipantChips(mode) {
     .join("");
 }
 
+// Return filtered participant suggestions.
 function getFilteredParticipantSuggestions(mode, searchTerm) {
   const normalizedSearch = String(searchTerm || "")
     .trim()
@@ -432,6 +460,7 @@ function getFilteredParticipantSuggestions(mode, searchTerm) {
     .slice(0, 8);
 }
 
+// Render participant suggestions.
 function renderParticipantSuggestions(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const suggestionContainer = pickerConfig?.suggestionsElement;
@@ -480,6 +509,7 @@ function renderParticipantSuggestions(mode) {
     .join("");
 }
 
+// Return participant availability issues.
 function getParticipantAvailabilityIssues(mode, { includeOrganizer = true } = {}) {
   const employeeDirectory = getParticipantEmployeeDirectory(mode);
   const employeeById = new Map(employeeDirectory.map(employee => [Number(employee.employee_id), employee]));
@@ -509,6 +539,7 @@ function getParticipantAvailabilityIssues(mode, { includeOrganizer = true } = {}
   return issues;
 }
 
+// Validate participant availability.
 function validateParticipantAvailability(mode, { showMessage = true } = {}) {
   const issues = getParticipantAvailabilityIssues(mode);
   if (issues.length > 0) {
@@ -524,6 +555,7 @@ function validateParticipantAvailability(mode, { showMessage = true } = {}) {
   return true;
 }
 
+// Validate participant capacity.
 function validateParticipantCapacity(mode) {
   const capacity = getParticipantPickerCapacity(mode);
   if (!capacity) {
@@ -542,6 +574,7 @@ function validateParticipantCapacity(mode) {
   return true;
 }
 
+// Set participant selection.
 function setParticipantSelection(mode, employees) {
   const picker = getParticipantPicker(mode);
   const normalizedEmployees = Array.isArray(employees)
@@ -560,6 +593,7 @@ function setParticipantSelection(mode, employees) {
   }
 }
 
+// Add participant to picker.
 function addParticipantToPicker(mode, employee) {
   const pickerConfig = getParticipantPickerConfig(mode);
   if (!pickerConfig) return false;
@@ -613,6 +647,7 @@ function addParticipantToPicker(mode, employee) {
   return true;
 }
 
+// Remove participant from picker.
 function removeParticipantFromPicker(mode, employeeId) {
   const picker = getParticipantPicker(mode);
   picker.selected = picker.selected.filter(employee => Number(employee.employee_id) !== Number(employeeId));
@@ -623,6 +658,7 @@ function removeParticipantFromPicker(mode, employeeId) {
   }
 }
 
+// Resolve participant candidate.
 function resolveParticipantCandidate(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const searchInput = pickerConfig?.searchInput;
@@ -645,6 +681,7 @@ function resolveParticipantCandidate(mode) {
   );
 }
 
+// Ensure participant directory.
 async function ensureParticipantDirectory(mode) {
   try {
     await loadEmployeeDirectory(mode);
@@ -656,6 +693,7 @@ async function ensureParticipantDirectory(mode) {
   }
 }
 
+// Attempt to add participant from input.
 async function attemptAddParticipantFromInput(mode) {
   const directoryReady = await ensureParticipantDirectory(mode);
   if (!directoryReady) return;
@@ -681,6 +719,7 @@ async function attemptAddParticipantFromInput(mode) {
   addParticipantToPicker(mode, candidate);
 }
 
+// Reset participant picker.
 function resetParticipantPicker(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   const picker = getParticipantPicker(mode);
@@ -704,6 +743,7 @@ function resetParticipantPicker(mode) {
   }
 }
 
+// Initialize participant picker.
 function initializeParticipantPicker(mode) {
   const pickerConfig = getParticipantPickerConfig(mode);
   if (!pickerConfig?.searchInput || !pickerConfig.addButton) {
@@ -744,15 +784,18 @@ function initializeParticipantPicker(mode) {
   });
 }
 
+// Sync create participants with organizer.
 function syncCreateParticipantsWithOrganizer() {
   setParticipantSelection("create", getParticipantPicker("create").selected);
 }
 
+// Update room modal organizer summary.
 function updateRoomModalOrganizerSummary() {
   if (!roomModalOrganizer) return;
   roomModalOrganizer.textContent = getCreateBookingOrganizerDisplayName();
 }
 
+// Render room modal organizer selection.
 function renderRoomModalOrganizerSelection() {
   if (!roomModalOrganizerField || !roomModalOrganizerSelect) {
     updateRoomModalOrganizerSummary();
@@ -820,6 +863,7 @@ function renderRoomModalOrganizerSelection() {
   );
 }
 
+// Set create booking organizer.
 function setCreateBookingOrganizer(employeeId) {
   const nextOrganizerId = Number(employeeId || 0);
   selectedCreateOrganizerId = nextOrganizerId > 0 ? nextOrganizerId : Number(currentEmployeeId || 0);

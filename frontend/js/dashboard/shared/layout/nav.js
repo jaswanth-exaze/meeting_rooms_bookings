@@ -1,3 +1,6 @@
+// Manage dashboard section navigation.
+
+// Show section.
 function showSection(sectionId) {
   const target = document.getElementById(sectionId);
   if (!target) return;
@@ -14,6 +17,7 @@ function showSection(sectionId) {
   });
 }
 
+// Initialize nav.
 function initializeNav() {
   const navLinks = document.querySelectorAll(".side-nav [data-section-target]");
   navLinks.forEach(link => {
@@ -29,6 +33,7 @@ function initializeNav() {
 
   const jumpTargets = document.querySelectorAll("[data-section-jump]");
   jumpTargets.forEach(element => {
+    // Go to section.
     const goToSection = () => {
       const targetId = element.dataset.sectionJump;
       if (targetId) {

@@ -1,3 +1,5 @@
+// Expose runtime configuration defaults to frontend scripts.
+
 (function initializeAppConfig(global) {
   const fallbackApiBaseUrl = "http://localhost:4000/api";
   const runtimeOverride =
@@ -11,6 +13,7 @@
     const hostname = String(global.location?.hostname || "").toLowerCase();
     const port = String(global.location?.port || "");
 
+    // To URL host.
     function toUrlHost(name) {
       if (!name) return "localhost";
       if (name.includes(":") && !name.startsWith("[") && !name.endsWith("]")) {

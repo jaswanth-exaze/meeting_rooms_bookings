@@ -1,3 +1,6 @@
+// Render the admin reports tables and summaries.
+
+// Render report tables.
 function renderReportTables(reportData) {
   const locationTable = document.getElementById("reportLocationTable");
   const upcomingTable = document.getElementById("reportUpcomingTable");
@@ -24,6 +27,7 @@ function renderReportTables(reportData) {
   topLocation.textContent = String(summary.top_location || "-");
 }
 
+// Render report location page.
 function renderReportLocationPage() {
   const locationTable = document.getElementById("reportLocationTable");
   if (!locationTable) return;
@@ -39,6 +43,7 @@ function renderReportLocationPage() {
   renderPaginationControls("reportLocationPagination", "reportLocations");
 }
 
+// Render report upcoming page.
 function renderReportUpcomingPage() {
   const upcomingTable = document.getElementById("reportUpcomingTable");
   if (!upcomingTable) return;
@@ -62,6 +67,7 @@ function renderReportUpcomingPage() {
   renderPaginationControls("reportUpcomingPagination", "reportUpcoming");
 }
 
+// Load reports.
 async function loadReports() {
   if (currentRole !== "admin") return;
 

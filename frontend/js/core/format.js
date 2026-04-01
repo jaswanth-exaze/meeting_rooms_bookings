@@ -1,3 +1,6 @@
+// Provide shared formatting helpers for rooms, dates, and bookings.
+
+// Define shared constants and configuration used by this module.
 const ROOM_IMAGES_BY_NAME = {
   "cell pod 1": "../assets/images/cell_pod_1.png",
   "cell pod 2": "../assets/images/cell_pod_2.png",
@@ -21,6 +24,7 @@ const ROOM_IMAGES_BY_NAME = {
   "table mountain": "../assets/images/fussion-6-members.png"
 };
 
+// Define shared constants and configuration used by this module.
 const ROOM_AMENITY_DEFINITIONS = Object.freeze([
   { key: "has_projector", label: "Projector", icon: "projector" },
   { key: "has_screen", label: "Display Screen", icon: "screen" },
@@ -33,6 +37,7 @@ const ROOM_AMENITY_DEFINITIONS = Object.freeze([
   { key: "has_power_backup", label: "Power Backup", icon: "battery" }
 ]);
 
+// Define shared constants and configuration used by this module.
 const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
   projector:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7 3 5"></path><path d="M9 6V3"></path><path d="m13 7 2-2"></path><circle cx="9" cy="13" r="3"></circle><path d="M11.83 12H20a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h2.17"></path><path d="M16 16h2"></path></svg>',
@@ -56,6 +61,7 @@ const ROOM_AMENITY_ICON_MARKUP = Object.freeze({
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8"></path><path d="M12 16v4"></path></svg>'
 });
 
+// Define shared constants and configuration used by this module.
 const MALE_PROFILE_IMAGE = "../assets/images/male_profile.png";
 const FEMALE_PROFILE_IMAGE = "../assets/images/female_profile.png";
 const TIMEZONE_CODE_OVERRIDES = Object.freeze({
@@ -63,6 +69,7 @@ const TIMEZONE_CODE_OVERRIDES = Object.freeze({
   "Asia/Calcutta": "IST",
   "Africa/Johannesburg": "SAST"
 });
+// Define shared constants and configuration used by this module.
 const BOOKING_PAST_GRACE_MS = 60 * 1000;
 const ROOM_AVAILABLE_SOON_MS = 60 * 1000;
 const ROOM_SCHEDULE_DAYS = 7;
@@ -72,6 +79,7 @@ const ROOM_SCHEDULE_DEFAULT_WORKDAY_END = "19:00";
 const ROOM_SCHEDULE_TIMEZONE = "Asia/Kolkata";
 const ROOM_SCHEDULE_TIMEZONE_LABEL = "IST";
 
+// Normalize gender.
 function normalizeGender(value) {
   const normalized = String(value || "")
     .trim()
@@ -80,24 +88,29 @@ function normalizeGender(value) {
   return "male";
 }
 
+// Return profile image path.
 function getProfileImagePath(gender) {
   return normalizeGender(gender) === "female" ? FEMALE_PROFILE_IMAGE : MALE_PROFILE_IMAGE;
 }
 
+// Return whether is past beyond grace.
 function isPastBeyondGrace(timestamp, graceMs = BOOKING_PAST_GRACE_MS) {
   if (!Number.isFinite(timestamp)) return true;
   return timestamp < Date.now() - graceMs;
 }
 
+// Return local date input value.
 function getLocalDateInputValue(date = new Date()) {
   const timezoneOffsetMs = date.getTimezoneOffset() * 60 * 1000;
   return new Date(date.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
 }
 
+// Return local time input value.
 function getLocalTimeInputValue(date = new Date()) {
   return date.toTimeString().slice(0, 5);
 }
 
+// Normalize time value to24.
 function normalizeTimeValueTo24(value) {
   const raw = String(value || "").trim();
   if (!raw) return null;
@@ -118,6 +131,7 @@ function normalizeTimeValueTo24(value) {
   return `${String(hours).padStart(2, "0")}:${twelveHourMatch[2]}`;
 }
 
+// Format24 hour as12 hour.
 function format24HourAs12Hour(value24) {
   const normalized = normalizeTimeValueTo24(value24);
   if (!normalized) return "";
@@ -129,12 +143,14 @@ function format24HourAs12Hour(value24) {
   return `${String(hours12).padStart(2, "0")}:${minutes} ${period}`;
 }
 
+// Return time input value24.
 function getTimeInputValue24(inputElement) {
   if (!inputElement) return null;
   const dataTime24 = inputElement.getAttribute("data-time24");
   return normalizeTimeValueTo24(dataTime24 || inputElement.value);
 }
 
+// Set time input value.
 function setTimeInputValue(inputElement, timeValue24) {
   if (!inputElement) return;
   const normalized = normalizeTimeValueTo24(timeValue24);
@@ -150,6 +166,7 @@ function setTimeInputValue(inputElement, timeValue24) {
   inputElement.value = normalized;
 }
 
+// Return time value minutes.
 function getTimeValueMinutes(value) {
   const normalized = normalizeTimeValueTo24(value);
   if (!normalized) return null;
@@ -159,11 +176,13 @@ function getTimeValueMinutes(value) {
   return hours * 60 + minutes;
 }
 
+// Normalize time zone.
 function normalizeTimeZone(value) {
   const normalized = String(value || "").trim();
   return normalized || null;
 }
 
+// Return time zone code.
 function getTimeZoneCode(date, timeZone) {
   const normalizedTimeZone = normalizeTimeZone(timeZone);
   if (normalizedTimeZone && TIMEZONE_CODE_OVERRIDES[normalizedTimeZone]) {
@@ -186,6 +205,7 @@ function getTimeZoneCode(date, timeZone) {
   return "UTC";
 }
 
+// Format date.
 function formatDate(value, timeZone) {
   if (!value) return "-";
   const date = new Date(value);
@@ -203,6 +223,7 @@ function formatDate(value, timeZone) {
   }
 }
 
+// Format time.
 function formatTime(value, timeZone, { includeTimeZone = true } = {}) {
   if (!value) return "-";
   const date = new Date(value);
@@ -227,11 +248,13 @@ function formatTime(value, timeZone, { includeTimeZone = true } = {}) {
   return `${formattedTime} ${getTimeZoneCode(date, normalizedTimeZone)}`;
 }
 
+// Format date time.
 function formatDateTime(value, timeZone, options = {}) {
   if (!value) return "-";
   return `${formatDate(value, timeZone)} ${formatTime(value, timeZone, options)}`;
 }
 
+// Format compact date time.
 function formatCompactDateTime(value, timeZone) {
   if (!value) return "-";
   const dateText = formatDate(value, timeZone);
@@ -239,6 +262,7 @@ function formatCompactDateTime(value, timeZone) {
   return `${shortDate} ${formatTime(value, timeZone)}`;
 }
 
+// Format time range.
 function formatTimeRange(startValue, endValue, timeZone) {
   const startText = formatTime(startValue, timeZone, { includeTimeZone: false });
   const endText = formatTime(endValue, timeZone, { includeTimeZone: false });
@@ -248,6 +272,7 @@ function formatTimeRange(startValue, endValue, timeZone) {
   return `${startText} - ${endText} ${getTimeZoneCode(referenceDate, timeZone)}`;
 }
 
+// Return status class.
 function getStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized === "confirmed") return "confirmed";
@@ -257,23 +282,27 @@ function getStatusClass(status) {
   return "";
 }
 
+// Format refresh stamp.
 function formatRefreshStamp(date = new Date()) {
   const resolvedZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
   return formatTime(date.toISOString(), resolvedZone);
 }
 
+// Return duration minutes.
 function getDurationMinutes(value, fallback = 60) {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return parsed;
 }
 
+// Parse date value.
 function parseDateValue(value) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed;
 }
 
+// To local date input value.
 function toLocalDateInputValue(value) {
   const parsed = parseDateValue(value);
   if (!parsed) return "";
@@ -281,12 +310,14 @@ function toLocalDateInputValue(value) {
   return new Date(parsed.getTime() - timezoneOffsetMs).toISOString().slice(0, 10);
 }
 
+// To local time input value.
 function toLocalTimeInputValue(value) {
   const parsed = parseDateValue(value);
   if (!parsed) return "";
   return parsed.toTimeString().slice(0, 5);
 }
 
+// Return minutes between.
 function getMinutesBetween(startValue, endValue, fallback = 60) {
   const start = parseDateValue(startValue);
   const end = parseDateValue(endValue);
@@ -295,6 +326,7 @@ function getMinutesBetween(startValue, endValue, fallback = 60) {
   return diff > 0 ? diff : fallback;
 }
 
+// Build window from local inputs.
 function buildWindowFromLocalInputs(dateValue, timeValue, durationValue) {
   if (!dateValue || !timeValue) return null;
 
@@ -313,6 +345,7 @@ function buildWindowFromLocalInputs(dateValue, timeValue, durationValue) {
   };
 }
 
+// Ensure duration option.
 function ensureDurationOption(selectElement, minutes) {
   if (!selectElement) return;
   const normalized = String(getDurationMinutes(minutes, 60));
@@ -326,6 +359,7 @@ function ensureDurationOption(selectElement, minutes) {
   selectElement.value = normalized;
 }
 
+// Escape HTML.
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -335,6 +369,7 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
+// Normalize room name.
 function normalizeRoomName(roomName) {
   return String(roomName || "")
     .trim()
@@ -342,20 +377,24 @@ function normalizeRoomName(roomName) {
     .replace(/\s+/g, " ");
 }
 
+// Return room image.
 function getRoomImage(room) {
   if (!room) return "../assets/images/image(3).png";
   const normalized = normalizeRoomName(room.name);
   return ROOM_IMAGES_BY_NAME[normalized] || "../assets/images/image(3).png";
 }
 
+// Return whether is amenity enabled.
 function isAmenityEnabled(value) {
   return value === 1 || value === true || value === "1" || value === "true";
 }
 
+// Return room amenities.
 function getRoomAmenities(room) {
   return ROOM_AMENITY_DEFINITIONS.filter(amenity => isAmenityEnabled(room?.[amenity.key]));
 }
 
+// Build room features.
 function buildRoomFeatures(room, { limit = null } = {}) {
   const features = getRoomAmenities(room).map(amenity => amenity.label);
   if (features.length === 0) {
@@ -370,6 +409,7 @@ function buildRoomFeatures(room, { limit = null } = {}) {
   return `${features.slice(0, safeLimit).join(" | ")} | +${features.length - safeLimit} more`;
 }
 
+// Create amenity icon.
 function createAmenityIcon(iconKey) {
   const iconElement = document.createElement("span");
   iconElement.className = "room-amenity-icon";
@@ -378,6 +418,7 @@ function createAmenityIcon(iconKey) {
   return iconElement;
 }
 
+// Render room amenities.
 function renderRoomAmenities(container, room) {
   if (!container) return;
 
@@ -405,10 +446,12 @@ function renderRoomAmenities(container, room) {
   });
 }
 
+// Return whether is room available.
 function isRoomAvailable(room) {
   return room?.is_available === 1 || room?.is_available === true || room?.is_available === "1";
 }
 
+// Return room availability label.
 function getRoomAvailabilityLabel(room) {
   if (isRoomAvailable(room)) {
     return "Available";
@@ -425,6 +468,7 @@ function getRoomAvailabilityLabel(room) {
   return "Booked";
 }
 
+// Return room purpose text.
 function getRoomPurposeText(room) {
   const normalizedRoomName = normalizeRoomName(room?.name);
   const capacity = Number(room?.capacity || 0);
@@ -459,6 +503,7 @@ function getRoomPurposeText(room) {
   return "Team sessions";
 }
 
+// Return room setup text.
 function getRoomSetupText(room) {
   if (isAmenityEnabled(room?.has_video_conferencing) && (isAmenityEnabled(room?.has_tv_set) || isAmenityEnabled(room?.has_screen))) {
     return "VC-ready";
@@ -475,6 +520,7 @@ function getRoomSetupText(room) {
   return "Essential setup";
 }
 
+// Return room comfort text.
 function getRoomComfortText(room) {
   if (isAmenityEnabled(room?.has_wifi) && isAmenityEnabled(room?.has_ac) && isAmenityEnabled(room?.has_power_backup)) {
     return "WiFi, AC, backup";

@@ -1,3 +1,6 @@
+// Register room detail interactions across employee views.
+
+// Register interactions that open room details from dashboard views.
 function initializeRoomDetailsInteractions() {
   const finderTable = document.getElementById("roomFinderTable");
   if (finderTable) {

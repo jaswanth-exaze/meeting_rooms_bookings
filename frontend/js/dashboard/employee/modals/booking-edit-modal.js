@@ -1,3 +1,6 @@
+// Manage the booking edit and booking detail modal.
+
+// Cache the DOM nodes reused throughout this module.
 const bookingEditModal = document.getElementById("booking-edit-modal");
 const bookingEditForm = document.getElementById("bookingEditForm");
 const bookingEditTitle = document.getElementById("bookingEditTitle");
@@ -21,10 +24,12 @@ const bookingEditParticipantMessage = document.getElementById("bookingEditPartic
 const bookingEditSubmitButton = bookingEditForm?.querySelector("button[type='submit']");
 let bookingEditMode = "edit";
 
+// Set booking edit message.
 function setBookingEditMessage(message, type = "") {
   setHelperMessage(bookingEditMessage, message, type);
 }
 
+// Set booking edit mode.
 function setBookingEditMode(mode = "edit") {
   bookingEditMode = mode === "view" ? "view" : "edit";
   const isViewOnly = bookingEditMode === "view";
@@ -61,6 +66,7 @@ function setBookingEditMode(mode = "edit") {
   }
 }
 
+// Apply booking edit date time constraints.
 function applyBookingEditDateTimeConstraints() {
   if (!bookingEditDate || !bookingEditTime) return;
 
@@ -85,10 +91,12 @@ function applyBookingEditDateTimeConstraints() {
   }
 }
 
+// Return booking edit window.
 function getBookingEditWindow() {
   return buildWindowFromLocalInputs(bookingEditDate?.value, bookingEditTime?.value, bookingEditDuration?.value);
 }
 
+// Close booking edit modal.
 function closeBookingEditModal() {
   if (!bookingEditModal) return;
   closeManagedModal(bookingEditModal);
@@ -108,6 +116,7 @@ function closeBookingEditModal() {
   setBookingEditMessage("", "");
 }
 
+// Open booking edit modal.
 async function openBookingEditModal(bookingId, { mode = "edit" } = {}) {
   if (!bookingEditModal) return;
 
@@ -177,6 +186,7 @@ async function openBookingEditModal(bookingId, { mode = "edit" } = {}) {
   openManagedModal(bookingEditModal);
 }
 
+// Save booking edits.
 async function saveBookingEdits(event) {
   event.preventDefault();
   if (!selectedBooking) return;
@@ -240,6 +250,7 @@ async function saveBookingEdits(event) {
   }
 }
 
+// Cancel booking by ID.
 async function cancelBookingById(bookingId) {
   const booking = bookingsById.get(Number(bookingId));
   if (!booking) return;
@@ -264,6 +275,7 @@ async function cancelBookingById(bookingId) {
   }
 }
 
+// Vacate booking by ID.
 async function vacateBookingById(bookingId) {
   const booking = bookingsById.get(Number(bookingId));
   if (!booking) return;
@@ -288,6 +300,7 @@ async function vacateBookingById(bookingId) {
   }
 }
 
+// Initialize booking edit modal handlers.
 function initializeBookingEditModalHandlers() {
   if (!bookingEditModal) return;
 

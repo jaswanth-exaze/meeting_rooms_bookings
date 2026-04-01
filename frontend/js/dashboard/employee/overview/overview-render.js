@@ -1,3 +1,6 @@
+// Render the employee overview panels and tables.
+
+// Render overview bookings.
 function renderOverviewBookings(rows) {
   const table = document.getElementById("overviewBookingsTable");
   if (!table) return;

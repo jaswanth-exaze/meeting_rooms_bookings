@@ -1,3 +1,6 @@
+// Load employee overview data into shared state.
+
+// Load summary.
 async function loadSummary() {
   try {
     const summary = await apiFetch("/bookings/summary");

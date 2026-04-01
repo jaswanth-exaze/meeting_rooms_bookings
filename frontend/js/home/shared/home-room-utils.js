@@ -1,3 +1,6 @@
+// Provide shared room and location helpers for the home page.
+
+// Set booking message.
 function setBookingMessage(message, type = "") {
   if (!bookingMessage) return;
   bookingMessage.textContent = message || "";
@@ -7,6 +10,7 @@ function setBookingMessage(message, type = "") {
   }
 }
 
+// Set location map status.
 function setLocationMapStatus(message, type = "") {
   if (!locationMapStatus) return;
   locationMapStatus.textContent = message || "";
@@ -17,14 +21,17 @@ function setLocationMapStatus(message, type = "") {
   }
 }
 
+// Normalize room name.
 function normalizeRoomName(roomName) {
   return String(roomName || "").trim().toLowerCase().replace(/\\s+/g, " ");
 }
 
+// Normalize location name.
 function normalizeLocationName(locationName) {
   return String(locationName || "").trim().toLowerCase().replace(/\\s+/g, " ");
 }
 
+// Format location address.
 function formatLocationAddress(address) {
   return String(address || "")
     .split(/\\r?\\n/)
@@ -33,6 +40,7 @@ function formatLocationAddress(address) {
     .join(", ");
 }
 
+// Fetch JSON.
 function fetchJson(url, fallbackMessage) {
   return fetch(url).then(async response => {
     const data = await response.json().catch(() => null);
@@ -43,6 +51,7 @@ function fetchJson(url, fallbackMessage) {
   });
 }
 
+// Return location short label.
 function getLocationShortLabel(locationName) {
   const normalizedName = normalizeLocationName(locationName);
   const preset = LOCATION_MAP_PRESETS[normalizedName];
@@ -60,6 +69,7 @@ function getLocationShortLabel(locationName) {
     .join("") || "LOC";
 }
 
+// Return room image.
 function getRoomImage(room) {
   if (!room) {
     return "assets/images/image(3).png";
@@ -69,14 +79,17 @@ function getRoomImage(room) {
   return ROOM_IMAGES_BY_NAME[normalizedRoomName] || "assets/images/image(3).png";
 }
 
+// Return whether is amenity enabled.
 function isAmenityEnabled(value) {
   return value === 1 || value === true || value === "1" || value === "true";
 }
 
+// Return room amenities.
 function getRoomAmenities(room) {
   return ROOM_AMENITY_DEFINITIONS.filter(amenity => isAmenityEnabled(room?.[amenity.key]));
 }
 
+// Return feature text.
 function getFeatureText(room, { limit = null } = {}) {
   const features = getRoomAmenities(room).map(amenity => amenity.label);
   if (features.length === 0) {
@@ -91,6 +104,7 @@ function getFeatureText(room, { limit = null } = {}) {
   return `${features.slice(0, safeLimit).join(" | ")} | +${features.length - safeLimit} more`;
 }
 
+// Create amenity icon.
 function createAmenityIcon(iconKey) {
   const iconElement = document.createElement("span");
   iconElement.className = "room-amenity-icon";
@@ -99,6 +113,7 @@ function createAmenityIcon(iconKey) {
   return iconElement;
 }
 
+// Create room detail meta icon.
 function createRoomDetailMetaIcon(iconKey) {
   const iconElement = document.createElement("span");
   iconElement.className = "home-room-modal-detail-icon";
@@ -107,6 +122,7 @@ function createRoomDetailMetaIcon(iconKey) {
   return iconElement;
 }
 
+// Render room amenities.
 function renderRoomAmenities(container, room) {
   if (!container) return;
 
@@ -134,18 +150,21 @@ function renderRoomAmenities(container, room) {
   });
 }
 
+// Return room meta text.
 function getRoomMetaText(room) {
   const location = room.location_name || "Unknown location";
   const capacity = `${room.capacity || 0} Seats`;
   return `${location} | ${capacity} | ${getFeatureText(room, { limit: 3 })}`;
 }
 
+// Return room capacity text.
 function getRoomCapacityText(room) {
   const parsedCapacity = Number(room?.capacity);
   const seatCount = Number.isFinite(parsedCapacity) && parsedCapacity > 0 ? parsedCapacity : 0;
   return `${seatCount} ${seatCount === 1 ? "seat" : "seats"}`;
 }
 
+// Return room purpose text.
 function getRoomPurposeText(room) {
   const normalizedRoomName = normalizeRoomName(room?.name);
   const capacity = Number(room?.capacity || 0);
@@ -180,6 +199,7 @@ function getRoomPurposeText(room) {
   return "Team sessions";
 }
 
+// Return room setup text.
 function getRoomSetupText(room) {
   if (isAmenityEnabled(room?.has_video_conferencing) && (isAmenityEnabled(room?.has_tv_set) || isAmenityEnabled(room?.has_screen))) {
     return "VC-ready";
@@ -196,6 +216,7 @@ function getRoomSetupText(room) {
   return "Essential setup";
 }
 
+// Return room comfort text.
 function getRoomComfortText(room) {
   if (isAmenityEnabled(room?.has_wifi) && isAmenityEnabled(room?.has_ac) && isAmenityEnabled(room?.has_power_backup)) {
     return "WiFi, AC, backup";
@@ -209,6 +230,7 @@ function getRoomComfortText(room) {
   return "Core essentials";
 }
 
+// Render room media summary.
 function renderRoomMediaSummary(room) {
   if (roomDetailPurpose) {
     roomDetailPurpose.textContent = getRoomPurposeText(room);
@@ -221,6 +243,7 @@ function renderRoomMediaSummary(room) {
   }
 }
 
+// Render room detail meta.
 function renderRoomDetailMeta(room) {
   if (!roomDetailMeta) return;
 

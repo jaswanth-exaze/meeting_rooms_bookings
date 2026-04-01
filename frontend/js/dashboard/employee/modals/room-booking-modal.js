@@ -1,3 +1,6 @@
+// Manage the employee room booking modal.
+
+// Cache the DOM nodes reused throughout this module.
 const roomModal = document.getElementById("dashboard-room-modal");
 const roomModalImage = document.getElementById("dashboard-room-image");
 const roomModalTitle = document.getElementById("dashboard-room-title");
@@ -34,6 +37,7 @@ const roomScheduleMeta = document.getElementById("dashboardRoomScheduleMeta");
 const roomScheduleMessage = document.getElementById("dashboardRoomScheduleMessage");
 const roomScheduleGrid = document.getElementById("dashboardRoomScheduleGrid");
 
+// Render room media summary.
 function renderRoomMediaSummary(room) {
   if (roomModalPurpose) {
     roomModalPurpose.textContent = getRoomPurposeText(room);
@@ -46,10 +50,12 @@ function renderRoomMediaSummary(room) {
   }
 }
 
+// Set room modal message.
 function setRoomModalMessage(message, type = "") {
   setHelperMessage(roomModalMessage, message, type);
 }
 
+// Set room modal book button state.
 function setRoomModalBookButtonState(isAvailable) {
   if (!roomModalBookBtn) return;
   roomModalBookBtn.hidden = false;
@@ -57,14 +63,17 @@ function setRoomModalBookButtonState(isAvailable) {
   roomModalBookBtn.textContent = isAvailable ? "Book This Room" : "Booked";
 }
 
+// Set room schedule message.
 function setRoomScheduleMessage(message, type = "") {
   setHelperMessage(roomScheduleMessage, message, type);
 }
 
+// Set room modal organizer help.
 function setRoomModalOrganizerHelp(message, type = "") {
   setHelperMessage(roomModalOrganizerHelp, message, type);
 }
 
+// Return slot label.
 function getSlotLabel(windowValue) {
   if (!windowValue?.start || !windowValue?.end) {
     return "Selected Slot: Not set";
@@ -73,6 +82,7 @@ function getSlotLabel(windowValue) {
   return `Selected Slot: ${formatDateTime(windowValue.start)} - ${formatTime(windowValue.end)}`;
 }
 
+// Open room modal.
 function openRoomModal(room, bookingWindow) {
   if (!roomModal || !room) return;
 
@@ -121,6 +131,7 @@ function openRoomModal(room, bookingWindow) {
   openManagedModal(roomModal);
 }
 
+// Close room modal.
 function closeRoomModal() {
   if (!roomModal) return;
   closeManagedModal(roomModal);
@@ -137,6 +148,7 @@ function closeRoomModal() {
   setRoomModalMessage("", "");
 }
 
+// Book selected room.
 async function bookSelectedRoom() {
   setRoomModalMessage("", "");
 
@@ -212,6 +224,7 @@ async function bookSelectedRoom() {
   }
 }
 
+// Initialize room modal handlers.
 function initializeRoomModalHandlers() {
   if (!roomModal) return;
 

@@ -1,10 +1,14 @@
+// Provide require auth middleware.
+
 const jwt = require("jsonwebtoken");
 const { authCookieName, jwtSecret } = require("../config/env");
 
+// Normalize loosely typed truthy values into a boolean.
 function toBoolean(value) {
   return value === true || value === 1 || value === "1" || value === "true";
 }
 
+// Parse the raw Cookie header into an object map.
 function parseCookies(rawCookieHeader) {
   const output = {};
   const cookieHeader = String(rawCookieHeader || "").trim();
@@ -25,12 +29,14 @@ function parseCookies(rawCookieHeader) {
   return output;
 }
 
+// Extract the bearer token from the Authorization header.
 function getBearerToken(authHeaderRaw) {
   const authHeader = String(authHeaderRaw || "");
   if (!authHeader.startsWith("Bearer ")) return "";
   return authHeader.slice(7).trim();
 }
 
+// Require a valid auth token before continuing the request.
 function requireAuth(req, res, next) {
   const cookies = parseCookies(req.headers.cookie);
   const cookieToken = String(cookies[authCookieName] || "").trim();

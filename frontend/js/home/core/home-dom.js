@@ -1,3 +1,6 @@
+// Cache home page DOM references reused across sections and modals.
+
+// Cache the DOM nodes reused throughout this module.
 const featuredLocationFilter = document.getElementById("featured-location-filter");
 const featuredRoomsGrid = document.getElementById("featured-rooms-grid");
 const bookingMessage = document.getElementById("booking-message");

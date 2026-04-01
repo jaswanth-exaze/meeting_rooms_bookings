@@ -1,3 +1,6 @@
+// Render room finder results and loading states.
+
+// Render room finder table.
 function renderRoomFinderTable(rooms) {
   const table = document.getElementById("roomFinderTable");
   if (!table) return;
@@ -11,6 +14,7 @@ function renderRoomFinderTable(rooms) {
   renderRoomFinderPage();
 }
 
+// Render room finder page.
 function renderRoomFinderPage() {
   const table = document.getElementById("roomFinderTable");
   if (!table) return;

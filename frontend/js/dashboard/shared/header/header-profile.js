@@ -1,5 +1,9 @@
+// Manage the dashboard profile header and password reset workflow.
+
+// Define shared constants and configuration used by this module.
 const PASSWORD_RULE_KEYS = ["length", "lowercase", "uppercase", "number", "special"];
 
+// Return password rule state.
 function getPasswordRuleState(passwordValue) {
   const password = String(passwordValue || "");
   return {
@@ -11,6 +15,7 @@ function getPasswordRuleState(passwordValue) {
   };
 }
 
+// Return password rule error.
 function getPasswordRuleError(passwordValue) {
   const ruleState = getPasswordRuleState(passwordValue);
   if (!ruleState.length) return "Password must be at least 8 characters long.";
@@ -21,6 +26,7 @@ function getPasswordRuleError(passwordValue) {
   return "";
 }
 
+// Update password reset notice.
 function updatePasswordResetNotice() {
   const notice = document.getElementById("passwordResetNotice");
   if (!notice) return;
@@ -34,6 +40,7 @@ function updatePasswordResetNotice() {
   }
 }
 
+// Set profile section.
 function setProfileSection() {
   const profileHeroName = document.getElementById("profileHeroName");
   const profileHeroTitle = document.getElementById("profileHeroTitle");
@@ -75,6 +82,7 @@ function setProfileSection() {
   updatePasswordResetNotice();
 }
 
+// Initialize profile security.
 function initializeProfileSecurity() {
   const form = document.getElementById("changePasswordForm");
   const messageElement = document.getElementById("changePasswordMessage");
@@ -89,6 +97,7 @@ function initializeProfileSecurity() {
     return;
   }
 
+  // Render password hints.
   function renderPasswordHints() {
     const newPassword = newPasswordInput.value || "";
     const confirmPassword = confirmPasswordInput.value || "";

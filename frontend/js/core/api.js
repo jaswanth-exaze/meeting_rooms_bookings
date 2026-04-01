@@ -1,5 +1,9 @@
+// Centralize frontend API requests and endpoint builders.
+
+// Define shared constants and configuration used by this module.
 const API_BASE_URL = window.APP_CONFIG?.API_BASE_URL || "http://localhost:4000/api";
 
+// Send an API request and normalize JSON and error handling.
 async function apiFetch(path, options = {}) {
   const { skipAuth = false, ...fetchOptions } = options;
   const headers = { ...(fetchOptions.headers || {}) };
@@ -35,6 +39,7 @@ async function apiFetch(path, options = {}) {
   return data;
 }
 
+// Ensure authenticated session.
 async function ensureAuthenticatedSession() {
   try {
     const data = await apiFetch("/auth/me", { skipAuth: true });
@@ -54,6 +59,7 @@ async function ensureAuthenticatedSession() {
   }
 }
 
+// Clear auth and logout.
 async function clearAuthAndLogout() {
   try {
     await apiFetch("/auth/logout", { method: "POST", skipAuth: true });
@@ -64,6 +70,7 @@ async function clearAuthAndLogout() {
   window.location.href = "../home.html";
 }
 
+// Build the upcoming bookings endpoint URL.
 function buildUpcomingUrl({ limit = 20, ownOnly = false, includeAll = false } = {}) {
   const params = new URLSearchParams();
   params.set("limit", String(limit));
@@ -80,6 +87,7 @@ function buildUpcomingUrl({ limit = 20, ownOnly = false, includeAll = false } = 
   return `/bookings/upcoming?${params.toString()}`;
 }
 
+// Build the current user's bookings endpoint URL.
 function buildMyBookingsUrl(limit = 30) {
   const params = new URLSearchParams();
   params.set("limit", String(limit));
