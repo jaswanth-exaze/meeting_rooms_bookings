@@ -50,10 +50,10 @@ backend/
 3. Set explicit `CORS_ORIGIN` values (comma-separated). Wildcard `*` is not allowed.
 
 ## Database
-1. Import base schema: `database/database1.sql`.
-2. Run migrations in order, including:
-   - `database/migrations/2026-02-28-booking-description-and-employee-gender.sql`
-   - `database/migrations/2026-03-04-security-hardening-and-booking-audit.sql`
+1. Fresh setup from repo root: `mysql -u root -p < database/database-full-setup.sql`
+2. Legacy/manual setup:
+   - Import base schema: `database/database1.sql`
+   - Run migrations in order from `database/migrations/`
 3. `database1.sql` keeps employee passwords redacted for repo safety. Set real bcrypt password hashes before first login.
 
 ## Run
